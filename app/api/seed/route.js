@@ -5,11 +5,13 @@ import { categories as SEED_CATS } from '@/lib/mock/categories';
 
 export const runtime = 'nodejs';
 
-const adminClient = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL,
-  process.env.SUPABASE_SERVICE_ROLE_KEY,
-  { auth: { autoRefreshToken: false, persistSession: false } }
-);
+function getAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
 
 export async function POST(req) {
   const { secret } = await req.json().catch(() => ({}));
@@ -17,33 +19,31 @@ export async function POST(req) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
   }
 
+  const admin = getAdminClient();
   const results = {};
 
   // ── CEO user ────────────────────────────────────────────────────────────────
   try {
-    const existing = await adminClient.auth.admin.listUsers();
-    const ceoExists = existing.data?.users?.some((u) => u.email === 'ceo@wildlife.local');
+    const { data: existing } = await admin.auth.admin.listUsers();
+    const ceoAuth = existing?.users?.find((u) => u.email === 'ceo@wildlife.local');
 
-    if (!ceoExists) {
-      const { data: ceoUser, error } = await adminClient.auth.admin.createUser({
+    if (!ceoAuth) {
+      const { data: created, error } = await admin.auth.admin.createUser({
         email: 'ceo@wildlife.local',
         password: 'wildlife',
         email_confirm: true,
         user_metadata: { role: 'ceo' },
       });
       if (error) throw error;
-
-      await adminClient.from('profiles').upsert({
-        id: ceoUser.user.id,
+      await admin.from('profiles').upsert({
+        id: created.user.id,
         email: 'ceo@wildlife.local',
         name: 'CEO',
         role: 'ceo',
       });
       results.ceo = 'created';
     } else {
-      // Ensure CEO profile has correct role
-      const ceoAuth = existing.data.users.find((u) => u.email === 'ceo@wildlife.local');
-      await adminClient.from('profiles').upsert({
+      await admin.from('profiles').upsert({
         id: ceoAuth.id,
         email: 'ceo@wildlife.local',
         name: 'CEO',
@@ -57,13 +57,14 @@ export async function POST(req) {
 
   // ── Posts ────────────────────────────────────────────────────────────────────
   try {
-    const dbPosts = SEED_POSTS.map(({ coverPalette, iucnStatus, createdAt, ...rest }) => ({
+    const dbPosts = SEED_POSTS.map(({ coverPalette, iucnStatus, createdAt, authorId, ...rest }) => ({
       ...rest,
       cover_palette: coverPalette || { from: '#0c4a1a', via: '#3aa15a', to: '#d4af37' },
-      iucn_status: iucnStatus || null,
-      created_at: createdAt || new Date().toISOString(),
+      iucn_status:   iucnStatus   || null,
+      created_at:    createdAt    || new Date().toISOString(),
+      author_id:     authorId     || null,
     }));
-    const { error } = await adminClient.from('posts').upsert(dbPosts, { onConflict: 'slug' });
+    const { error } = await admin.from('posts').upsert(dbPosts, { onConflict: 'slug' });
     if (error) throw error;
     results.posts = `${dbPosts.length} upserted`;
   } catch (err) {
@@ -76,7 +77,7 @@ export async function POST(req) {
       ...rest,
       created_at: createdAt || new Date().toISOString(),
     }));
-    const { error } = await adminClient.from('heroes').upsert(dbHeroes, { onConflict: 'id' });
+    const { error } = await admin.from('heroes').upsert(dbHeroes, { onConflict: 'id' });
     if (error) throw error;
     results.heroes = `${dbHeroes.length} upserted`;
   } catch (err) {
@@ -85,7 +86,7 @@ export async function POST(req) {
 
   // ── Categories ───────────────────────────────────────────────────────────────
   try {
-    const { error } = await adminClient.from('categories').upsert(
+    const { error } = await admin.from('categories').upsert(
       SEED_CATS.map(({ slug, name, labels }) => ({ slug, name, labels })),
       { onConflict: 'slug' }
     );
