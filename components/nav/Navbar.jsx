@@ -37,11 +37,10 @@ export function Navbar() {
   const closeTimer = useRef(null);
 
   useEffect(() => {
-    /* sync categories from localStorage on mount and on every storage mutation */
-    setEnrichedNav(buildEnrichedNav(categoriesDb.list()));
-    const onUpdate = () => setEnrichedNav(buildEnrichedNav(categoriesDb.list()));
-    window.addEventListener('wu:storage-changed', onUpdate);
-    return () => window.removeEventListener('wu:storage-changed', onUpdate);
+    const refresh = () => categoriesDb.list().then((cats) => setEnrichedNav(buildEnrichedNav(cats)));
+    refresh();
+    window.addEventListener('wu:storage-changed', refresh);
+    return () => window.removeEventListener('wu:storage-changed', refresh);
   }, []);
 
   useEffect(() => {

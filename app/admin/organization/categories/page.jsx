@@ -6,24 +6,25 @@ import { Plus, Trash2 } from 'lucide-react';
 const ICONS = { animals: '🦁', plants: '🌿', birds: '🐦', insects: '🦋', posts: '📝' };
 
 export default function AdminCategoriesPage() {
-  const [cats, setCats]       = useState(() => categoriesDb.list());
+  const [cats, setCats]       = useState([]);
   const [newName, setNewName] = useState('');
 
   useEffect(() => {
-    const onUpdate = () => setCats(categoriesDb.list());
-    window.addEventListener('wu:storage-changed', onUpdate);
-    return () => window.removeEventListener('wu:storage-changed', onUpdate);
+    const refresh = () => categoriesDb.list().then(setCats);
+    refresh();
+    window.addEventListener('wu:storage-changed', refresh);
+    return () => window.removeEventListener('wu:storage-changed', refresh);
   }, []);
 
-  const add = () => {
+  const add = async () => {
     if (!newName.trim()) return;
-    categoriesDb.add(newName.trim());
+    await categoriesDb.add(newName.trim());
     setNewName('');
   };
 
-  const remove = (slug) => {
+  const remove = async (slug) => {
     if (!confirm(`Remove "${slug}" category?`)) return;
-    categoriesDb.remove(slug);
+    await categoriesDb.remove(slug);
   };
 
   return (
