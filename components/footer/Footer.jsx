@@ -402,7 +402,7 @@ export function Footer() {
             &copy; {year} Wildlife Universe. All rights reserved.
           </p>
           <Link
-            href="/login?next=/admin"
+            href="/staff-login"
             style={{
               display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
               border: '1px solid rgba(255,255,255,0.1)', background: 'rgba(255,255,255,0.04)',

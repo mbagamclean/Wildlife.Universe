@@ -29,11 +29,17 @@ export async function middleware(request) {
   const { data: { user } } = await supabase.auth.getUser();
   const { pathname } = request.nextUrl;
 
+  // If an authenticated user hits /staff-login, send them straight to /admin
+  if (pathname === '/staff-login' && user) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/admin';
+    return NextResponse.redirect(url);
+  }
+
   // Redirect unauthenticated users away from /admin/*
   if (pathname.startsWith('/admin') && !user) {
     const url = request.nextUrl.clone();
-    url.pathname = '/login';
-    url.searchParams.set('next', pathname);
+    url.pathname = '/staff-login';
     return NextResponse.redirect(url);
   }
 
