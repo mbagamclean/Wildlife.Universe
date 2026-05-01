@@ -11,8 +11,15 @@ async function fetchProfile(supabaseUser) {
   const supabase = createClient();
   const { data } = await supabase.from('profiles').select('*').eq('id', supabaseUser.id).maybeSingle();
   if (!data) return null;
-  const { first_name, last_name, avatar_id, created_at, ...rest } = data;
-  return { ...rest, firstName: first_name, lastName: last_name, avatarId: avatar_id, createdAt: created_at };
+  const { first_name, last_name, avatar_id, created_at, password_reset_required, ...rest } = data;
+  return {
+    ...rest,
+    firstName: first_name,
+    lastName: last_name,
+    avatarId: avatar_id,
+    createdAt: created_at,
+    passwordResetRequired: password_reset_required ?? false,
+  };
 }
 
 export function AuthProvider({ children }) {

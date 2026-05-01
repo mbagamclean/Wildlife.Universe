@@ -5,16 +5,15 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { OAuthButtons } from './OAuthButtons';
-import { CEO_EMAIL, CEO_PASSWORD } from '@/lib/auth/ceo';
 
 export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get('next') || '/profile';
   const { signIn } = useAuth();
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
+  const [email, setEmail]         = useState('');
+  const [password, setPassword]   = useState('');
+  const [error, setError]         = useState('');
   const [submitting, setSubmitting] = useState(false);
 
   const submit = async (e) => {
@@ -22,18 +21,14 @@ export function LoginForm() {
     setError('');
     setSubmitting(true);
     try {
-      await signIn(email, password);
-      router.push(next);
+      const profile = await signIn(email, password);
+      // First-time CEO login — force password setup before anything else
+      router.push(profile?.passwordResetRequired ? '/admin/set-password' : next);
     } catch (err) {
       setError(err.message || 'Sign in failed.');
     } finally {
       setSubmitting(false);
     }
-  };
-
-  const fillCeo = () => {
-    setEmail(CEO_EMAIL);
-    setPassword(CEO_PASSWORD);
   };
 
   return (
@@ -84,14 +79,6 @@ export function LoginForm() {
           className="w-full rounded-full bg-[var(--color-primary)] px-6 py-3 text-sm font-medium text-white shadow-lg shadow-[var(--color-primary)]/30 transition-all hover:scale-[1.02] hover:bg-[var(--color-primary-deep)] disabled:opacity-60"
         >
           {submitting ? 'Signing in…' : 'Sign in'}
-        </button>
-
-        <button
-          type="button"
-          onClick={fillCeo}
-          className="w-full rounded-xl border border-dashed border-[var(--color-gold)]/40 bg-[var(--color-gold)]/8 px-4 py-2.5 text-xs font-medium text-[var(--color-fg-soft)] transition-colors hover:bg-[var(--color-gold)]/15"
-        >
-          Demo: prefill CEO credentials ({CEO_EMAIL})
         </button>
 
         <div className="flex items-center gap-3 py-1">

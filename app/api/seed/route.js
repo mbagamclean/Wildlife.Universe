@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
+import { randomBytes } from 'crypto';
 import { SEED_POSTS, SEED_HEROES } from '@/lib/storage/seed';
 import { categories as SEED_CATS } from '@/lib/mock/categories';
 
 export const runtime = 'nodejs';
+
+const CEO_EMAIL = 'mclean@wildlifeuniverse.org';
 
 function getAdminClient() {
   return createClient(
@@ -25,28 +28,36 @@ export async function POST(req) {
   // ── CEO user ────────────────────────────────────────────────────────────────
   try {
     const { data: existing } = await admin.auth.admin.listUsers();
-    const ceoAuth = existing?.users?.find((u) => u.email === 'ceo@wildlife.local');
+    const ceoAuth = existing?.users?.find((u) => u.email === CEO_EMAIL);
 
     if (!ceoAuth) {
+      // Generate a cryptographically random one-time temp password.
+      // It is shown ONCE in this response — save it immediately.
+      const tempPassword = randomBytes(16).toString('hex');
+
       const { data: created, error } = await admin.auth.admin.createUser({
-        email: 'ceo@wildlife.local',
-        password: 'wildlife',
+        email: CEO_EMAIL,
+        password: tempPassword,
         email_confirm: true,
         user_metadata: { role: 'ceo' },
       });
       if (error) throw error;
+
       await admin.from('profiles').upsert({
         id: created.user.id,
-        email: 'ceo@wildlife.local',
-        name: 'CEO',
+        email: CEO_EMAIL,
+        name: 'Mclean',
         role: 'ceo',
+        password_reset_required: true,
       });
+
       results.ceo = 'created';
+      results.ceo_temp_password = tempPassword; // shown once — copy it now
     } else {
       await admin.from('profiles').upsert({
         id: ceoAuth.id,
-        email: 'ceo@wildlife.local',
-        name: 'CEO',
+        email: CEO_EMAIL,
+        name: 'Mclean',
         role: 'ceo',
       });
       results.ceo = 'already_exists';

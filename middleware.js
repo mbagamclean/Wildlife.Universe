@@ -25,8 +25,17 @@ export async function middleware(request) {
     }
   );
 
-  // Refresh session — do not remove this call
-  await supabase.auth.getUser();
+  // Refresh session — must happen before any redirect logic
+  const { data: { user } } = await supabase.auth.getUser();
+  const { pathname } = request.nextUrl;
+
+  // Redirect unauthenticated users away from /admin/*
+  if (pathname.startsWith('/admin') && !user) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    url.searchParams.set('next', pathname);
+    return NextResponse.redirect(url);
+  }
 
   return supabaseResponse;
 }
