@@ -1,34 +1,35 @@
 'use client';
 import { useEffect, useState } from 'react';
-import { db } from '@/lib/storage/db';
+import { createClient } from '@/lib/supabase/client';
 import { Trash2, User } from 'lucide-react';
 
 export default function AdminCommentsPage() {
-  const [items, setItems] = useState([]);
+  const [items, setItems]   = useState([]);
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
-    db.posts.list().then((posts) => {
-      const all = [];
-      posts.forEach((p) => {
-        try {
-          const c = JSON.parse(localStorage.getItem(`wu_comments_${p.slug}`) || '[]');
-          c.forEach((comment) => all.push({ ...comment, postTitle: p.title, postSlug: p.slug }));
-        } catch { /* ignore */ }
+    const supabase = createClient();
+    supabase
+      .from('comments')
+      .select('*, posts(title)')
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setItems(
+          (data || []).map(({ created_at, post_slug, posts: postRef, ...rest }) => ({
+            ...rest,
+            postSlug: post_slug,
+            postTitle: postRef?.title || post_slug,
+            createdAt: created_at,
+          }))
+        );
+        setLoaded(true);
       });
-      all.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      setItems(all);
-      setLoaded(true);
-    });
   }, []);
 
-  const remove = (postSlug, id) => {
-    try {
-      const existing = JSON.parse(localStorage.getItem(`wu_comments_${postSlug}`) || '[]');
-      const next = existing.filter((c) => c.id !== id);
-      localStorage.setItem(`wu_comments_${postSlug}`, JSON.stringify(next));
-      setItems((prev) => prev.filter((c) => !(c.id === id && c.postSlug === postSlug)));
-    } catch { /* ignore */ }
+  const remove = async (id) => {
+    const supabase = createClient();
+    await supabase.from('comments').delete().eq('id', id);
+    setItems((prev) => prev.filter((c) => c.id !== id));
   };
 
   return (
@@ -43,6 +44,7 @@ export default function AdminCommentsPage() {
         </h1>
         <p className="mt-1 text-sm" style={{ color: 'var(--adm-text-muted)' }}>Review and moderate all reader comments.</p>
       </div>
+
       {!loaded ? (
         <p className="text-sm" style={{ color: 'var(--adm-text-subtle)' }}>Loading…</p>
       ) : items.length === 0 ? (
@@ -56,7 +58,7 @@ export default function AdminCommentsPage() {
         <div className="flex flex-col gap-3">
           {items.map((c) => (
             <div
-              key={`${c.postSlug}-${c.id}`}
+              key={c.id}
               className="rounded-2xl p-4"
               style={{ background: 'var(--adm-surface)', boxShadow: 'var(--adm-shadow)', border: '1px solid var(--adm-border)' }}
             >
@@ -65,11 +67,11 @@ export default function AdminCommentsPage() {
                   <User className="h-3.5 w-3.5" style={{ color: 'var(--adm-text-muted)' }} />
                 </div>
                 <span className="text-[13px] font-semibold" style={{ color: 'var(--adm-text)' }}>{c.author}</span>
+                {c.flagged && (
+                  <span className="rounded-full bg-yellow-100 px-2 py-0.5 text-[10px] font-bold text-yellow-700">Flagged</span>
+                )}
                 <span className="ml-auto text-[11px]" style={{ color: 'var(--adm-text-subtle)' }}>{new Date(c.createdAt).toLocaleDateString()}</span>
-                <button
-                  onClick={() => remove(c.postSlug, c.id)}
-                  className="text-[#ccc] hover:text-red-400 transition-colors"
-                >
+                <button onClick={() => remove(c.id)} className="text-[#ccc] hover:text-red-400 transition-colors">
                   <Trash2 className="h-4 w-4" />
                 </button>
               </div>

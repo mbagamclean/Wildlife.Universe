@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { MessageCircle, Send, User, Smile } from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
 
 const SPAM_PATTERNS = [
   /\b(https?:\/\/|www\.)\S+/gi,
@@ -20,34 +21,49 @@ const REACTIONS = [
   { key: 'angry', emoji: '😡',  label: 'Angry' },
 ];
 
-function loadData(slug) {
+function loadReaction(slug) {
   try {
     return JSON.parse(localStorage.getItem(`wu_reactions_${slug}`) || 'null') || { picked: null, counts: {} };
   } catch { return { picked: null, counts: {} }; }
 }
-function saveData(slug, data) {
+function saveReaction(slug, data) {
   try { localStorage.setItem(`wu_reactions_${slug}`, JSON.stringify(data)); } catch { /* ignore */ }
 }
-function loadComments(slug) {
-  try { return JSON.parse(localStorage.getItem(`wu_comments_${slug}`) || '[]'); } catch { return []; }
-}
-function saveComments(slug, comments) {
-  try { localStorage.setItem(`wu_comments_${slug}`, JSON.stringify(comments)); } catch { /* ignore */ }
-}
+
+const isSpam = (text) => SPAM_PATTERNS.some((re) => { re.lastIndex = 0; return re.test(text); });
 
 export function ArticleReactions({ slug }) {
   const [picked, setPicked]           = useState(null);
   const [counts, setCounts]           = useState({});
   const [comments, setComments]       = useState([]);
+  const [commentsLoaded, setCommentsLoaded] = useState(false);
   const [anonName, setAnonName]       = useState('');
   const [anonBody, setAnonBody]       = useState('');
   const [spamWarning, setSpamWarning] = useState('');
+  const [submitting, setSubmitting]   = useState(false);
 
+  // Load reactions from localStorage (per-device)
   useEffect(() => {
-    const d = loadData(slug);
+    const d = loadReaction(slug);
     setPicked(d.picked);
     setCounts(d.counts);
-    setComments(loadComments(slug));
+  }, [slug]);
+
+  // Load comments from Supabase
+  useEffect(() => {
+    const supabase = createClient();
+    supabase
+      .from('comments')
+      .select('*')
+      .eq('post_slug', slug)
+      .eq('flagged', false)
+      .order('created_at', { ascending: false })
+      .then(({ data }) => {
+        setComments(
+          (data || []).map(({ created_at, ...rest }) => ({ ...rest, createdAt: created_at }))
+        );
+        setCommentsLoaded(true);
+      });
   }, [slug]);
 
   const react = (key) => {
@@ -57,42 +73,51 @@ export function ArticleReactions({ slug }) {
     if (next)   nextCounts[next]   = (nextCounts[next] || 0) + 1;
     setPicked(next);
     setCounts(nextCounts);
-    saveData(slug, { picked: next, counts: nextCounts });
+    saveReaction(slug, { picked: next, counts: nextCounts });
   };
 
-  const isSpam = (text) => SPAM_PATTERNS.some((re) => { re.lastIndex = 0; return re.test(text); });
-
-  const submitComment = () => {
+  const submitComment = async () => {
     const body = anonBody.trim();
-    if (!body) return;
+    if (!body || submitting) return;
     setSpamWarning('');
+    setSubmitting(true);
+
+    const supabase = createClient();
 
     if (isSpam(body)) {
-      try {
-        const pending = JSON.parse(localStorage.getItem(`wu_pending_${slug}`) || '[]');
-        pending.push({ id: Date.now(), author: anonName.trim() || 'Anonymous', body, createdAt: new Date().toISOString(), flagged: true });
-        localStorage.setItem(`wu_pending_${slug}`, JSON.stringify(pending));
-      } catch { /* ignore */ }
+      await supabase.from('comments').insert({
+        post_slug: slug,
+        author: anonName.trim() || 'Anonymous',
+        body,
+        flagged: true,
+      });
       setSpamWarning('Your comment has been flagged for review and will appear after approval.');
       setAnonName('');
       setAnonBody('');
+      setSubmitting(false);
       return;
     }
 
-    const comment = { id: Date.now(), author: anonName.trim() || 'Anonymous', body, createdAt: new Date().toISOString() };
-    const next = [comment, ...comments];
-    setComments(next);
-    saveComments(slug, next);
+    const { data, error } = await supabase
+      .from('comments')
+      .insert({ post_slug: slug, author: anonName.trim() || 'Anonymous', body, flagged: false })
+      .select()
+      .single();
+
+    if (!error && data) {
+      const { created_at, ...rest } = data;
+      setComments((prev) => [{ ...rest, createdAt: created_at }, ...prev]);
+    }
     setAnonName('');
     setAnonBody('');
+    setSubmitting(false);
   };
 
   return (
     <div className="flex flex-col gap-4">
 
-      {/* ── Reactions ── green accent, green hover ── */}
+      {/* ── Reactions ── */}
       <div className="overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--color-bg-deep)] transition-all duration-300 hover:border-[#008000]/30 hover:shadow-[0_8px_28px_rgba(0,128,0,0.08),0_2px_8px_rgba(0,128,0,0.05)]">
-        {/* green top stripe + header */}
         <div className="border-b border-[var(--glass-border)] border-t-[3px] border-t-[#008000] px-6 pt-5 pb-4">
           <div className="flex items-center gap-3">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#008000]/10 text-[#008000]">
@@ -104,7 +129,6 @@ export function ArticleReactions({ slug }) {
             </div>
           </div>
         </div>
-
         <div className="p-6">
           <div className="flex flex-wrap gap-3">
             {REACTIONS.map((r) => (
@@ -128,7 +152,6 @@ export function ArticleReactions({ slug }) {
               </button>
             ))}
           </div>
-
           <p className="mt-4 text-sm text-[var(--color-fg-soft)]">
             <Link href="/sign-in" className="font-semibold text-[#008000] hover:underline">Sign in</Link>
             {' '}to react to this article
@@ -136,9 +159,8 @@ export function ArticleReactions({ slug }) {
         </div>
       </div>
 
-      {/* ── Comments ── gold accent, gold hover ── */}
+      {/* ── Comments ── */}
       <div className="overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--color-bg-deep)] transition-all duration-300 hover:border-[#d4af37]/30 hover:shadow-[0_8px_28px_rgba(212,175,55,0.08),0_2px_8px_rgba(212,175,55,0.05)]">
-        {/* gold top stripe + header */}
         <div className="border-b border-[var(--glass-border)] border-t-[3px] border-t-[#d4af37] px-6 pt-5 pb-4">
           <div className="flex items-center gap-3">
             <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#d4af37]/10 text-[#d4af37]">
@@ -156,10 +178,8 @@ export function ArticleReactions({ slug }) {
             </div>
           </div>
         </div>
-
         <div className="p-6">
-          {/* Existing comments */}
-          {comments.length > 0 && (
+          {commentsLoaded && comments.length > 0 && (
             <div className="mb-6 flex flex-col gap-3">
               {comments.map((c) => (
                 <div key={c.id} className="rounded-xl border border-[var(--glass-border)] bg-[var(--color-bg)] p-4">
@@ -178,11 +198,10 @@ export function ArticleReactions({ slug }) {
             </div>
           )}
 
-          {comments.length === 0 && (
+          {commentsLoaded && comments.length === 0 && (
             <p className="mb-5 text-sm text-[var(--color-fg-soft)]">No comments yet — be the first to share your thoughts.</p>
           )}
 
-          {/* Leave a comment form */}
           <p className="mb-3 text-sm font-bold text-[var(--color-fg)]">Leave a comment</p>
           <div className="flex flex-col gap-3">
             <input
@@ -206,10 +225,11 @@ export function ArticleReactions({ slug }) {
             <div>
               <button
                 onClick={submitComment}
-                className="inline-flex items-center gap-2 rounded-xl bg-[#d4af37] px-5 py-2.5 text-sm font-semibold text-[#1a1208] transition-all duration-200 hover:bg-[#c9a227] hover:shadow-[0_4px_16px_rgba(212,175,55,0.30)] active:scale-[0.97]"
+                disabled={submitting}
+                className="inline-flex items-center gap-2 rounded-xl bg-[#d4af37] px-5 py-2.5 text-sm font-semibold text-[#1a1208] transition-all duration-200 hover:bg-[#c9a227] hover:shadow-[0_4px_16px_rgba(212,175,55,0.30)] active:scale-[0.97] disabled:opacity-60"
               >
                 <Send className="h-3.5 w-3.5" />
-                Post Comment
+                {submitting ? 'Posting…' : 'Post Comment'}
               </button>
             </div>
           </div>

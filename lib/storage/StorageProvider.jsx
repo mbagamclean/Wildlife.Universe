@@ -1,11 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
-import { db } from './db';
-
+// Supabase is always ready — no bootstrap needed
 export function StorageProvider({ children }) {
-  useEffect(() => {
-    db.bootstrap();
-  }, []);
   return children;
 }

@@ -1,41 +1,50 @@
 'use client';
 
 import { createContext, useCallback, useContext, useEffect, useState } from 'react';
-import { getCurrentUser, signIn, signInWithOAuth, signOut, signUp, updateProfile } from './session';
+import { createClient } from '@/lib/supabase/client';
+import { signIn, signInWithOAuth, signOut, signUp, updateProfile } from './session';
 
 const AuthContext = createContext(null);
 
+async function fetchProfile(supabaseUser) {
+  if (!supabaseUser) return null;
+  const supabase = createClient();
+  const { data } = await supabase.from('profiles').select('*').eq('id', supabaseUser.id).maybeSingle();
+  if (!data) return null;
+  const { first_name, last_name, avatar_id, created_at, ...rest } = data;
+  return { ...rest, firstName: first_name, lastName: last_name, avatarId: avatar_id, createdAt: created_at };
+}
+
 export function AuthProvider({ children }) {
-  const [user, setUser] = useState(null);
+  const [user, setUser]       = useState(null);
   const [loading, setLoading] = useState(true);
 
   const refresh = useCallback(async () => {
-    const u = await getCurrentUser();
-    setUser(u);
+    const supabase = createClient();
+    const { data: { user: sbUser } } = await supabase.auth.getUser();
+    setUser(await fetchProfile(sbUser));
   }, []);
 
   useEffect(() => {
-    let cancelled = false;
-    (async () => {
-      const u = await getCurrentUser();
-      if (!cancelled) {
-        setUser(u);
-        setLoading(false);
-      }
-    })();
-    const onChange = () => refresh();
-    window.addEventListener('wu:auth-changed', onChange);
-    window.addEventListener('storage', onChange);
-    return () => {
-      cancelled = true;
-      window.removeEventListener('wu:auth-changed', onChange);
-      window.removeEventListener('storage', onChange);
-    };
-  }, [refresh]);
+    const supabase = createClient();
+
+    supabase.auth.getSession().then(async ({ data: { session } }) => {
+      setUser(await fetchProfile(session?.user ?? null));
+      setLoading(false);
+    });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      setUser(await fetchProfile(session?.user ?? null));
+      setLoading(false);
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
 
   const value = {
     user,
     loading,
+    refresh,
     signIn: async (email, password) => {
       const u = await signIn(email, password);
       setUser(u);
@@ -60,7 +69,6 @@ export function AuthProvider({ children }) {
       setUser(u);
       return u;
     },
-    refresh,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

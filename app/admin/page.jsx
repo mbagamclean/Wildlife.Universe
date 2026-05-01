@@ -7,6 +7,7 @@ import {
   TrendingUp, Plus, Globe, Settings, ArrowRight, Activity,
 } from 'lucide-react';
 import { db } from '@/lib/storage/db';
+import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthContext';
 
 function timeAgo(iso) {
@@ -16,16 +17,6 @@ function timeAgo(iso) {
   if (diff < 3600)  return `${Math.floor(diff / 60)}m ago`;
   if (diff < 86400) return `${Math.floor(diff / 3600)}h ago`;
   return `${Math.floor(diff / 86400)}d ago`;
-}
-
-function countAllComments(posts) {
-  if (typeof window === 'undefined') return 0;
-  return posts.reduce((sum, p) => {
-    try {
-      const c = JSON.parse(localStorage.getItem(`wu_comments_${p.slug}`) || '[]');
-      return sum + c.length;
-    } catch { return sum; }
-  }, 0);
 }
 
 const CARD_ACCENTS = ['#4a9b8e', '#008000', '#d4af37', '#6b9fdb', '#e06c9f', '#4caf50'];
@@ -80,9 +71,13 @@ export default function AdminDashboard() {
   const [comments, setComments] = useState(0);
 
   useEffect(() => {
-    db.posts.list().then((all) => {
-      setPosts(all);
-      setComments(countAllComments(all));
+    const supabase = createClient();
+    Promise.all([
+      db.posts.list(),
+      supabase.from('comments').select('*', { count: 'exact', head: true }),
+    ]).then(([allPosts, { count }]) => {
+      setPosts(allPosts);
+      setComments(count || 0);
       setLoaded(true);
     });
   }, []);
@@ -94,7 +89,6 @@ export default function AdminDashboard() {
 
   return (
     <div className="p-5 sm:p-8">
-      {/* Header */}
       <div className="mb-6 flex items-start justify-between">
         <div>
           <p className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#d4af37]">
@@ -119,7 +113,6 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Stats row 1 */}
       <div className="mb-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
         <StatCard label="Total Posts"  value={loaded ? posts.length : '—'} icon={FileText}     accent={CARD_ACCENTS[0]} href="/admin/content/posts" />
         <StatCard label="Published"    value={loaded ? published : '—'}    icon={CheckCircle2} accent={CARD_ACCENTS[1]} href="/admin/content/posts" />
@@ -127,7 +120,6 @@ export default function AdminDashboard() {
         <StatCard label="Total Views"  value={loaded ? totalViews.toLocaleString() : '—'} icon={Eye} accent={CARD_ACCENTS[3]} href="/admin/configuration/analytics" />
       </div>
 
-      {/* Stats row 2 */}
       <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-3">
         <StatCard label="Total Comments"  value={loaded ? comments : '—'} icon={MessageSquare} accent={CARD_ACCENTS[4]} href="/admin/content/comments" />
         <StatCard label="Est. Ad Revenue" value="$0.0000"                 icon={DollarSign}    accent={CARD_ACCENTS[5]} href="/admin/configuration/ad-management" />
@@ -148,7 +140,6 @@ export default function AdminDashboard() {
         </Link>
       </div>
 
-      {/* Quick Actions */}
       <div className="mb-6 rounded-2xl p-5" style={{ background: 'var(--adm-surface)', boxShadow: 'var(--adm-shadow)', border: '1px solid var(--adm-border)' }}>
         <p className="mb-4 flex items-center gap-2 text-sm font-bold" style={{ color: 'var(--adm-text)' }}>
           <span className="text-[#d4af37]">⚡</span> Quick Actions
@@ -161,10 +152,7 @@ export default function AdminDashboard() {
         </div>
       </div>
 
-      {/* Bottom two-column */}
       <div className="grid grid-cols-1 gap-4 lg:grid-cols-[1fr_320px]">
-
-        {/* Recent Posts */}
         <div className="rounded-2xl p-5" style={{ background: 'var(--adm-surface)', boxShadow: 'var(--adm-shadow)', border: '1px solid var(--adm-border)' }}>
           <div className="mb-4 flex items-center justify-between">
             <p className="flex items-center gap-2 text-sm font-bold" style={{ color: 'var(--adm-text)' }}>
@@ -210,7 +198,6 @@ export default function AdminDashboard() {
           )}
         </div>
 
-        {/* Recent Activity */}
         <div className="rounded-2xl p-5" style={{ background: 'var(--adm-surface)', boxShadow: 'var(--adm-shadow)', border: '1px solid var(--adm-border)' }}>
           <p className="mb-4 flex items-center gap-2 text-sm font-bold" style={{ color: 'var(--adm-text)' }}>
             <Activity className="h-4 w-4 text-[#d4af37]" />
@@ -223,9 +210,7 @@ export default function AdminDashboard() {
             <div className="flex flex-col gap-3">
               {recent.slice(0, 4).map((p) => (
                 <div key={p.id} className="flex gap-3">
-                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl"
-                    style={{ background: 'var(--adm-surface-2)' }}
-                  >
+                  <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--adm-surface-2)' }}>
                     <FileText className="h-3.5 w-3.5 text-[#d4af37]" />
                   </div>
                   <div className="min-w-0">
@@ -236,11 +221,8 @@ export default function AdminDashboard() {
                   </div>
                 </div>
               ))}
-
               <div className="flex gap-3">
-                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl"
-                  style={{ background: 'var(--adm-surface-2)' }}
-                >
+                <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-xl" style={{ background: 'var(--adm-surface-2)' }}>
                   <Settings className="h-3.5 w-3.5 text-[#008000]" />
                 </div>
                 <div>

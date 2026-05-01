@@ -9,9 +9,15 @@ const nextConfig = {
   outputFileTracingRoot: __dirname,
   images: {
     formats: ['image/avif', 'image/webp'],
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'msnllkjvhxzfoedgecva.supabase.co',
+        pathname: '/storage/v1/object/public/**',
+      },
+    ],
   },
-  // Prevent Node-only packages from being bundled by webpack into client chunks
-  serverExternalPackages: ['sharp', 'fluent-ffmpeg'],
+  serverExternalPackages: ['sharp'],
 };
 
 export default nextConfig;
