@@ -6,21 +6,22 @@
   --color-primary-soft: #4a9b4a;
   --color-gold: #d4af37;
   --color-gold-soft: #e6c869;
-  --color-bg: #f7f9f5;
+  --color-bg: #f5f5f5;
   --color-bg-deep: #ffffff;
-  --color-fg: #0a0f0a;
-  --color-fg-soft: #3a4438;
+  --color-fg: #111827;
+  --color-fg-soft: #4b5563;
 
-  --font-display: var(--font-playfair), Georgia, serif;
+  --font-display: var(--font-inter), system-ui, sans-serif;
   --font-body: var(--font-inter), system-ui, sans-serif;
 
   --ease-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 :root {
-  --glass-bg: rgba(255, 255, 255, 0.55);
-  --glass-border: rgba(0, 128, 0, 0.12);
-  --glass-blur: 16px;
+  --glass-bg: rgba(255, 255, 255, 0.82);
+  --glass-border: rgba(0, 0, 0, 0.08);
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.06), 0 1px 3px rgba(0, 0, 0, 0.04);
+  --glass-blur: 20px;
   color-scheme: light;
 }
 
@@ -31,6 +32,7 @@
   --color-fg-soft: #b8c2b3;
   --glass-bg: rgba(10, 15, 10, 0.55);
   --glass-border: rgba(212, 175, 55, 0.18);
+  --glass-shadow: 0 4px 24px rgba(0, 0, 0, 0.35), 0 1px 3px rgba(0, 0, 0, 0.2);
   color-scheme: dark;
 }
 
@@ -78,43 +80,320 @@ button {
 
 .glass {
   background: var(--glass-bg);
-  backdrop-filter: blur(var(--glass-blur)) saturate(140%);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(140%);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(150%);
+  backdrop-filter: blur(var(--glass-blur)) saturate(150%);
   border: 1px solid var(--glass-border);
+  box-shadow: var(--glass-shadow);
 }
 
 .text-balance {
   text-wrap: balance;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }
 
+/*
+  Hero bottom-fade gradient — dissolves image/video into the page background.
+  Uses var(--color-bg) so it auto-adapts to light / dark theme toggle.
+  The @media block ensures it also follows device/system preference
+  when no explicit theme class has been applied.
+*/
 .gradient-fade-down {
+  /* Light mode: start from whitesmoke-at-zero so alpha blends cleanly — no dark banding */
   background: linear-gradient(
     to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.15) 35%,
-    rgba(0, 0, 0, 0.55) 70%,
+    rgba(245, 245, 245, 0) 0%,
+    rgba(245, 245, 245, 0) 12%,
+    rgba(245, 245, 245, 0.28) 38%,
+    rgba(245, 245, 245, 0.70) 60%,
+    rgba(245, 245, 245, 0.94) 78%,
+    var(--color-bg) 90%,
     var(--color-bg) 100%
   );
+  transition: background 0.4s ease;
 }
 
+/* Dark mode: start from dark-color-at-zero — same principle, no banding */
+[data-theme="dark"] .gradient-fade-down,
 .dark .gradient-fade-down {
   background: linear-gradient(
     to bottom,
-    transparent 0%,
-    rgba(0, 0, 0, 0.3) 35%,
-    rgba(0, 0, 0, 0.75) 70%,
+    rgba(10, 15, 10, 0) 0%,
+    rgba(10, 15, 10, 0) 12%,
+    rgba(10, 15, 10, 0.28) 38%,
+    rgba(10, 15, 10, 0.70) 60%,
+    rgba(10, 15, 10, 0.94) 78%,
+    var(--color-bg) 90%,
     var(--color-bg) 100%
   );
 }
 
+/* System dark preference — only when user hasn't explicitly chosen light */
+@media (prefers-color-scheme: dark) {
+  html:not(.light) .gradient-fade-down {
+    background: linear-gradient(
+      to bottom,
+      rgba(10, 15, 10, 0) 0%,
+      rgba(10, 15, 10, 0) 12%,
+      rgba(10, 15, 10, 0.28) 38%,
+      rgba(10, 15, 10, 0.70) 60%,
+      rgba(10, 15, 10, 0.94) 78%,
+      var(--color-bg) 90%,
+      var(--color-bg) 100%
+    );
+  }
+}
+
+/* Light mode: pure whitesmoke fade — rgba(245,245,245,0) at top so no dark banding */
 .dark-overlay {
   background: linear-gradient(
     to bottom,
-    rgba(0, 0, 0, 0.15) 0%,
-    rgba(0, 0, 0, 0.35) 60%,
-    rgba(0, 0, 0, 0.65) 100%
+    rgba(245, 245, 245, 0) 0%,
+    rgba(245, 245, 245, 0) 35%,
+    rgba(245, 245, 245, 0.15) 55%,
+    rgba(245, 245, 245, 0.55) 75%,
+    rgba(245, 245, 245, 0.85) 100%
   );
 }
+
+/* Dark mode: strong dark scrim for white text legibility */
+[data-theme="dark"] .dark-overlay,
+.dark .dark-overlay {
+  background: linear-gradient(
+    to bottom,
+    rgba(0, 0, 0, 0.08) 0%,
+    rgba(0, 0, 0, 0.22) 45%,
+    rgba(0, 0, 0, 0.52) 100%
+  );
+}
+
+/* System dark preference — only when user hasn't explicitly chosen light */
+@media (prefers-color-scheme: dark) {
+  html:not(.light) .dark-overlay {
+    background: linear-gradient(
+      to bottom,
+      rgba(0, 0, 0, 0.08) 0%,
+      rgba(0, 0, 0, 0.22) 45%,
+      rgba(0, 0, 0, 0.52) 100%
+    );
+  }
+}
+
+/*
+  Hero text: adapts colour + text-shadow for light / dark / system preference.
+  Light mode → dark text with a soft light glow (readable on image AND on gradient).
+  Dark mode  → white text with a strong dark shadow.
+*/
+/* Hero text for sections whose background adapts to theme */
+.hero-text-title {
+  color: var(--color-fg);
+  text-shadow:
+    0 0 12px rgba(255, 255, 255, 0.55),
+    0 2px 6px rgba(255, 255, 255, 0.35);
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+/* Hero text for sections with a fixed-dark background (always white, no theme dependency) */
+.hero-on-dark {
+  color: #ffffff;
+  text-shadow: 0 4px 24px rgba(0, 0, 0, 0.70), 0 2px 8px rgba(0, 0, 0, 0.50);
+}
+.hero-sub-on-dark {
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 2px 10px rgba(0, 0, 0, 0.55);
+}
+
+[data-theme="dark"] .hero-text-title,
+.dark .hero-text-title {
+  color: #ffffff;
+  text-shadow:
+    0 4px 24px rgba(0, 0, 0, 0.65),
+    0 2px 8px rgba(0, 0, 0, 0.45);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light) .hero-text-title {
+    color: #ffffff;
+    text-shadow:
+      0 4px 24px rgba(0, 0, 0, 0.65),
+      0 2px 8px rgba(0, 0, 0, 0.45);
+  }
+}
+
+.hero-text-body {
+  color: var(--color-fg-soft);
+  text-shadow: 0 1px 4px rgba(255, 255, 255, 0.4);
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+}
+
+[data-theme="dark"] .hero-text-body,
+.dark .hero-text-body {
+  color: rgba(255, 255, 255, 0.85);
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+}
+
+@media (prefers-color-scheme: dark) {
+  html:not(.light) .hero-text-body {
+    color: rgba(255, 255, 255, 0.85);
+    text-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+  }
+}
+
+@keyframes wu-fadeUp {
+  from {
+    opacity: 0;
+    transform: translateY(22px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes wu-shimmer {
+  from { background-position: -200% center; }
+  to   { background-position:  200% center; }
+}
+
+.wu-skeleton {
+  background: linear-gradient(
+    90deg,
+    var(--glass-border) 25%,
+    rgba(0,128,0,0.06) 50%,
+    var(--glass-border) 75%
+  );
+  background-size: 200% 100%;
+  animation: wu-shimmer 1.6s ease-in-out infinite;
+}
+
+/* Hide scrollbar on horizontal carousels */
+.wu-no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.wu-no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* IUCN panel slide-down reveal */
+@keyframes wu-slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-14px) scaleY(0.97);
+    transform-origin: top center;
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scaleY(1);
+    transform-origin: top center;
+  }
+}
+
+/* Status button active glow pulse */
+@keyframes wu-glowPulse {
+  0%, 100% { opacity: 0.55; }
+  50%       { opacity: 1; }
+}
+
+/* Staggered card slide-in from left */
+@keyframes wu-slideInX {
+  from {
+    opacity: 0;
+    transform: translateX(-18px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes wu-cardClimb {
+  from { opacity: 1; transform: translateY(0); }
+  to   { opacity: 0; transform: translateY(-20px); }
+}
+
+@keyframes wu-rank1Climb {
+  from { opacity: 1; transform: translateY(0) translateX(0) scale(1); }
+  to   { opacity: 0; transform: translateY(-28px) translateX(-16px) scale(1.06); }
+}
+
+/* ─── Scroll Reveal System ───────────────────────────────────────────────── */
+
+/* Hidden state before element enters viewport */
+.wu-reveal-hidden {
+  opacity: 0;
+}
+
+/* Stagger items hidden until parent is revealed */
+.wu-scroll-reveal .wu-stagger-item {
+  opacity: 0;
+}
+
+/* ── Keyframes ── */
+@keyframes wu-reveal-fadeUp {
+  from { opacity: 0; transform: translateY(32px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes wu-reveal-slideLeft {
+  from { opacity: 0; transform: translateX(-64px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes wu-reveal-slideRight {
+  from { opacity: 0; transform: translateX(64px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes wu-reveal-zoomIn {
+  from { opacity: 0; transform: scale(0.88); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes wu-reveal-blurIn {
+  from { opacity: 0; filter: blur(12px); transform: scale(0.97); }
+  to   { opacity: 1; filter: blur(0px);  transform: scale(1); }
+}
+
+@keyframes wu-reveal-flipUp {
+  from { opacity: 0; transform: perspective(900px) rotateX(14deg) translateY(28px); }
+  to   { opacity: 1; transform: perspective(900px) rotateX(0deg)  translateY(0); }
+}
+
+@keyframes wu-reveal-riseScale {
+  from { opacity: 0; transform: scale(0.93) translateY(22px); }
+  to   { opacity: 1; transform: scale(1)    translateY(0); }
+}
+
+@keyframes wu-reveal-bounceUp {
+  0%   { opacity: 0; transform: translateY(44px); }
+  55%  { opacity: 1; transform: translateY(-10px); }
+  78%  { transform: translateY(5px); }
+  100% { opacity: 1; transform: translateY(0); }
+}
+
+/* ── Reveal classes (added by ScrollReveal when element enters viewport) ── */
+.wu-reveal-fadeUp   { animation: wu-reveal-fadeUp   0.70s var(--ease-cinematic) both; }
+.wu-reveal-slideLeft  { animation: wu-reveal-slideLeft  0.75s var(--ease-cinematic) both; }
+.wu-reveal-slideRight { animation: wu-reveal-slideRight 0.75s var(--ease-cinematic) both; }
+.wu-reveal-zoomIn   { animation: wu-reveal-zoomIn   0.65s var(--ease-cinematic) both; }
+.wu-reveal-blurIn   { animation: wu-reveal-blurIn   0.80s var(--ease-cinematic) both; }
+.wu-reveal-flipUp   { animation: wu-reveal-flipUp   0.75s var(--ease-cinematic) both; }
+.wu-reveal-riseScale  { animation: wu-reveal-riseScale  0.70s var(--ease-cinematic) both; }
+.wu-reveal-bounceUp { animation: wu-reveal-bounceUp 0.90s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* ── Stagger items animate in once parent is revealed ── */
+.wu-revealed .wu-stagger-item {
+  animation: wu-reveal-fadeUp 0.55s var(--ease-cinematic) both;
+}
+.wu-revealed .wu-stagger-item:nth-child(1) { animation-delay: 0ms; }
+.wu-revealed .wu-stagger-item:nth-child(2) { animation-delay: 80ms; }
+.wu-revealed .wu-stagger-item:nth-child(3) { animation-delay: 160ms; }
+.wu-revealed .wu-stagger-item:nth-child(4) { animation-delay: 240ms; }
+.wu-revealed .wu-stagger-item:nth-child(5) { animation-delay: 320ms; }
+.wu-revealed .wu-stagger-item:nth-child(6) { animation-delay: 400ms; }
+
+/* ── End Scroll Reveal System ─────────────────────────────────────────────── */
 
 @media (prefers-reduced-motion: reduce) {
   *,

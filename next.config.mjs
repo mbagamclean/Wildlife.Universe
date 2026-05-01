@@ -10,6 +10,8 @@ const nextConfig = {
   images: {
     formats: ['image/avif', 'image/webp'],
   },
+  // Prevent Node-only packages from being bundled by webpack into client chunks
+  serverExternalPackages: ['sharp', 'fluent-ffmpeg'],
 };
 
 export default nextConfig;

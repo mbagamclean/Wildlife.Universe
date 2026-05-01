@@ -1,23 +1,16 @@
-import { Container } from '@/components/ui/Container';
-import { GlassPanel } from '@/components/ui/GlassPanel';
+import { CategoryView } from '@/components/posts/CategoryView';
+import { categories } from '@/lib/mock/categories';
 
 export const metadata = { title: 'Birds' };
 
 export default function BirdsPage() {
+  const cat = categories.find((c) => c.slug === 'birds');
   return (
-    <section className="py-32">
-      <Container>
-        <GlassPanel className="mx-auto max-w-2xl p-12 text-center">
-          <p className="mb-3 text-xs font-medium uppercase tracking-widest text-[var(--color-primary)]">
-            Coming soon
-          </p>
-          <h1 className="font-display text-4xl font-black sm:text-5xl">Birds</h1>
-          <p className="mt-4 text-[var(--color-fg-soft)]">
-            Basal, waterfowl, coastal, raptors, land, song — this category opens
-            in the next round of the build.
-          </p>
-        </GlassPanel>
-      </Container>
-    </section>
+    <CategoryView
+      category="birds"
+      name={cat.name}
+      labels={cat.labels}
+      blurb="From sovereign skies to coastal flats — the architects of flight in their many forms."
+    />
   );
 }

@@ -1,12 +1,47 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Search, X } from 'lucide-react';
+import { Search, X, Folder, Tag, FileText } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import Link from 'next/link';
+import { db } from '@/lib/storage/db';
+import { categories, allLabels, labelSlug } from '@/lib/mock/categories';
+
+function resolveCoverSrc(cover) {
+  if (!cover) return null;
+  if (typeof cover === 'string') return cover;
+  const sources = cover.sources;
+  if (!sources?.length) return null;
+  return sources[sources.length - 1]?.src || null;
+}
 
 export function SearchToggle() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState('');
+  const [allPosts, setAllPosts] = useState([]);
+
+  useEffect(() => {
+    if (open && allPosts.length === 0) {
+      db.posts.list().then((posts) => setAllPosts(posts));
+    }
+  }, [open, allPosts.length]);
+
+  const results = query.length > 1 
+    ? allPosts.filter(p => 
+        (p.title || '').toLowerCase().includes(query.toLowerCase()) || 
+        (p.description || '').toLowerCase().includes(query.toLowerCase()) ||
+        (p.category || '').toLowerCase().includes(query.toLowerCase()) ||
+        (p.label || '').toLowerCase().includes(query.toLowerCase())
+      ).slice(0, 5)
+    : [];
+
+  const categoryResults = query.length > 1
+    ? categories.filter(c => c.name.toLowerCase().includes(query.toLowerCase())).slice(0, 3)
+    : [];
+
+  const labelResults = query.length > 1
+    ? allLabels.filter(l => l.label.toLowerCase().includes(query.toLowerCase())).slice(0, 4)
+    : [];
 
   useEffect(() => {
     const onKey = (e) => {
@@ -70,13 +105,101 @@ export function SearchToggle() {
                     <X className="h-4 w-4" />
                   </button>
                 </div>
-                <div className="border-t border-[var(--glass-border)] px-5 py-6 text-sm text-[var(--color-fg-soft)]">
-                  {query ? (
-                    <p>
-                      No results yet — search will be live in the next round.
-                    </p>
+                <div className="border-t border-[var(--glass-border)] px-5 py-6 text-sm text-[var(--color-fg-soft)] max-h-[60vh] overflow-y-auto wu-no-scrollbar">
+                  {query.length > 1 ? (
+                    (results.length > 0 || categoryResults.length > 0 || labelResults.length > 0) ? (
+                      <div className="flex flex-col gap-6">
+                        
+                        {/* Categories List */}
+                        {categoryResults.length > 0 && (
+                          <div className="flex flex-col gap-2">
+                            <span className="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--color-fg-soft)] opacity-60">
+                              Categories
+                            </span>
+                            {categoryResults.map((c) => (
+                              <Link 
+                                key={c.slug} 
+                                href={`/${c.slug}`}
+                                onClick={() => { setOpen(false); setQuery(''); }}
+                                className="group flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                              >
+                                <span className="flex items-center gap-2.5 font-bold text-[var(--color-primary)]">
+                                  <Folder className="h-4 w-4 opacity-80" /> {c.name} Content
+                                </span>
+                                <span className="text-xs uppercase tracking-wide opacity-50">View Category</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Labels List */}
+                        {labelResults.length > 0 && (
+                          <div className="flex flex-col gap-2">
+                            <span className="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--color-fg-soft)] opacity-60">
+                              Specific Labels
+                            </span>
+                            {labelResults.map((l) => (
+                              <Link 
+                                key={labelSlug(l.label) + l.slug} 
+                                href={`/${l.slug}/${labelSlug(l.label)}`}
+                                onClick={() => { setOpen(false); setQuery(''); }}
+                                className="group flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                              >
+                                <span className="flex items-center gap-2.5 font-bold text-[var(--color-fg)]">
+                                  <Tag className="h-4 w-4 opacity-70 text-[var(--color-primary)]" /> {l.label}
+                                </span>
+                                <span className="text-xs tracking-wide opacity-60">in {l.category}</span>
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Articles List */}
+                        <div className="flex flex-col gap-2">
+                          <span className="mb-1 text-xs font-semibold uppercase tracking-wider text-[var(--color-fg-soft)] opacity-60">
+                            Published Articles
+                          </span>
+                          {results.length > 0 ? results.map((post) => {
+                            const coverSrc = resolveCoverSrc(post.cover);
+                            const palette = post.coverPalette || { from: '#0c4a1a', via: '#3aa15a', to: '#d4af37' };
+                            return (
+                              <Link 
+                                key={post.id} 
+                                href={`/posts/${post.slug}`}
+                                onClick={() => { setOpen(false); setQuery(''); }}
+                                className="group flex items-center gap-3 rounded-xl p-3 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
+                              >
+                                {/* Thumbnail */}
+                                <div className="h-14 w-14 shrink-0 overflow-hidden rounded-lg shadow-sm" style={{ background: `linear-gradient(135deg, ${palette.from} 0%, ${palette.to} 100%)` }}>
+                                  {coverSrc && (
+                                    <img src={coverSrc} alt={post.title} className="h-full w-full object-cover" loading="lazy" />
+                                  )}
+                                </div>
+                                {/* Content info */}
+                                <div className="flex flex-col gap-1 min-w-0">
+                                  <span className="flex items-center gap-2 font-bold leading-tight text-[var(--color-fg)] transition-colors group-hover:text-[var(--color-primary)] truncate">
+                                    {post.title}
+                                  </span>
+                                  <span className="line-clamp-1 text-[12px] opacity-80 leading-snug">
+                                    {post.description}
+                                  </span>
+                                </div>
+                              </Link>
+                            )
+                          }) : (
+                            <div className="px-3 py-2 text-[13px] opacity-70">No exact article titles match "{query}".</div>
+                          )}
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="py-8 text-center">
+                        <p>No results found for "{query}".</p>
+                      </div>
+                    )
                   ) : (
-                    <p>Start typing to search across the platform.</p>
+                    <div className="py-8 text-center">
+                      <p>Start typing to search across the platform.</p>
+                    </div>
                   )}
                 </div>
               </div>

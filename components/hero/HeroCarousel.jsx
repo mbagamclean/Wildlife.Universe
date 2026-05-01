@@ -1,77 +1,28 @@
 'use client';
 
-import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { HeroSlide } from './HeroSlide';
 import { HeroControls } from './HeroControls';
+import { useHero } from './HeroContext';
+import { getEffect, EFFECT_NAMES } from './heroEffects';
 
-const AUTOPLAY_MS = 6000;
 const SWIPE_THRESHOLD = 60;
 
-export function HeroCarousel({ slides }) {
-  const [index, setIndex] = useState(0);
-  const [direction, setDirection] = useState(1);
-  const [playing, setPlaying] = useState(true);
-  const [hovered, setHovered] = useState(false);
-  const liveRef = useRef(null);
+export function HeroCarousel() {
+  const {
+    slides, index, direction,
+    next, prev, goTo,
+    playing, setPlaying,
+    liveRef, count,
+    transitionCount,
+    onVideoEnded,
+  } = useHero();
 
-  const count = slides.length;
-
-  const goTo = useCallback(
-    (next) => {
-      setDirection(next > index ? 1 : -1);
-      setIndex(((next % count) + count) % count);
-    },
-    [index, count]
-  );
-
-  const next = useCallback(() => {
-    setDirection(1);
-    setIndex((i) => (i + 1) % count);
-  }, [count]);
-
-  const prev = useCallback(() => {
-    setDirection(-1);
-    setIndex((i) => (i - 1 + count) % count);
-  }, [count]);
-
-  useEffect(() => {
-    if (!playing || hovered) return;
-    const id = window.setInterval(next, AUTOPLAY_MS);
-    return () => window.clearInterval(id);
-  }, [playing, hovered, next]);
-
-  useEffect(() => {
-    const onVis = () => setPlaying(!document.hidden);
-    document.addEventListener('visibilitychange', onVis);
-    return () => document.removeEventListener('visibilitychange', onVis);
-  }, []);
-
-  useEffect(() => {
-    const onKey = (e) => {
-      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
-      if (e.key === 'ArrowRight') next();
-      else if (e.key === 'ArrowLeft') prev();
-      else if (e.key === ' ' && e.target === document.body) {
-        e.preventDefault();
-        setPlaying((p) => !p);
-      }
-    };
-    window.addEventListener('keydown', onKey);
-    return () => window.removeEventListener('keydown', onKey);
-  }, [next, prev]);
-
-  useEffect(() => {
-    if (liveRef.current) {
-      liveRef.current.textContent = `Slide ${index + 1} of ${count}: ${slides[index].title}`;
-    }
-  }, [index, count, slides]);
-
-  const variants = {
-    enter: (dir) => ({ x: dir > 0 ? '100%' : '-100%', opacity: 0.6 }),
-    center: { x: 0, opacity: 1 },
-    exit: (dir) => ({ x: dir > 0 ? '-100%' : '100%', opacity: 0.6 }),
-  };
+  // Cycle through all 8 effects in strict 1→8 sequence, then repeat.
+  // transitionCount is incremented by every navigation source (Netflix arrows,
+  // autoplay, keyboard, drag) so the effect always advances correctly.
+  const effectName = EFFECT_NAMES[transitionCount % EFFECT_NAMES.length];
+  const effect = getEffect(effectName);
 
   return (
     <section
@@ -79,44 +30,16 @@ export function HeroCarousel({ slides }) {
       aria-roledescription="carousel"
       aria-label="Featured wildlife"
       className="group/hero relative h-[100svh] min-h-[600px] w-full overflow-hidden"
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
     >
-      <div
-        aria-hidden
-        className="absolute inset-y-0 left-0 z-10 hidden w-[8%] cursor-pointer opacity-50 transition-opacity hover:opacity-90 lg:block"
-        onClick={prev}
-      >
-        <div className="relative h-full w-full overflow-hidden">
-          <div className="absolute inset-0 origin-right scale-90">
-            <HeroSlide slide={slides[(index - 1 + count) % count]} isActive={false} />
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-r from-black/70 to-transparent" />
-        </div>
-      </div>
-      <div
-        aria-hidden
-        className="absolute inset-y-0 right-0 z-10 hidden w-[8%] cursor-pointer opacity-50 transition-opacity hover:opacity-90 lg:block"
-        onClick={next}
-      >
-        <div className="relative h-full w-full overflow-hidden">
-          <div className="absolute inset-0 origin-left scale-90">
-            <HeroSlide slide={slides[(index + 1) % count]} isActive={false} />
-          </div>
-          <div className="absolute inset-0 bg-gradient-to-l from-black/70 to-transparent" />
-        </div>
-      </div>
-
-      <div className="absolute inset-y-0 left-0 right-0 lg:left-[8%] lg:right-[8%]">
+      <div className="absolute inset-0">
         <AnimatePresence initial={false} custom={direction} mode="popLayout">
           <motion.div
             key={slides[index].id}
             custom={direction}
-            variants={variants}
+            variants={effect.variants}
             initial="enter"
             animate="center"
             exit="exit"
-            transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
             drag="x"
             dragConstraints={{ left: 0, right: 0 }}
             dragElastic={0.25}
@@ -126,15 +49,26 @@ export function HeroCarousel({ slides }) {
             }}
             className="absolute inset-0 cursor-grab active:cursor-grabbing"
           >
-            <HeroSlide slide={slides[index]} isActive />
+            <HeroSlide slide={slides[index]} isActive onVideoEnded={onVideoEnded} />
           </motion.div>
         </AnimatePresence>
-      </div>
 
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-x-0 bottom-0 z-10 h-1/4 gradient-fade-down"
-      />
+        {/* Warm golden burst — only rendered during the flash-cut effect */}
+        {effect.overlay && (
+          <motion.div
+            key={`flash-${transitionCount}`}
+            aria-hidden
+            className="pointer-events-none absolute inset-0 z-50"
+            style={{
+              background:
+                'radial-gradient(circle at 50% 40%, rgba(255,232,140,0.95) 0%, rgba(255,255,255,0.82) 50%, transparent 78%)',
+            }}
+            initial={{ opacity: 0.92 }}
+            animate={{ opacity: 0 }}
+            transition={{ duration: 0.55, ease: 'easeOut' }}
+          />
+        )}
+      </div>
 
       <HeroControls
         count={count}
