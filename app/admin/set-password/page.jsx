@@ -24,7 +24,7 @@ const STRENGTH_LABELS = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong
 
 export default function SetPasswordPage() {
   const router  = useRouter();
-  const { user, loading, refresh } = useAuth();
+  const { user, loading } = useAuth();
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm]   = useState('');
@@ -50,14 +50,20 @@ export default function SetPasswordPage() {
     setError('');
     try {
       const supabase = createClient();
-      const { error: pwErr } = await supabase.auth.updateUser({ password });
-      if (pwErr) throw pwErr;
+
+      // Clear the flag first — pure DB write, no auth lock involved.
       const { error: dbErr } = await supabase
         .from('profiles')
         .update({ password_reset_required: false })
         .eq('id', user.id);
       if (dbErr) throw dbErr;
-      await refresh();
+
+      // Change password — triggers onAuthStateChange which refreshes the
+      // profile automatically. Do NOT call refresh() here; doing so races
+      // with onAuthStateChange and causes the auth lock conflict.
+      const { error: pwErr } = await supabase.auth.updateUser({ password });
+      if (pwErr) throw pwErr;
+
       router.replace('/admin');
     } catch (err) {
       setError(err.message);
