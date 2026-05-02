@@ -102,7 +102,7 @@ export function AdminSidebar({ onClose }) {
       <nav className="flex-1 overflow-y-auto px-2 pb-2">
         {NAV.map(({ section, items }) => (
           <div key={section} className="mb-1">
-            <p className="px-2 pt-3 pb-1 text-[10px] font-bold uppercase tracking-widest" style={{ color: 'var(--adm-text-subtle)' }}>
+            <p className="px-2 pt-3 pb-1.5 text-[11px] font-bold uppercase tracking-widest" style={{ color: 'var(--adm-text-subtle)' }}>
               {section}
             </p>
             {items.map((item) => {
@@ -113,7 +113,7 @@ export function AdminSidebar({ onClose }) {
                   key={item.href}
                   href={item.href}
                   onClick={onClose}
-                  className="group flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13px] transition-all"
+                  className="group flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all"
                   style={
                     active
                       ? {
@@ -125,7 +125,6 @@ export function AdminSidebar({ onClose }) {
                         }
                       : {
                           borderLeft:  '3px solid transparent',
-                          fontWeight:  400,
                           color:       'var(--adm-text-muted)',
                         }
                   }
@@ -133,8 +132,8 @@ export function AdminSidebar({ onClose }) {
                   onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
                 >
                   <Icon
-                    className="h-[15px] w-[15px] flex-shrink-0"
-                    style={{ color: active ? '#d4af37' : 'var(--adm-text-subtle)' }}
+                    className="h-[17px] w-[17px] flex-shrink-0"
+                    style={{ color: active ? '#d4af37' : 'var(--adm-text-muted)' }}
                   />
                   <span className="truncate">{item.label}</span>
                 </Link>
@@ -153,8 +152,8 @@ export function AdminSidebar({ onClose }) {
             {initials}
           </div>
           <div className="min-w-0">
-            <p className="truncate text-[12px] font-bold" style={{ color: 'var(--adm-text)' }}>{displayName}</p>
-            <p className="text-[10px]" style={{ color: 'var(--adm-text-subtle)' }}>CEO</p>
+            <p className="truncate text-[13px] font-bold" style={{ color: 'var(--adm-text)' }}>{displayName}</p>
+            <p className="text-[11px] uppercase tracking-widest" style={{ color: 'var(--adm-text-subtle)' }}>{user?.role ?? 'staff'}</p>
           </div>
         </div>
 
