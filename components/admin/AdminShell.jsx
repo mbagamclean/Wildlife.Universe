@@ -67,7 +67,7 @@ export function AdminShell({ children }) {
 
           {/* Slide-in sidebar */}
           <div
-            className="absolute inset-y-0 left-0 z-40 w-[220px] shadow-2xl"
+            className="absolute inset-y-0 left-0 z-40 w-[270px] shadow-2xl"
             style={{
               background: 'var(--adm-surface)',
               borderRight: `1px solid var(--adm-border)`,
