@@ -34,15 +34,48 @@ export function AdminNavbar({ onMenu }) {
         <Menu className="h-4 w-4" />
       </button>
 
-      {/* Logo — refined, compact */}
-      <Image
-        src="/logo.png"
-        alt="Wildlife Universe CMS"
-        width={130}
-        height={34}
-        style={{ objectFit: 'contain' }}
-        priority
-      />
+      {/* Logo + CMS wordmark */}
+      <div className="flex items-center gap-2.5">
+        <Image
+          src="/logo.png"
+          alt="Wildlife Universe"
+          width={150}
+          height={40}
+          style={{ objectFit: 'contain' }}
+          priority
+        />
+
+        {/* Thin divider */}
+        <span
+          style={{
+            display: 'block',
+            width: '1px',
+            height: '22px',
+            background: isDark ? 'rgba(212,175,55,0.3)' : 'rgba(212,175,55,0.45)',
+            borderRadius: '1px',
+          }}
+        />
+
+        {/* CMS label — Playfair Display to echo the wildlife brand serif */}
+        <span
+          style={{
+            fontFamily: 'var(--font-playfair), Georgia, serif',
+            fontSize: '1rem',
+            fontWeight: 700,
+            fontStyle: 'italic',
+            letterSpacing: '0.04em',
+            background: isDark
+              ? 'linear-gradient(135deg, #d4af37 0%, #f0d060 50%, #c9a227 100%)'
+              : 'linear-gradient(135deg, #b8860b 0%, #d4af37 50%, #a07010 100%)',
+            WebkitBackgroundClip: 'text',
+            WebkitTextFillColor: 'transparent',
+            backgroundClip: 'text',
+            userSelect: 'none',
+          }}
+        >
+          CMS
+        </span>
+      </div>
 
       <div className="flex-1" />
 
