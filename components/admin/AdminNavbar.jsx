@@ -1,7 +1,7 @@
 'use client';
 
 import Image from 'next/image';
-import { Menu } from 'lucide-react';
+import { Menu, X } from 'lucide-react';
 import { useTheme } from 'next-themes';
 import { useAuth } from '@/lib/auth/AuthContext';
 
@@ -32,7 +32,7 @@ function getRoleBadge(role) {
   return ROLE_BADGE[role] ?? STAFF_BADGE;
 }
 
-export function AdminNavbar({ onMenu }) {
+export function AdminNavbar({ onMenu, sidebarOpen }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const { user } = useAuth();
@@ -49,19 +49,61 @@ export function AdminNavbar({ onMenu }) {
           : '0 1px 0 rgba(212,175,55,0.15), 0 1px 4px rgba(0,0,0,0.04)',
       }}
     >
-      {/* Hamburger */}
+      {/* Menu toggle — animates between ☰ and ✕ */}
       <button
         onClick={onMenu}
-        aria-label="Open navigation"
-        className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-md transition-colors active:scale-95"
+        aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'}
+        className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg active:scale-90"
         style={{
-          color: isDark ? '#9a9aab' : '#888',
-          background: 'transparent',
+          color: sidebarOpen ? (isDark ? '#ebebef' : '#1a1a1a') : (isDark ? '#9a9aab' : '#777'),
+          background: sidebarOpen
+            ? (isDark ? 'rgba(212,175,55,0.12)' : 'rgba(212,175,55,0.1)')
+            : 'transparent',
+          border: sidebarOpen
+            ? `1px solid ${isDark ? 'rgba(212,175,55,0.3)' : 'rgba(212,175,55,0.35)'}`
+            : '1px solid transparent',
+          transition: 'color 0.2s ease, background 0.2s ease, border-color 0.2s ease, transform 0.15s ease',
         }}
-        onMouseEnter={(e) => { e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.07)' : '#f5efe2'; }}
-        onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+        onMouseEnter={(e) => {
+          if (!sidebarOpen) {
+            e.currentTarget.style.background = isDark ? 'rgba(255,255,255,0.07)' : '#f5efe2';
+          }
+        }}
+        onMouseLeave={(e) => {
+          if (!sidebarOpen) {
+            e.currentTarget.style.background = 'transparent';
+          }
+        }}
       >
-        <Menu className="h-4 w-4" />
+        {/* Menu bars icon */}
+        <span
+          style={{
+            position: 'absolute',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: sidebarOpen ? 0 : 1,
+            transform: sidebarOpen ? 'rotate(-90deg) scale(0.5)' : 'rotate(0deg) scale(1)',
+            transition: 'opacity 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+          }}
+        >
+          <Menu strokeWidth={2} style={{ width: 22, height: 22 }} />
+        </span>
+
+        {/* X close icon */}
+        <span
+          style={{
+            position: 'absolute',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            opacity: sidebarOpen ? 1 : 0,
+            transform: sidebarOpen ? 'rotate(0deg) scale(1)' : 'rotate(90deg) scale(0.5)',
+            transition: 'opacity 0.25s ease, transform 0.25s cubic-bezier(0.34,1.56,0.64,1)',
+          }}
+        >
+          <X strokeWidth={2.5} style={{ width: 22, height: 22 }} />
+        </span>
       </button>
 
       {/* Logo + CMS wordmark */}

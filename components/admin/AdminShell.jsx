@@ -53,7 +53,10 @@ export function AdminShell({ children }) {
         className="fixed inset-0 z-[200] flex flex-col overflow-hidden"
         style={{ background: 'var(--adm-bg)', ...cssVars }}
       >
-        <AdminNavbar onMenu={() => setSidebarOpen(true)} />
+        <AdminNavbar
+          sidebarOpen={sidebarOpen}
+          onMenu={() => setSidebarOpen((v) => !v)}
+        />
 
         <div className="relative flex min-h-0 flex-1">
           {/* Backdrop — always mounted so opacity transition works on both
