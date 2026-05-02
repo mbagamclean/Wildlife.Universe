@@ -3,10 +3,40 @@
 import Image from 'next/image';
 import { Menu } from 'lucide-react';
 import { useTheme } from 'next-themes';
+import { useAuth } from '@/lib/auth/AuthContext';
+
+const ROLE_BADGE = {
+  ceo: {
+    label: 'CEO',
+    gradient: 'linear-gradient(135deg, #c9a227 0%, #f0d060 45%, #d4af37 75%, #a07010 100%)',
+    border: 'rgba(212,175,55,0.55)',
+    glow: 'rgba(212,175,55,0.25)',
+  },
+  admin: {
+    label: 'ADMIN',
+    gradient: 'linear-gradient(135deg, #1e40af 0%, #3b82f6 45%, #60a5fa 75%, #1d4ed8 100%)',
+    border: 'rgba(96,165,250,0.5)',
+    glow: 'rgba(59,130,246,0.2)',
+  },
+};
+
+const STAFF_BADGE = {
+  label: 'STAFF',
+  gradient: 'linear-gradient(135deg, #6b7280 0%, #d1d5db 40%, #e5e7eb 65%, #9ca3af 100%)',
+  border: 'rgba(209,213,219,0.55)',
+  glow: 'rgba(209,213,219,0.15)',
+};
+
+function getRoleBadge(role) {
+  if (!role) return null;
+  return ROLE_BADGE[role] ?? STAFF_BADGE;
+}
 
 export function AdminNavbar({ onMenu }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
+  const { user } = useAuth();
+  const badge = getRoleBadge(user?.role);
 
   return (
     <header
@@ -75,6 +105,37 @@ export function AdminNavbar({ onMenu }) {
         >
           CMS
         </span>
+
+        {/* Role badge — pill container + gradient text via nested span */}
+        {badge && (
+          <span
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              padding: '2px 8px',
+              borderRadius: '999px',
+              border: `1px solid ${badge.border}`,
+              boxShadow: `0 0 8px ${badge.glow}, inset 0 1px 0 rgba(255,255,255,0.08)`,
+              background: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
+              userSelect: 'none',
+            }}
+          >
+            <span
+              style={{
+                fontFamily: 'var(--font-inter), system-ui, sans-serif',
+                fontSize: '0.6rem',
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                background: badge.gradient,
+                WebkitBackgroundClip: 'text',
+                WebkitTextFillColor: 'transparent',
+                backgroundClip: 'text',
+              }}
+            >
+              {badge.label}
+            </span>
+          </span>
+        )}
       </div>
 
       <div className="flex-1" />
