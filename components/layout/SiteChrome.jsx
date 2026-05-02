@@ -5,7 +5,7 @@ import { Navbar } from '@/components/nav/Navbar';
 import { Footer } from '@/components/footer/Footer';
 
 // Routes that render full-screen without site Navbar/Footer
-const CHROMELESS = ['/staff-login', '/admin/set-password'];
+const CHROMELESS = ['/staff-login', '/admin'];
 
 export function SiteChrome({ children }) {
   const pathname = usePathname();

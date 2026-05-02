@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { Eye, EyeOff, Lock, Mail, LogIn } from 'lucide-react';
@@ -10,7 +10,20 @@ const STAFF_ROLES = ['ceo', 'editor', 'writer', 'moderator', 'admin'];
 
 export function StaffLoginForm() {
   const router  = useRouter();
-  const { signIn, signOut } = useAuth();
+  const { user, loading, signIn, signOut } = useAuth();
+
+  // If already authenticated as staff → go straight to the dashboard.
+  // If authenticated as a regular user → sign them out so they stay on
+  // this page; the staff portal is not accessible to public accounts.
+  useEffect(() => {
+    if (loading) return;
+    if (!user) return;
+    if (STAFF_ROLES.includes(user.role)) {
+      router.replace(user.passwordResetRequired ? '/admin/set-password' : '/admin');
+    } else {
+      signOut();
+    }
+  }, [user, loading]);
 
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
