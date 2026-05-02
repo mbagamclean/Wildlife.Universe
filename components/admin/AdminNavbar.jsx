@@ -32,7 +32,7 @@ function getRoleBadge(role) {
   return ROLE_BADGE[role] ?? STAFF_BADGE;
 }
 
-export function AdminNavbar({ onMenu, sidebarOpen }) {
+export function AdminNavbar({ onMenu, sidebarOpen, isDesktop }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const { user } = useAuth();
@@ -49,11 +49,12 @@ export function AdminNavbar({ onMenu, sidebarOpen }) {
           : '0 1px 0 rgba(212,175,55,0.15), 0 1px 4px rgba(0,0,0,0.04)',
       }}
     >
-      {/* Menu toggle — animates between ☰ and ✕ */}
+      {/* Menu toggle — hidden on desktop (sidebar is always visible there) */}
       <button
         onClick={onMenu}
         aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'}
         className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg active:scale-90"
+        style={{ display: isDesktop ? 'none' : undefined }}
         style={{
           color: sidebarOpen ? (isDark ? '#ebebef' : '#1a1a1a') : (isDark ? '#9a9aab' : '#777'),
           background: sidebarOpen

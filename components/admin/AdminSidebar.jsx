@@ -113,27 +113,24 @@ export function AdminSidebar({ onClose }) {
                   key={item.href}
                   href={item.href}
                   onClick={onClose}
-                  className="group flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium transition-all"
-                  style={
-                    active
-                      ? {
-                          background:  'var(--adm-active-bg)',
-                          borderLeft:  '3px solid var(--adm-active-border)',
-                          paddingLeft: 8,
-                          fontWeight:  600,
-                          color:       'var(--adm-text)',
-                        }
-                      : {
-                          borderLeft:  '3px solid transparent',
-                          color:       'var(--adm-text-muted)',
-                        }
-                  }
+                  className="group flex items-center gap-3 rounded-lg px-2.5 py-2.5 text-sm font-medium"
+                  style={{
+                    borderLeft:  active ? '3px solid var(--adm-active-border)' : '3px solid transparent',
+                    paddingLeft: active ? 8 : undefined,
+                    background:  active ? 'var(--adm-active-bg)' : 'transparent',
+                    color:       active ? 'var(--adm-text)' : 'var(--adm-text-muted)',
+                    fontWeight:  active ? 600 : 400,
+                    transition:  'background 0.15s ease, color 0.15s ease, border-color 0.15s ease',
+                  }}
                   onMouseEnter={(e) => { if (!active) e.currentTarget.style.background = 'var(--adm-hover-bg)'; }}
                   onMouseLeave={(e) => { if (!active) e.currentTarget.style.background = 'transparent'; }}
                 >
                   <Icon
                     className="h-[17px] w-[17px] flex-shrink-0"
-                    style={{ color: active ? '#d4af37' : 'var(--adm-text-muted)' }}
+                    style={{
+                      color:      active ? '#d4af37' : 'var(--adm-text-muted)',
+                      transition: 'color 0.15s ease',
+                    }}
                   />
                   <span className="truncate">{item.label}</span>
                 </Link>
