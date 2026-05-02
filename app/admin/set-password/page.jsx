@@ -3,7 +3,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { ShieldCheck, Eye, EyeOff, Check, X } from 'lucide-react';
-import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthContext';
 
 // ── Requirements ────────────────────────────────────────────
@@ -24,7 +23,7 @@ const STRENGTH_LABELS = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong
 
 export default function SetPasswordPage() {
   const router  = useRouter();
-  const { user, loading } = useAuth();
+  const { user, loading, refresh } = useAuth();
 
   const [password, setPassword] = useState('');
   const [confirm, setConfirm]   = useState('');
@@ -49,21 +48,22 @@ export default function SetPasswordPage() {
     setSaving(true);
     setError('');
     try {
-      const supabase = createClient();
+      // Use a server-side API route so the Admin SDK changes the password.
+      // This avoids calling auth.updateUser() in the browser, which competes
+      // with the background token refresh for the IndexedDB auth lock and
+      // causes "Lock was released because another request stole it" errors.
+      const res = await fetch('/api/staff/set-password', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
 
-      // Clear the flag first — pure DB write, no auth lock involved.
-      const { error: dbErr } = await supabase
-        .from('profiles')
-        .update({ password_reset_required: false })
-        .eq('id', user.id);
-      if (dbErr) throw dbErr;
+      const body = await res.json();
+      if (!res.ok) throw new Error(body.error || 'Failed to set password');
 
-      // Change password — triggers onAuthStateChange which refreshes the
-      // profile automatically. Do NOT call refresh() here; doing so races
-      // with onAuthStateChange and causes the auth lock conflict.
-      const { error: pwErr } = await supabase.auth.updateUser({ password });
-      if (pwErr) throw pwErr;
-
+      // Refresh the in-memory profile (passwordResetRequired is now false)
+      // before navigating so admin pages see the updated state immediately.
+      await refresh();
       router.replace('/admin');
     } catch (err) {
       setError(err.message);

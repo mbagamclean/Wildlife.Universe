@@ -9,7 +9,11 @@ const AuthContext = createContext(null);
 async function fetchProfile(supabaseUser) {
   if (!supabaseUser) return null;
   const supabase = createClient();
-  const { data } = await supabase.from('profiles').select('*').eq('id', supabaseUser.id).maybeSingle();
+  const { data, error } = await supabase.from('profiles').select('*').eq('id', supabaseUser.id).maybeSingle();
+  if (error) {
+    console.error('[AuthContext] fetchProfile error:', error.message);
+    return null;
+  }
   if (!data) return null;
   const { first_name, last_name, avatar_id, created_at, password_reset_required, ...rest } = data;
   return {
@@ -35,17 +39,37 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     const supabase = createClient();
 
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
-      setUser(await fetchProfile(session?.user ?? null));
-      setLoading(false);
+    // Safety net: if INITIAL_SESSION never fires (library internal lock timeout
+    // or initializePromise rejection), loading would stay true forever. This
+    // ensures the app always unblocks within 6 s.
+    const safetyTimer = setTimeout(() => setLoading(false), 6000);
+
+    // onAuthStateChange fires INITIAL_SESSION immediately on subscription,
+    // so getSession() is redundant. Calling both concurrently causes them to
+    // compete for the same IndexedDB auth lock, which leaves loading=true
+    // forever if one steals the lock from the other.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      try {
+        if (event === 'SIGNED_OUT' || !session?.user) {
+          setUser(null);
+          return;
+        }
+        const profile = await fetchProfile(session.user);
+        // Only overwrite user if profile loaded successfully; a transient DB
+        // error should not clobber a user who just successfully signed in.
+        if (profile !== null) setUser(profile);
+      } catch (err) {
+        console.error('[AuthContext] onAuthStateChange error:', err);
+      } finally {
+        clearTimeout(safetyTimer);
+        setLoading(false);
+      }
     });
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
-      setUser(await fetchProfile(session?.user ?? null));
-      setLoading(false);
-    });
-
-    return () => subscription.unsubscribe();
+    return () => {
+      clearTimeout(safetyTimer);
+      subscription.unsubscribe();
+    };
   }, []);
 
   const value = {

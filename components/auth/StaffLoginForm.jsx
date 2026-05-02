@@ -19,10 +19,11 @@ export function StaffLoginForm() {
     if (loading) return;
     if (!user) return;
     if (STAFF_ROLES.includes(user.role)) {
-      router.replace(user.passwordResetRequired ? '/admin/set-password' : '/admin');
+      router.replace('/admin');
     } else {
-      signOut();
+      signOut().catch(console.error);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, loading]);
 
   const [email, setEmail]         = useState('');
@@ -38,15 +39,28 @@ export function StaffLoginForm() {
     try {
       const profile = await signIn(email, password);
 
-      if (!profile || !STAFF_ROLES.includes(profile.role)) {
+      if (!profile) {
+        await signOut();
+        setError('Account setup is incomplete. Contact your administrator.');
+        return;
+      }
+
+      if (!STAFF_ROLES.includes(profile.role)) {
         await signOut();
         setError('Access denied. This portal is for authorised staff only.');
         return;
       }
 
-      router.push(profile.passwordResetRequired ? '/admin/set-password' : '/admin');
+      router.push('/admin');
     } catch (err) {
-      setError(err.message || 'Sign in failed. Check your credentials and try again.');
+      const msg = err.message ?? '';
+      if (msg.toLowerCase().includes('invalid login credentials') || msg.toLowerCase().includes('invalid credentials')) {
+        setError('Incorrect email or password. Please try again.');
+      } else if (msg.toLowerCase().includes('profile load failed')) {
+        setError('Account found but profile could not be loaded. Contact your administrator.');
+      } else {
+        setError(msg || 'Sign in failed. Check your credentials and try again.');
+      }
     } finally {
       setSubmitting(false);
     }

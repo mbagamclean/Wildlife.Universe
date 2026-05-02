@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 
 const CEO_EMAIL     = 'mclean@wildlifeuniverse.org';
-const TEMP_PASSWORD = '1234567890';
+const TEMP_PASSWORD = '@Mambo763dagas';
 
 const admin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -69,7 +69,7 @@ async function run() {
     email:                  CEO_EMAIL,
     name:                   'Mclean',
     role:                   'ceo',
-    password_reset_required: true,
+    password_reset_required: false,
   }, { onConflict: 'id' });
 
   if (profileErr) {
