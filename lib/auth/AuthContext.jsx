@@ -38,37 +38,54 @@ export function AuthProvider({ children }) {
 
   useEffect(() => {
     const supabase = createClient();
+    let mounted = true;
+    let subscription = null;
 
-    // Safety net: if INITIAL_SESSION never fires (library internal lock timeout
-    // or initializePromise rejection), loading would stay true forever. This
-    // ensures the app always unblocks within 6 s.
-    const safetyTimer = setTimeout(() => setLoading(false), 6000);
-
-    // onAuthStateChange fires INITIAL_SESSION immediately on subscription,
-    // so getSession() is redundant. Calling both concurrently causes them to
-    // compete for the same IndexedDB auth lock, which leaves loading=true
-    // forever if one steals the lock from the other.
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    async function init() {
+      // Step 1: Load initial session. getSession() reads from cookie storage
+      // and only hits the network if the access token needs refreshing.
+      // Doing this BEFORE subscribing means the two operations never compete
+      // for the Web Locks API auth lock, which previously caused the lock to
+      // be "stolen" and INITIAL_SESSION to never fire.
       try {
+        const { data: { session } } = await supabase.auth.getSession();
+        if (!mounted) return;
+        if (session?.user) {
+          const profile = await fetchProfile(session.user);
+          if (mounted && profile !== null) setUser(profile);
+        }
+      } catch (err) {
+        console.error('[AuthContext] getSession error:', err.message);
+      } finally {
+        if (mounted) setLoading(false);
+      }
+
+      if (!mounted) return;
+
+      // Step 2: Subscribe for future auth changes only. INITIAL_SESSION will
+      // fire (the library always fires it) but we skip it since getSession()
+      // already handled the initial state above.
+      const { data } = supabase.auth.onAuthStateChange(async (event, session) => {
+        if (!mounted || event === 'INITIAL_SESSION') return;
         if (event === 'SIGNED_OUT' || !session?.user) {
-          setUser(null);
+          if (mounted) setUser(null);
           return;
         }
-        const profile = await fetchProfile(session.user);
-        // Only overwrite user if profile loaded successfully; a transient DB
-        // error should not clobber a user who just successfully signed in.
-        if (profile !== null) setUser(profile);
-      } catch (err) {
-        console.error('[AuthContext] onAuthStateChange error:', err);
-      } finally {
-        clearTimeout(safetyTimer);
-        setLoading(false);
-      }
-    });
+        try {
+          const profile = await fetchProfile(session.user);
+          if (mounted && profile !== null) setUser(profile);
+        } catch (err) {
+          console.error('[AuthContext] onAuthStateChange error:', err);
+        }
+      });
+      subscription = data.subscription;
+    }
+
+    init();
 
     return () => {
-      clearTimeout(safetyTimer);
-      subscription.unsubscribe();
+      mounted = false;
+      subscription?.unsubscribe();
     };
   }, []);
 
