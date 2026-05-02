@@ -126,7 +126,7 @@ export function StaffLoginForm() {
                 onChange={(e) => setEmail(e.target.value)}
                 required
                 autoComplete="email"
-                placeholder="mclean@wildlifeuniverse.org"
+                placeholder="admin@example.com"
                 style={{
                   width: '100%', boxSizing: 'border-box',
                   background: '#f0f4ff', border: '1.5px solid transparent',

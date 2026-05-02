@@ -1,12 +1,12 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
-import { randomBytes } from 'crypto';
 import { SEED_POSTS, SEED_HEROES } from '@/lib/storage/seed';
 import { categories as SEED_CATS } from '@/lib/mock/categories';
 
 export const runtime = 'nodejs';
 
-const CEO_EMAIL = 'mclean@wildlifeuniverse.org';
+const CEO_EMAIL    = 'mclean@wildlifeuniverse.org';
+const TEMP_PASSWORD = '1234567890'; // first-login only — must be changed on first sign-in
 
 function getAdminClient() {
   return createClient(
@@ -31,13 +31,9 @@ export async function POST(req) {
     const ceoAuth = existing?.users?.find((u) => u.email === CEO_EMAIL);
 
     if (!ceoAuth) {
-      // Generate a cryptographically random one-time temp password.
-      // It is shown ONCE in this response — save it immediately.
-      const tempPassword = randomBytes(16).toString('hex');
-
       const { data: created, error } = await admin.auth.admin.createUser({
         email: CEO_EMAIL,
-        password: tempPassword,
+        password: TEMP_PASSWORD,
         email_confirm: true,
         user_metadata: { role: 'ceo' },
       });
@@ -52,15 +48,22 @@ export async function POST(req) {
       });
 
       results.ceo = 'created';
-      results.ceo_temp_password = tempPassword; // shown once — copy it now
     } else {
+      // Reset to known temp password and require change on next login
+      const { error: pwErr } = await admin.auth.admin.updateUserById(ceoAuth.id, {
+        password: TEMP_PASSWORD,
+      });
+      if (pwErr) throw pwErr;
+
       await admin.from('profiles').upsert({
         id: ceoAuth.id,
         email: CEO_EMAIL,
         name: 'Mclean',
         role: 'ceo',
+        password_reset_required: true,
       });
-      results.ceo = 'already_exists';
+
+      results.ceo = 'reset';
     }
   } catch (err) {
     results.ceo = `error: ${err.message}`;
