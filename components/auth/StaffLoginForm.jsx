@@ -48,7 +48,7 @@ export function StaffLoginForm() {
       alignItems: 'center',
       justifyContent: 'center',
       padding: '2rem 1rem',
-      background: 'linear-gradient(135deg, #1a237e 0%, #0d1565 45%, #1a237e 100%)',
+      background: 'linear-gradient(135deg, #004d00 0%, #002600 45%, #004d00 100%)',
       position: 'relative',
       overflow: 'hidden',
     }}>
@@ -56,11 +56,11 @@ export function StaffLoginForm() {
       {/* Background radial glows */}
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 80% 60% at 20% 20%, rgba(66,133,244,0.18) 0%, transparent 60%)',
+        background: 'radial-gradient(ellipse 80% 60% at 20% 20%, rgba(0,128,0,0.35) 0%, transparent 60%)',
       }} />
       <div style={{
         position: 'absolute', inset: 0, pointerEvents: 'none',
-        background: 'radial-gradient(ellipse 60% 50% at 80% 80%, rgba(25,100,210,0.15) 0%, transparent 55%)',
+        background: 'radial-gradient(ellipse 60% 50% at 80% 80%, rgba(0,100,0,0.25) 0%, transparent 55%)',
       }} />
 
       {/* Lock icon + heading */}
@@ -68,8 +68,8 @@ export function StaffLoginForm() {
         <div style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
           width: '4rem', height: '4rem', borderRadius: '50%',
-          background: 'linear-gradient(135deg, #4285f4, #1a73e8)',
-          boxShadow: '0 4px 24px rgba(66,133,244,0.45)',
+          background: 'linear-gradient(135deg, #00a000, #008000)',
+          boxShadow: '0 4px 24px rgba(0,128,0,0.5)',
           marginBottom: '1.25rem',
         }}>
           <Lock size={24} color="#fff" strokeWidth={2.5} />
@@ -134,7 +134,7 @@ export function StaffLoginForm() {
                   color: '#111827', fontSize: '0.9rem', outline: 'none',
                   transition: 'border-color 0.2s, background 0.2s',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = '#4285f4'; e.currentTarget.style.background = '#fff'; }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#008000'; e.currentTarget.style.background = '#fff'; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = '#f0f4ff'; }}
               />
             </div>
@@ -166,7 +166,7 @@ export function StaffLoginForm() {
                   color: '#111827', fontSize: '0.9rem', outline: 'none',
                   transition: 'border-color 0.2s, background 0.2s',
                 }}
-                onFocus={(e) => { e.currentTarget.style.borderColor = '#4285f4'; e.currentTarget.style.background = '#fff'; }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#008000'; e.currentTarget.style.background = '#fff'; }}
                 onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = '#f0f4ff'; }}
               />
               <button
@@ -192,7 +192,7 @@ export function StaffLoginForm() {
             style={{
               marginTop: '0.25rem',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
-              width: '100%', background: submitting ? '#93c5fd' : '#1d4ed8',
+              width: '100%', background: submitting ? '#86efac' : '#008000',
               border: 'none', borderRadius: '0.6rem', padding: '0.85rem',
               color: '#fff', fontWeight: 700, fontSize: '0.95rem',
               cursor: submitting ? 'not-allowed' : 'pointer',
@@ -200,7 +200,7 @@ export function StaffLoginForm() {
               boxShadow: '0 4px 14px rgba(29,78,216,0.4)',
             }}
             onMouseEnter={(e) => { if (!submitting) e.currentTarget.style.background = '#1e40af'; }}
-            onMouseLeave={(e) => { if (!submitting) e.currentTarget.style.background = '#1d4ed8'; }}
+            onMouseLeave={(e) => { if (!submitting) e.currentTarget.style.background = '#008000'; }}
           >
             <LogIn size={17} strokeWidth={2.5} />
             {submitting ? 'Verifying…' : 'Sign In'}
