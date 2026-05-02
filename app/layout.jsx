@@ -3,8 +3,7 @@ import { ThemeProvider } from '@/components/providers/ThemeProvider';
 import { SiteSettingsProvider } from '@/lib/providers/SiteSettingsProvider';
 import { StorageProvider } from '@/lib/storage/StorageProvider';
 import { AuthProvider } from '@/lib/auth/AuthContext';
-import { Navbar } from '@/components/nav/Navbar';
-import { Footer } from '@/components/footer/Footer';
+import { SiteChrome } from '@/components/layout/SiteChrome';
 import './globals.css';
 
 const inter = Inter({
@@ -55,15 +54,7 @@ export default function RootLayout({ children }) {
           <SiteSettingsProvider>
             <StorageProvider>
               <AuthProvider>
-                <a
-                  href="#main"
-                  className="sr-only focus:not-sr-only focus:fixed focus:top-2 focus:left-2 focus:z-50 focus:rounded-md focus:bg-[var(--color-primary)] focus:px-4 focus:py-2 focus:text-white"
-                >
-                  Skip to content
-                </a>
-                <Navbar />
-                <main id="main">{children}</main>
-                <Footer />
+                <SiteChrome>{children}</SiteChrome>
               </AuthProvider>
             </StorageProvider>
           </SiteSettingsProvider>

@@ -2,14 +2,16 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { Eye, EyeOff, ShieldAlert } from 'lucide-react';
+import Link from 'next/link';
+import { Eye, EyeOff, Lock, Mail, LogIn } from 'lucide-react';
 import { useAuth } from '@/lib/auth/AuthContext';
 
 const STAFF_ROLES = ['ceo', 'editor', 'writer', 'moderator', 'admin'];
 
 export function StaffLoginForm() {
-  const router = useRouter();
+  const router  = useRouter();
   const { signIn, signOut } = useAuth();
+
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [showPw, setShowPw]       = useState(false);
@@ -23,146 +25,214 @@ export function StaffLoginForm() {
     try {
       const profile = await signIn(email, password);
 
-      // Sign out immediately if not a staff member
       if (!profile || !STAFF_ROLES.includes(profile.role)) {
         await signOut();
-        setError('Access denied. This portal is for staff members only.');
+        setError('Access denied. This portal is for authorised staff only.');
         return;
       }
 
       router.push(profile.passwordResetRequired ? '/admin/set-password' : '/admin');
     } catch (err) {
-      setError(err.message || 'Sign in failed.');
+      setError(err.message || 'Sign in failed. Check your credentials and try again.');
     } finally {
       setSubmitting(false);
     }
   };
 
   return (
-    <div
-      style={{
-        width: '100%',
-        maxWidth: '420px',
-        background: 'rgba(255,255,255,0.03)',
-        border: '1px solid rgba(255,255,255,0.09)',
-        borderRadius: '1.5rem',
-        padding: '2.5rem',
-        boxShadow: '0 25px 60px rgba(0,0,0,0.5)',
-      }}
-    >
-      {/* Header */}
-      <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+    <div style={{
+      minHeight: '100vh',
+      width: '100%',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
+      padding: '2rem 1rem',
+      background: 'linear-gradient(135deg, #1a237e 0%, #0d1565 45%, #1a237e 100%)',
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+
+      {/* Background radial glows */}
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse 80% 60% at 20% 20%, rgba(66,133,244,0.18) 0%, transparent 60%)',
+      }} />
+      <div style={{
+        position: 'absolute', inset: 0, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse 60% 50% at 80% 80%, rgba(25,100,210,0.15) 0%, transparent 55%)',
+      }} />
+
+      {/* Lock icon + heading */}
+      <div style={{ textAlign: 'center', marginBottom: '2rem', position: 'relative' }}>
         <div style={{
           display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
-          width: '3rem', height: '3rem', borderRadius: '0.875rem',
-          background: 'rgba(0,128,0,0.15)', marginBottom: '1rem',
+          width: '4rem', height: '4rem', borderRadius: '50%',
+          background: 'linear-gradient(135deg, #4285f4, #1a73e8)',
+          boxShadow: '0 4px 24px rgba(66,133,244,0.45)',
+          marginBottom: '1.25rem',
         }}>
-          <ShieldAlert size={22} color="#4ade80" />
+          <Lock size={24} color="#fff" strokeWidth={2.5} />
         </div>
-        <h1 style={{ color: '#fff', fontSize: '1.4rem', fontWeight: 800, margin: '0 0 0.35rem' }}>
-          Staff Portal
+        <h1 style={{
+          color: '#fff', fontSize: '1.75rem', fontWeight: 800,
+          margin: '0 0 0.4rem', letterSpacing: '-0.01em',
+        }}>
+          Staff Login
         </h1>
-        <p style={{ color: 'rgba(255,255,255,0.42)', fontSize: '0.825rem', margin: 0 }}>
-          Restricted access — authorised personnel only
+        <p style={{ color: 'rgba(255,255,255,0.6)', fontSize: '0.9rem', margin: 0 }}>
+          Access the Wildlife Universe Staff CMS
         </p>
       </div>
 
-      {/* Error */}
-      {error && (
-        <div style={{
-          background: 'rgba(239,68,68,0.1)', border: '1px solid rgba(239,68,68,0.3)',
-          borderRadius: '0.75rem', padding: '0.7rem 1rem',
-          color: '#fca5a5', fontSize: '0.8rem', marginBottom: '1.25rem',
-        }}>
-          {error}
-        </div>
-      )}
+      {/* Card */}
+      <div style={{
+        width: '100%', maxWidth: '440px',
+        background: '#fff', borderRadius: '1rem',
+        padding: '2.25rem 2rem',
+        boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+        position: 'relative',
+      }}>
 
-      <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {/* Email */}
-        <div>
-          <label style={{
-            display: 'block', color: 'rgba(255,255,255,0.45)',
-            fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em',
-            textTransform: 'uppercase', marginBottom: '0.5rem',
+        {/* Error */}
+        {error && (
+          <div style={{
+            background: '#fef2f2', border: '1px solid #fecaca',
+            borderRadius: '0.6rem', padding: '0.65rem 0.9rem',
+            color: '#dc2626', fontSize: '0.825rem', marginBottom: '1.25rem',
           }}>
-            Work Email
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-            autoComplete="email"
-            placeholder="you@wildlifeuniverse.org"
-            style={{
-              width: '100%', background: 'rgba(255,255,255,0.05)',
-              border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.75rem',
-              padding: '0.75rem 1rem', color: '#fff', fontSize: '0.875rem',
-              outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s',
-            }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = '#4ade80')}
-            onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
-          />
-        </div>
-
-        {/* Password */}
-        <div>
-          <label style={{
-            display: 'block', color: 'rgba(255,255,255,0.45)',
-            fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em',
-            textTransform: 'uppercase', marginBottom: '0.5rem',
-          }}>
-            Password
-          </label>
-          <div style={{ position: 'relative' }}>
-            <input
-              type={showPw ? 'text' : 'password'}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              autoComplete="current-password"
-              style={{
-                width: '100%', background: 'rgba(255,255,255,0.05)',
-                border: '1px solid rgba(255,255,255,0.1)', borderRadius: '0.75rem',
-                padding: '0.75rem 2.75rem 0.75rem 1rem', color: '#fff', fontSize: '0.875rem',
-                outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.2s',
-              }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = '#4ade80')}
-              onBlur={(e) => (e.currentTarget.style.borderColor = 'rgba(255,255,255,0.1)')}
-            />
-            <button
-              type="button"
-              onClick={() => setShowPw((v) => !v)}
-              tabIndex={-1}
-              style={{
-                position: 'absolute', right: '0.75rem', top: '50%',
-                transform: 'translateY(-50%)', background: 'none',
-                border: 'none', cursor: 'pointer', color: 'rgba(255,255,255,0.3)',
-                padding: 0, display: 'flex',
-              }}
-            >
-              {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
+            {error}
           </div>
-        </div>
+        )}
 
-        <button
-          type="submit"
-          disabled={submitting}
-          style={{
-            marginTop: '0.5rem',
-            width: '100%', background: submitting ? 'rgba(0,128,0,0.4)' : '#008000',
-            border: 'none', borderRadius: '0.75rem', padding: '0.85rem',
-            color: '#fff', fontWeight: 700, fontSize: '0.875rem', cursor: submitting ? 'not-allowed' : 'pointer',
-            transition: 'all 0.2s', letterSpacing: '0.02em',
-          }}
-          onMouseEnter={(e) => { if (!submitting) e.currentTarget.style.background = '#006400'; }}
-          onMouseLeave={(e) => { if (!submitting) e.currentTarget.style.background = '#008000'; }}
-        >
-          {submitting ? 'Verifying…' : 'Sign In'}
-        </button>
-      </form>
+        <form onSubmit={submit} style={{ display: 'flex', flexDirection: 'column', gap: '1.1rem' }}>
+
+          {/* Email */}
+          <div>
+            <label style={{
+              display: 'block', color: '#374151',
+              fontSize: '0.825rem', fontWeight: 600, marginBottom: '0.45rem',
+            }}>
+              Email Address
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Mail
+                size={16} color="#9ca3af"
+                style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+              />
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+                autoComplete="email"
+                placeholder="mclean@wildlifeuniverse.org"
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: '#f0f4ff', border: '1.5px solid transparent',
+                  borderRadius: '0.6rem', padding: '0.7rem 1rem 0.7rem 2.5rem',
+                  color: '#111827', fontSize: '0.9rem', outline: 'none',
+                  transition: 'border-color 0.2s, background 0.2s',
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#4285f4'; e.currentTarget.style.background = '#fff'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = '#f0f4ff'; }}
+              />
+            </div>
+          </div>
+
+          {/* Password */}
+          <div>
+            <label style={{
+              display: 'block', color: '#374151',
+              fontSize: '0.825rem', fontWeight: 600, marginBottom: '0.45rem',
+            }}>
+              Password
+            </label>
+            <div style={{ position: 'relative' }}>
+              <Lock
+                size={15} color="#9ca3af"
+                style={{ position: 'absolute', left: '0.9rem', top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}
+              />
+              <input
+                type={showPw ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+                autoComplete="current-password"
+                style={{
+                  width: '100%', boxSizing: 'border-box',
+                  background: '#f0f4ff', border: '1.5px solid transparent',
+                  borderRadius: '0.6rem', padding: '0.7rem 2.75rem 0.7rem 2.5rem',
+                  color: '#111827', fontSize: '0.9rem', outline: 'none',
+                  transition: 'border-color 0.2s, background 0.2s',
+                }}
+                onFocus={(e) => { e.currentTarget.style.borderColor = '#4285f4'; e.currentTarget.style.background = '#fff'; }}
+                onBlur={(e) => { e.currentTarget.style.borderColor = 'transparent'; e.currentTarget.style.background = '#f0f4ff'; }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPw((v) => !v)}
+                tabIndex={-1}
+                style={{
+                  position: 'absolute', right: '0.85rem', top: '50%',
+                  transform: 'translateY(-50%)', background: 'none',
+                  border: 'none', cursor: 'pointer', padding: 0,
+                  color: '#9ca3af', display: 'flex', alignItems: 'center',
+                }}
+              >
+                {showPw ? <EyeOff size={16} /> : <Eye size={16} />}
+              </button>
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={submitting}
+            style={{
+              marginTop: '0.25rem',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '0.5rem',
+              width: '100%', background: submitting ? '#93c5fd' : '#1d4ed8',
+              border: 'none', borderRadius: '0.6rem', padding: '0.85rem',
+              color: '#fff', fontWeight: 700, fontSize: '0.95rem',
+              cursor: submitting ? 'not-allowed' : 'pointer',
+              transition: 'background 0.2s',
+              boxShadow: '0 4px 14px rgba(29,78,216,0.4)',
+            }}
+            onMouseEnter={(e) => { if (!submitting) e.currentTarget.style.background = '#1e40af'; }}
+            onMouseLeave={(e) => { if (!submitting) e.currentTarget.style.background = '#1d4ed8'; }}
+          >
+            <LogIn size={17} strokeWidth={2.5} />
+            {submitting ? 'Verifying…' : 'Sign In'}
+          </button>
+
+          {/* Footer note */}
+          <p style={{
+            textAlign: 'center', color: '#9ca3af',
+            fontSize: '0.75rem', margin: '0.25rem 0 0',
+          }}>
+            Authorized personnel only. Unauthorized access is prohibited.
+          </p>
+        </form>
+      </div>
+
+      {/* Back to website */}
+      <Link
+        href="/"
+        style={{
+          marginTop: '1.75rem', color: 'rgba(255,255,255,0.45)',
+          fontSize: '0.8rem', textDecoration: 'none',
+          display: 'inline-flex', alignItems: 'center', gap: '0.35rem',
+          transition: 'color 0.2s', position: 'relative',
+        }}
+        className="staff-back-link"
+      >
+        ← Back to Website
+      </Link>
+
+      <style>{`
+        .staff-back-link:hover { color: rgba(255,255,255,0.8) !important; }
+      `}</style>
     </div>
   );
 }
