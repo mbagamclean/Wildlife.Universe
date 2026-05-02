@@ -96,7 +96,9 @@ export function AdminShell({ children }) {
 
           {/* Scrollable main */}
           <main className="flex-1 overflow-y-auto">
-            {children}
+            <div className="mx-auto w-full max-w-5xl">
+              {children}
+            </div>
           </main>
         </div>
       </div>
