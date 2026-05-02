@@ -2,41 +2,46 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { ShieldCheck, Eye, EyeOff } from 'lucide-react';
+import { ShieldCheck, Eye, EyeOff, Check, X } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
 import { useAuth } from '@/lib/auth/AuthContext';
 
-const MIN_LENGTH = 12;
+// ── Requirements ────────────────────────────────────────────
+const RULES = [
+  { id: 'length',    label: 'At least 8 characters',       test: (p) => p.length >= 8 },
+  { id: 'uppercase', label: 'At least 1 uppercase letter',  test: (p) => /[A-Z]/.test(p) },
+  { id: 'lowercase', label: 'At least 1 lowercase letter',  test: (p) => /[a-z]/.test(p) },
+  { id: 'numbers',   label: 'At least 2 numbers',           test: (p) => (p.match(/[0-9]/g) || []).length >= 2 },
+  { id: 'symbol',    label: 'At least 1 symbol (!@#$…)',    test: (p) => /[^A-Za-z0-9]/.test(p) },
+];
 
-function strength(pw) {
-  let score = 0;
-  if (pw.length >= MIN_LENGTH)       score++;
-  if (/[A-Z]/.test(pw))             score++;
-  if (/[0-9]/.test(pw))             score++;
-  if (/[^A-Za-z0-9]/.test(pw))      score++;
-  return score; // 0-4
+function evaluate(pw) {
+  return RULES.map((r) => ({ ...r, passed: r.test(pw) }));
 }
 
-const STRENGTH_LABEL = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-const STRENGTH_COLOR = ['', '#ef4444', '#f97316', '#eab308', '#22c55e'];
+const STRENGTH_COLORS = ['#e5e7eb', '#ef4444', '#f97316', '#eab308', '#22c55e', '#16a34a'];
+const STRENGTH_LABELS = ['', 'Very Weak', 'Weak', 'Fair', 'Strong', 'Very Strong'];
 
 export default function SetPasswordPage() {
-  const router            = useRouter();
+  const router  = useRouter();
   const { user, loading, refresh } = useAuth();
-  const [password, setPassword]   = useState('');
-  const [confirm, setConfirm]     = useState('');
-  const [showPw, setShowPw]       = useState(false);
-  const [showCf, setShowCf]       = useState(false);
-  const [error, setError]         = useState('');
-  const [saving, setSaving]       = useState(false);
+
+  const [password, setPassword] = useState('');
+  const [confirm, setConfirm]   = useState('');
+  const [showPw, setShowPw]     = useState(false);
+  const [showCf, setShowCf]     = useState(false);
+  const [error, setError]       = useState('');
+  const [saving, setSaving]     = useState(false);
 
   useEffect(() => {
-    if (!loading && !user) router.replace('/login');
+    if (!loading && !user) router.replace('/staff-login');
   }, [user, loading]);
 
-  const score      = strength(password);
+  const rules      = evaluate(password);
+  const passed     = rules.filter((r) => r.passed).length;
+  const allPassed  = passed === RULES.length;
   const mismatch   = confirm.length > 0 && password !== confirm;
-  const canSubmit  = password.length >= MIN_LENGTH && score >= 2 && password === confirm;
+  const canSubmit  = allPassed && password === confirm;
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -45,16 +50,13 @@ export default function SetPasswordPage() {
     setError('');
     try {
       const supabase = createClient();
-
       const { error: pwErr } = await supabase.auth.updateUser({ password });
       if (pwErr) throw pwErr;
-
       const { error: dbErr } = await supabase
         .from('profiles')
         .update({ password_reset_required: false })
         .eq('id', user.id);
       if (dbErr) throw dbErr;
-
       await refresh();
       router.replace('/admin');
     } catch (err) {
@@ -66,18 +68,17 @@ export default function SetPasswordPage() {
   if (loading || !user) return null;
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4">
+    <div className="flex min-h-screen items-center justify-center bg-[var(--color-bg)] px-4 py-10">
       <div className="glass w-full max-w-md rounded-3xl p-8 shadow-2xl">
 
         {/* Header */}
-        <div className="mb-8 flex flex-col items-center text-center">
+        <div className="mb-7 flex flex-col items-center text-center">
           <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-[var(--color-primary)]/10">
             <ShieldCheck className="h-7 w-7 text-[var(--color-primary)]" />
           </div>
           <h1 className="font-display text-2xl font-black">Secure your account</h1>
           <p className="mt-2 text-sm text-[var(--color-fg-soft)]">
-            You are logging in for the first time. Choose a strong password to
-            protect your account — this step is required before you can proceed.
+            First-time login detected. Set a strong password before you can access the dashboard.
           </p>
         </div>
 
@@ -89,7 +90,7 @@ export default function SetPasswordPage() {
 
         <form onSubmit={handleSubmit} className="space-y-5">
 
-          {/* Password field */}
+          {/* New password */}
           <div>
             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-[var(--color-fg-soft)]">
               New Password
@@ -101,7 +102,7 @@ export default function SetPasswordPage() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 autoComplete="new-password"
-                placeholder={`At least ${MIN_LENGTH} characters`}
+                placeholder="Create a strong password"
                 className="w-full rounded-xl border border-[var(--glass-border)] bg-[var(--color-bg-deep)] px-4 py-3 pr-10 text-sm outline-none transition-colors focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
               />
               <button
@@ -114,27 +115,48 @@ export default function SetPasswordPage() {
               </button>
             </div>
 
-            {/* Strength meter */}
+            {/* Strength bar */}
             {password.length > 0 && (
-              <div className="mt-2">
+              <div className="mt-2.5">
                 <div className="flex gap-1">
-                  {[1, 2, 3, 4].map((i) => (
+                  {RULES.map((_, i) => (
                     <div
                       key={i}
-                      className="h-1 flex-1 rounded-full transition-all duration-300"
-                      style={{ background: i <= score ? STRENGTH_COLOR[score] : 'var(--glass-border)' }}
+                      className="h-1.5 flex-1 rounded-full transition-all duration-300"
+                      style={{ background: i < passed ? STRENGTH_COLORS[passed] : 'var(--glass-border)' }}
                     />
                   ))}
                 </div>
-                <p className="mt-1 text-[11px]" style={{ color: STRENGTH_COLOR[score] }}>
-                  {STRENGTH_LABEL[score]}
-                  {score < 2 && ' — add uppercase letters, numbers, or symbols'}
+                <p className="mt-1 text-[11px] font-medium transition-colors duration-200"
+                  style={{ color: STRENGTH_COLORS[passed] }}>
+                  {STRENGTH_LABELS[passed]}
                 </p>
               </div>
             )}
+
+            {/* Requirements checklist */}
+            {password.length > 0 && (
+              <ul className="mt-3 space-y-1.5">
+                {rules.map((r) => (
+                  <li key={r.id} className="flex items-center gap-2 text-[12px]">
+                    <span
+                      className="flex h-4 w-4 flex-shrink-0 items-center justify-center rounded-full transition-colors duration-200"
+                      style={{ background: r.passed ? '#22c55e18' : '#ef444418' }}
+                    >
+                      {r.passed
+                        ? <Check className="h-2.5 w-2.5 text-green-500" strokeWidth={3} />
+                        : <X className="h-2.5 w-2.5 text-red-400" strokeWidth={3} />}
+                    </span>
+                    <span style={{ color: r.passed ? '#22c55e' : 'var(--color-fg-soft)' }}>
+                      {r.label}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
-          {/* Confirm field */}
+          {/* Confirm password */}
           <div>
             <span className="mb-1.5 block text-xs font-medium uppercase tracking-wider text-[var(--color-fg-soft)]">
               Confirm Password
