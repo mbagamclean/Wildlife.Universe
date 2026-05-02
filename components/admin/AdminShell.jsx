@@ -56,24 +56,36 @@ export function AdminShell({ children }) {
         <AdminNavbar onMenu={() => setSidebarOpen(true)} />
 
         <div className="relative flex min-h-0 flex-1">
-          {/* Backdrop */}
-          {sidebarOpen && (
-            <div
-              className="absolute inset-0 z-30"
-              style={{ background: isDark ? 'rgba(0,0,0,0.6)' : 'rgba(0,0,0,0.4)', backdropFilter: 'blur(2px)', WebkitBackdropFilter: 'blur(2px)' }}
-              onClick={() => setSidebarOpen(false)}
-            />
-          )}
-
-          {/* Slide-in sidebar */}
+          {/* Backdrop — always mounted so opacity transition works on both
+              open and close. pointer-events:none when hidden. */}
           <div
-            className="absolute inset-y-0 left-0 z-40 w-[270px] shadow-2xl"
+            className="absolute inset-0 z-30"
+            onClick={() => setSidebarOpen(false)}
+            style={{
+              background: isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.35)',
+              backdropFilter: sidebarOpen ? 'blur(3px)' : 'blur(0px)',
+              WebkitBackdropFilter: sidebarOpen ? 'blur(3px)' : 'blur(0px)',
+              opacity: sidebarOpen ? 1 : 0,
+              pointerEvents: sidebarOpen ? 'auto' : 'none',
+              transition: 'opacity 0.3s ease, backdrop-filter 0.3s ease',
+            }}
+          />
+
+          {/* Slide-in sidebar — spring on open, quick ease-in on close */}
+          <div
+            className="absolute inset-y-0 left-0 z-40 w-[270px]"
             style={{
               background: 'var(--adm-surface)',
               borderRight: `1px solid var(--adm-border)`,
+              boxShadow: sidebarOpen
+                ? '4px 0 32px rgba(0,0,0,0.25), 1px 0 0 var(--adm-border)'
+                : 'none',
               transform: sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-              transition: 'transform 0.28s cubic-bezier(0.22,1,0.36,1)',
-              display: 'flex', flexDirection: 'column',
+              transition: sidebarOpen
+                ? 'transform 0.32s cubic-bezier(0.22,1,0.36,1), box-shadow 0.32s ease'
+                : 'transform 0.22s cubic-bezier(0.4,0,1,1), box-shadow 0.22s ease',
+              display: 'flex',
+              flexDirection: 'column',
             }}
           >
             <AdminSidebar onClose={() => setSidebarOpen(false)} />
