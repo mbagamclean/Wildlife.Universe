@@ -187,26 +187,17 @@ export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
   if (creating || editing) {
     const isEdit = !!editing;
     return (
-      <div className="p-5 sm:p-8">
-        <button
-          onClick={() => { setCreating(false); setEditing(null); }}
-          className="mb-5 flex items-center gap-1.5 text-sm transition-opacity hover:opacity-70"
-          style={{ color: 'var(--adm-text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-        >
-          ← Back to {title}
-        </button>
-        <PostEditor
-          initial={isEdit ? editing : (category ? { category } : undefined)}
-          onSave={async (payload) => {
-            if (isEdit) await db.posts.update(editing.id, payload);
-            else        await db.posts.create(payload);
-            setCreating(false);
-            setEditing(null);
-            await load();
-          }}
-          onCancel={() => { setCreating(false); setEditing(null); }}
-        />
-      </div>
+      <PostEditor
+        initial={isEdit ? editing : (category ? { category } : undefined)}
+        onSave={async (payload) => {
+          if (isEdit) await db.posts.update(editing.id, payload);
+          else        await db.posts.create(payload);
+          setCreating(false);
+          setEditing(null);
+          await load();
+        }}
+        onCancel={() => { setCreating(false); setEditing(null); }}
+      />
     );
   }
 
