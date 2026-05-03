@@ -153,15 +153,18 @@ function FormatDropdown({ editor, isActive }) {
 }
 
 // ── Sidebar card section ──────────────────────────────────────
-function SideCard({ title, icon, accentBg, badge, children, defaultOpen = true }) {
-  const [open, setOpen] = useState(defaultOpen);
+function SideCard({ title, icon, accentBg, badge, children, defaultOpen = true, open: controlledOpen, onToggle }) {
+  const [internalOpen, setInternalOpen] = useState(defaultOpen);
+  const isControlled = controlledOpen !== undefined;
+  const open = isControlled ? controlledOpen : internalOpen;
+  const toggle = isControlled ? onToggle : () => setInternalOpen(o => !o);
   return (
     <div style={{
       background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',
       borderRadius: 12, overflow: 'hidden',
     }}>
       <button
-        onClick={() => setOpen(o => !o)}
+        onClick={toggle}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', gap: 8,
           padding: '13px 16px', background: accentBg || 'transparent',
@@ -234,6 +237,8 @@ export function PostEditor({ initial, onSave, onCancel }) {
   const [slugEdited, setSlugEdited] = useState(!!initial?.slug);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [seoOpen, setSeoOpen] = useState(true);
+  const [openPanel, setOpenPanel] = useState(null);
+  const togglePanel = useCallback((id) => setOpenPanel(p => (p === id ? null : id)), []);
   const [fullscreen, setFullscreen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
@@ -786,12 +791,13 @@ export function PostEditor({ initial, onSave, onCancel }) {
             <div style={{
               width: 320, flexShrink: 0,
               display: 'flex', flexDirection: 'column', gap: 12,
-              alignSelf: 'flex-start',
+              position: 'sticky', top: HEADER_H, alignSelf: 'flex-start',
+              height: '120vh', overflowY: 'auto', paddingRight: 4,
               paddingRight: 2,
             }}>
 
               {/* Publishing */}
-              <SideCard title="Publishing" icon={<Calendar size={14} />}>
+              <SideCard title="Publishing" icon={<Calendar size={14} />} open={openPanel === 'publishing'} onToggle={() => togglePanel('publishing')}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', color: 'var(--adm-text)' }}>
                     <input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)}
@@ -844,7 +850,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
               </SideCard>
 
               {/* Organization */}
-              <SideCard title="Organization" icon={<Folder size={14} />}>
+              <SideCard title="Organization" icon={<Folder size={14} />} open={openPanel === 'organization'} onToggle={() => togglePanel('organization')}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
@@ -879,7 +885,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
               </SideCard>
 
               {/* Featured Image */}
-              <SideCard title="Featured Image" icon={<ImageIcon size={14} />}>
+              <SideCard title="Featured Image" icon={<ImageIcon size={14} />} open={openPanel === 'featured'} onToggle={() => togglePanel('featured')}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <MediaUpload value={cover} onChange={v => setCover(v)} label="" />
                   <div>
@@ -901,17 +907,17 @@ export function PostEditor({ initial, onSave, onCancel }) {
               </SideCard>
 
               {/* Writing Toolkit */}
-              <SideCard title="Writing Toolkit" accentBg="#7c3aed" icon={<Sparkles size={14} />} badge="2026" defaultOpen={false}>
+              <SideCard title="Writing Toolkit" accentBg="#7c3aed" icon={<Sparkles size={14} />} badge="2026" open={openPanel === 'writing'} onToggle={() => togglePanel('writing')}>
                 <AIWritingToolkit editor={editor} title={title} wordCount={wordCount} />
               </SideCard>
 
               {/* AI SEO Assistant */}
-              <SideCard title="AI SEO Assistant" icon={<TrendingUp size={14} />}>
+              <SideCard title="AI SEO Assistant" icon={<TrendingUp size={14} />} open={openPanel === 'seo'} onToggle={() => togglePanel('seo')}>
                 <AISEOAssistant title={title} editor={editor} slug={slug} onFieldsInserted={handleSEOInserted} />
               </SideCard>
 
               {/* AI Image Generator */}
-              <SideCard title="AI Image Generator" icon={<Wand2 size={14} />}>
+              <SideCard title="AI Image Generator" icon={<Wand2 size={14} />} open={openPanel === 'image'} onToggle={() => togglePanel('image')}>
                 <AIImageGenerator editor={editor} onCoverChange={url => setCover(url)} />
               </SideCard>
             </div>
