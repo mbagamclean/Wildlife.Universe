@@ -15,9 +15,13 @@ function detectSource(src, sources) {
 
   const s = src.trim();
 
-  // YouTube — watch?v=, embed/, shorts/, live/, youtu.be/
+  // YouTube Shorts — vertical 9:16
+  const ytShorts = s.match(/youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/);
+  if (ytShorts) return { provider: 'youtube-shorts', id: ytShorts[1] };
+
+  // YouTube — watch?v=, embed/, live/, youtu.be/
   const yt = s.match(
-    /(?:youtube\.com\/(?:watch\?v=|embed\/|shorts\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
+    /(?:youtube\.com\/(?:watch\?v=|embed\/|live\/)|youtu\.be\/)([A-Za-z0-9_-]{11})/
   );
   if (yt) return { provider: 'youtube', id: yt[1] };
 
@@ -57,6 +61,7 @@ function detectSource(src, sources) {
 // ── Aspect ratios & layout constraints per provider ──────────────────────────
 const PROVIDER_CONFIG = {
   youtube:           { ratio: '16/9', maxWidth: null    },
+  'youtube-shorts':  { ratio: '9/16', maxWidth: '400px' },
   vimeo:             { ratio: '16/9', maxWidth: null    },
   html5:             { ratio: '16/9', maxWidth: null    },
   facebook:          { ratio: '16/9', maxWidth: null    },
@@ -74,6 +79,7 @@ function paddingFromRatio(ratioStr) {
 // ── Platform badge config ────────────────────────────────────────────────────
 const BADGES = {
   youtube:           { label: 'YouTube',   bg: '#ff0000' },
+  'youtube-shorts':  { label: 'Shorts',    bg: '#ff0000' },
   vimeo:             { label: 'Vimeo',     bg: '#1ab7ea' },
   tiktok:            { label: 'TikTok',    bg: '#ff0050' },
   'instagram-reel':  { label: 'Instagram', bg: '#e4405f' },
@@ -337,8 +343,11 @@ export function VideoPlayer({
           />
         )}
 
-        {(info.provider === 'youtube' || info.provider === 'vimeo') && (
-          <PlyrEmbed provider={info.provider} id={info.id} />
+        {(info.provider === 'youtube' || info.provider === 'youtube-shorts' || info.provider === 'vimeo') && (
+          <PlyrEmbed
+            provider={info.provider === 'youtube-shorts' ? 'youtube' : info.provider}
+            id={info.id}
+          />
         )}
 
         {info.provider === 'tiktok' && (

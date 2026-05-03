@@ -348,9 +348,32 @@ export function PostEditor({ initial, onSave, onCancel }) {
   }, [editor]);
 
   const insertVideo = useCallback(() => {
-    const url = prompt('Enter video URL (YouTube, Vimeo, or direct .mp4 link):');
-    if (!url) return;
-    editor?.commands.setYoutubeVideo({ src: url });
+    const raw = prompt('Enter video URL (YouTube, Vimeo, TikTok, Instagram, Facebook, X, or direct .mp4):');
+    if (!raw) return;
+    const url = raw.trim();
+    const ch = editor?.chain().focus();
+    if (!ch) return;
+
+    if (/youtube\.com|youtu\.be/.test(url)) {
+      editor.commands.setYoutubeVideo({ src: url });
+      return;
+    }
+    if (/\.(mp4|webm|mov|ogg|m3u8)(\?|#|$)/i.test(url)) {
+      ch.insertContent(
+        `<video controls playsinline style="width:100%;border-radius:12px;background:#000"><source src="${url}"/></video><p></p>`
+      ).run();
+      return;
+    }
+    const vimeo = url.match(/vimeo\.com\/(?:video\/)?(\d+)/);
+    if (vimeo) {
+      ch.insertContent(
+        `<div style="position:relative;width:100%;padding-top:56.25%"><iframe src="https://player.vimeo.com/video/${vimeo[1]}" style="position:absolute;inset:0;width:100%;height:100%;border:0;border-radius:12px" allow="autoplay; fullscreen; picture-in-picture" allowfullscreen></iframe></div><p></p>`
+      ).run();
+      return;
+    }
+    ch.insertContent(
+      `<p><a href="${url}" target="_blank" rel="noopener noreferrer" data-video-embed="true">▶ ${url}</a></p>`
+    ).run();
   }, [editor]);
 
   const isActive = useCallback((name, attrs) => editor?.isActive(name, attrs) ?? false, [editor]);
