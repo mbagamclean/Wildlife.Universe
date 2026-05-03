@@ -21,8 +21,8 @@ import {
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered,
   Link2, ImageIcon, Video, Code, Code2,
-  Minus, Info, Search, Printer, Type,
-  Maximize2, Minimize2, Eye,
+  Minus, Info, Printer, Type,
+  Maximize2, Minimize2,
   Sparkles, Star, Folder, Tag, Calendar, User,
   ChevronDown, Save, Send, Quote,
   FileText, Clock, Check, TrendingUp, Wand2,
@@ -294,15 +294,43 @@ export function PostEditor({ initial, onSave, onCancel }) {
   }, [category]); // eslint-disable-line
 
   useEffect(() => {
+    if (!editor) return;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      if (d.title !== undefined) setTitle(d.title);
+      if (d.slug !== undefined) { setSlug(d.slug); setSlugEdited(true); }
+      if (d.category !== undefined) setCategory(d.category);
+      if (d.label !== undefined) setLabel(d.label);
+      if (d.description !== undefined) setDescription(d.description);
+      if (d.excerpt !== undefined) setExcerpt(d.excerpt);
+      if (d.cover !== undefined) setCover(d.cover);
+      if (d.palette !== undefined) setPalette(d.palette);
+      if (d.featured !== undefined) setFeatured(d.featured);
+      if (d.tags !== undefined) setTags(d.tags);
+      if (d.metaTitle !== undefined) setMetaTitle(d.metaTitle);
+      if (d.metaDesc !== undefined) setMetaDesc(d.metaDesc);
+      if (d.metaKw !== undefined) setMetaKw(d.metaKw);
+      if (d.publishDate !== undefined) setPublishDate(d.publishDate);
+      if (d.body) editor.commands.setContent(d.body);
+    } catch (_) {}
+  }, [editor]); // eslint-disable-line
+
+  useEffect(() => {
     autosaveRef.current = setInterval(() => {
       const body = editor?.getHTML() || '';
       try {
-        localStorage.setItem(draftKey, JSON.stringify({ title, slug, category, label, description, body, cover, palette, featured, tags }));
+        localStorage.setItem(draftKey, JSON.stringify({
+          title, slug, category, label, description, excerpt, body,
+          cover, palette, featured, tags,
+          metaTitle, metaDesc, metaKw, publishDate,
+        }));
         setSavedAt(new Date());
       } catch (_) {}
     }, 10000);
     return () => clearInterval(autosaveRef.current);
-  }, [title, slug, category, label, description, cover, palette, featured, tags]); // eslint-disable-line
+  }, [title, slug, category, label, description, excerpt, cover, palette, featured, tags, metaTitle, metaDesc, metaKw, publishDate]); // eslint-disable-line
 
   const seoScore = useMemo(
     () => calcSeo(title, description, slug, cover, wordCount),
@@ -333,8 +361,15 @@ export function PostEditor({ initial, onSave, onCancel }) {
     const coverUrl = typeof cover === 'string' ? cover : cover?.sources?.[0]?.src || '';
     const payload = {
       title: title.trim(), slug: slug.trim(), category, label,
-      description: description.trim(), body, cover: coverUrl, coverPalette: palette,
-      featured, status, tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+      description: description.trim(),
+      excerpt: excerpt.trim(),
+      body, cover: coverUrl, coverPalette: palette,
+      featured, status,
+      tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+      metaTitle: metaTitle.trim(),
+      metaDesc: metaDesc.trim(),
+      metaKw: metaKw.trim(),
+      publishDate,
     };
     try {
       await onSave(payload);
@@ -417,16 +452,6 @@ export function PostEditor({ initial, onSave, onCancel }) {
               }}
             >
               ⊟ {sidebarOpen ? 'Hide Panel' : 'Show Panel'}
-            </button>
-            <button
-              className="pe-hbtn"
-              style={{
-                display: 'flex', alignItems: 'center', gap: 5,
-                height: 34, padding: '0 12px', borderRadius: 7, border: '1px solid var(--adm-border)',
-                background: 'transparent', color: 'var(--adm-text)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
-              }}
-            >
-              <Eye size={14} /> Preview
             </button>
             <button
               onClick={() => window.print()}
@@ -636,9 +661,6 @@ export function PostEditor({ initial, onSave, onCancel }) {
                 <TBtn tip="Paragraph" active={isActive('paragraph')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().setParagraph().run(); }}>
                   <span style={{ fontSize: 12 }}>¶</span>
                 </TBtn>
-                <TBtn tip="Search (coming soon)" onMouseDown={e => e.preventDefault()}>
-                  <Search size={13} />
-                </TBtn>
                 <TBtn tip="Print" onMouseDown={e => { e.preventDefault(); window.print(); }}>
                   <Printer size={13} />
                 </TBtn>
@@ -666,13 +688,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
                 <TBtn tip={fullscreen ? 'Exit Fullscreen' : 'Fullscreen'} onMouseDown={e => { e.preventDefault(); setFullscreen(f => !f); }}>
                   {fullscreen ? <Minimize2 size={12} /> : <Maximize2 size={12} />}
                 </TBtn>
-                <TBtn tip="Preview" onMouseDown={e => e.preventDefault()}>
-                  <Eye size={12} />
-                </TBtn>
                 <div style={{ flex: 1 }} />
-                <span style={{ fontSize: 10, color: 'var(--adm-text-subtle)' }}>
-                  Ctrl+Shift+T: toolkit&nbsp;&bull;&nbsp;Ctrl+P: print&nbsp;&bull;&nbsp;Shift+Enter: line break
-                </span>
               </div>
             </div>
 
@@ -793,7 +809,6 @@ export function PostEditor({ initial, onSave, onCancel }) {
               display: 'flex', flexDirection: 'column', gap: 12,
               position: 'sticky', top: HEADER_H, alignSelf: 'flex-start',
               height: '120vh', overflowY: 'auto', paddingRight: 4,
-              paddingRight: 2,
             }}>
 
               {/* Publishing */}
