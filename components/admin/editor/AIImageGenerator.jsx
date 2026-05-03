@@ -283,14 +283,14 @@ export function AIImageGenerator({ editor, onCoverChange }) {
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--adm-border)', marginBottom: 12 }}>
         {IMAGE_TABS.map(t => {
-          const label = t === 'Bulk' ? `Bulk (${h2Headings.length} H2s)` : t;
+          const label = t === 'Text to Image' ? 'Generate' : t === 'Bulk' ? `Bulk (${h2Headings.length})` : t;
           return (
             <button key={t} onClick={() => setActiveTab(t)} style={{
-              padding: '5px 10px', fontSize: 10, fontWeight: 700, border: 'none', background: 'transparent',
+              flex: 1, padding: '7px 4px', fontSize: 10, fontWeight: 700, border: 'none', background: 'transparent',
               color: activeTab === t ? PURPLE : 'var(--adm-text-subtle)',
               borderBottom: activeTab === t ? `2px solid ${PURPLE}` : '2px solid transparent',
               cursor: 'pointer', whiteSpace: 'nowrap',
-              display: 'flex', alignItems: 'center', gap: 4,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 3,
             }}>
               {t === 'Text to Image' ? '✦' : t === 'Transform' ? '✨' : '≡'} {label}
             </button>

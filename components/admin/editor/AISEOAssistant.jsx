@@ -207,10 +207,10 @@ export function AISEOAssistant({ title, editor, slug, onFieldsInserted }) {
       <div style={{ display: 'flex', borderBottom: '1px solid var(--adm-border)', marginBottom: 12 }}>
         {['Generate', 'Analyze'].map(t => (
           <button key={t} onClick={() => setTab(t)} style={{
-            padding: '6px 16px', fontSize: 11, fontWeight: 700, border: 'none', background: 'transparent',
+            flex: 1, padding: '8px 8px', fontSize: 11, fontWeight: 700, border: 'none', background: 'transparent',
             color: tab === t ? GREEN : 'var(--adm-text-subtle)',
             borderBottom: tab === t ? `2px solid ${GREEN}` : '2px solid transparent',
-            cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5,
+            cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 5,
           }}>
             {t === 'Generate' ? '⚡' : '📊'} {t}
           </button>

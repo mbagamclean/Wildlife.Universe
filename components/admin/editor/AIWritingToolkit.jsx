@@ -64,10 +64,10 @@ function ActionItem({ action, onClick, disabled }) {
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        display: 'flex', alignItems: 'flex-start', gap: 12, padding: '12px 14px',
-        borderRadius: 10, border: `1px solid ${hov ? PURPLE_BORDER : 'var(--adm-border)'}`,
+        display: 'flex', alignItems: 'flex-start', gap: 10, padding: '10px 12px',
+        borderRadius: 9, border: `1px solid ${hov ? PURPLE_BORDER : 'var(--adm-border)'}`,
         background: hov ? PURPLE_LIGHT : 'transparent',
-        cursor: disabled ? 'not-allowed' : 'pointer',
+        cursor: disabled ? 'not-allowed' : 'pointer', boxSizing: 'border-box',
         opacity: disabled ? 0.5 : 1, width: '100%', textAlign: 'left',
         transition: 'all 0.13s',
       }}
@@ -213,6 +213,7 @@ export function AIWritingToolkit({ editor, title, wordCount }) {
 
   return (
     <div>
+      <style>{`.ai-wt-subtabs::-webkit-scrollbar{display:none}`}</style>
       {/* ── Header ─────────────────────────────── */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
         <div style={{
@@ -231,13 +232,13 @@ export function AIWritingToolkit({ editor, title, wordCount }) {
       </div>
 
       {/* ── Top tabs (AI / Headlines / Links / Proof / SEO) ─── */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--adm-border)', marginBottom: 12, overflowX: 'auto' }}>
+      <div style={{ display: 'flex', borderBottom: '1px solid var(--adm-border)', marginBottom: 12 }}>
         {['AI', 'Headlines', 'Links', 'Proof', 'SEO'].map(t => (
           <button key={t} onClick={() => setTopTab(t)} style={{
-            padding: '5px 12px', fontSize: 11, fontWeight: 600, border: 'none', background: 'transparent',
+            flex: 1, padding: '7px 4px', fontSize: 11, fontWeight: 600, border: 'none', background: 'transparent',
             color: topTab === t ? PURPLE : 'var(--adm-text-subtle)',
             borderBottom: topTab === t ? `2px solid ${PURPLE}` : '2px solid transparent',
-            cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color 0.12s',
+            cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color 0.12s', textAlign: 'center',
           }}>{t}</button>
         ))}
       </div>
@@ -289,10 +290,10 @@ export function AIWritingToolkit({ editor, title, wordCount }) {
           </div>
 
           {/* Sub-tabs */}
-          <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--adm-border)', overflowX: 'auto' }}>
+          <div className="ai-wt-subtabs" style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--adm-border)', overflowX: 'auto', scrollbarWidth: 'none', msOverflowStyle: 'none' }}>
             {WRITING_TABS.map(t => (
               <button key={t} onClick={() => store.setActiveWritingTab(t)} style={{
-                padding: '5px 10px', fontSize: 10, fontWeight: 700, border: 'none', background: 'transparent',
+                flexShrink: 0, padding: '6px 10px', fontSize: 10, fontWeight: 700, border: 'none', background: 'transparent',
                 color: store.activeWritingTab === t ? PURPLE : 'var(--adm-text-subtle)',
                 borderBottom: store.activeWritingTab === t ? `2px solid ${PURPLE}` : '2px solid transparent',
                 cursor: 'pointer', whiteSpace: 'nowrap',
