@@ -55,6 +55,66 @@ async function generateWithOpenAI(prompt, apiKey) {
   return buffer;
 }
 
+async function fetchAsBase64(url) {
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(`Source image fetch failed: ${r.status}`);
+  const ct = r.headers.get('content-type') || 'image/png';
+  const buf = Buffer.from(await r.arrayBuffer());
+  return { mimeType: ct.split(';')[0].trim(), data: buf.toString('base64') };
+}
+
+async function generateWithGemini(prompt, { aspectRatio = '16:9', imageSize = '2K', inputImageUrl, apiKey } = {}) {
+  const key = apiKey || process.env.GEMINI_API_KEY;
+  if (!key) throw new Error('GEMINI_API_KEY not configured');
+  const model = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image-preview';
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
+
+  const parts = [{ text: `${prompt}${STYLE_SUFFIX}` }];
+  if (inputImageUrl) {
+    const src = await fetchAsBase64(inputImageUrl);
+    parts.push({ inlineData: src });
+  }
+
+  const body = {
+    contents: [{ parts }],
+    generationConfig: {
+      responseModalities: ['TEXT', 'IMAGE'],
+      // Omit imageConfig on edits to preserve composition; set it for fresh generations
+      ...(inputImageUrl ? {} : { imageConfig: { aspectRatio, imageSize } }),
+      thinkingConfig: { thinkingLevel: 'minimal' },
+    },
+  };
+
+  const res = await fetch(url, {
+    method: 'POST',
+    headers: { 'x-goog-api-key': key, 'Content-Type': 'application/json' },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const txt = await res.text();
+    if (res.status === 429) throw new Error('Gemini rate limit hit. Try again in a moment.');
+    if (res.status === 400) throw new Error(`Gemini rejected the request: ${txt.slice(0, 240)}`);
+    throw new Error(`Gemini ${res.status}: ${txt.slice(0, 240)}`);
+  }
+  const data = await res.json();
+  const block = data.promptFeedback?.blockReason;
+  if (block) throw new Error(`Prompt blocked by safety filter: ${block}. Try rephrasing.`);
+  const candidate = data.candidates?.[0];
+  const imgPart = candidate?.content?.parts?.find(p => p.inlineData);
+  if (!imgPart) {
+    const reason = candidate?.finishReason || 'unknown';
+    throw new Error(`No image returned by Gemini (finishReason=${reason}).`);
+  }
+  return Buffer.from(imgPart.inlineData.data, 'base64');
+}
+
+async function generateImage({ prompt, provider, aspectRatio, inputImageUrl, apiKey }) {
+  if (provider === 'gemini') {
+    return generateWithGemini(prompt, { aspectRatio, inputImageUrl, apiKey });
+  }
+  return generateWithOpenAI(prompt, apiKey);
+}
+
 async function enrichPromptWithAI(heading, context, provider) {
   const model = provider === 'openai'
     ? openai(process.env.OPENAI_MODEL || 'gpt-4o')
@@ -83,7 +143,11 @@ Return ONLY the image description prompt (50-80 words, no preamble).`,
 
 export async function POST(req) {
   try {
-    const { prompt, mode = 'text_to_image', provider = 'openai', headings, context, apiKey } = await req.json();
+    const {
+      prompt, mode = 'text_to_image', provider = 'openai',
+      aspectRatio, inputImageUrl,
+      headings, context, apiKey,
+    } = await req.json();
 
     // Bulk mode
     if (mode === 'bulk' && Array.isArray(headings)) {
@@ -91,7 +155,7 @@ export async function POST(req) {
       for (const item of headings) {
         try {
           const enriched = await enrichPromptWithAI(item.heading, item.context || '', provider);
-          const buffer = await generateWithOpenAI(enriched, apiKey);
+          const buffer = await generateImage({ prompt: enriched, provider, aspectRatio, apiKey });
           const uid = `bulk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           const urls = await uploadToSupabase(buffer, uid);
           results.push({
@@ -114,7 +178,11 @@ export async function POST(req) {
     // Single image (text_to_image or transform)
     if (!prompt) return Response.json({ error: 'Prompt required' }, { status: 400 });
 
-    const buffer = await generateWithOpenAI(prompt, apiKey);
+    const buffer = await generateImage({
+      prompt, provider, aspectRatio,
+      inputImageUrl: mode === 'transform' ? inputImageUrl : undefined,
+      apiKey,
+    });
     const uid = `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
     const urls = await uploadToSupabase(buffer, uid);
 

@@ -9,7 +9,7 @@ const PINK = '#ec4899';
 
 const IMG_PROVIDERS = [
   { id: 'openai', label: 'OpenAI DALL·E 3', badge: 'DALL·E 3' },
-  { id: 'gemini', label: 'Gemini Imagen 3', badge: 'Imagen 3' },
+  { id: 'gemini', label: 'Gemini 3.1 Flash Image (Nano Banana 2)', badge: 'Gemini 3.1' },
 ];
 
 const IMAGE_TABS = ['Text to Image', 'Transform', 'Bulk'];
@@ -154,14 +154,24 @@ export function AIImageGenerator({ editor, onCoverChange }) {
     if (store.isGeneratingImage || !store.transformPrompt.trim() || !store.transformSourceUrl.trim()) return;
     store.setIsGeneratingImage(true);
     try {
-      const transformedPrompt = `Transform this image: ${store.transformSourceUrl}. Instructions: ${store.transformPrompt}. Maintain animal anatomy accuracy and wildlife realism.`;
+      // Real img2img: the route fetches inputImageUrl server-side and sends it
+      // to Gemini as inline base64. OpenAI DALL·E 3 has no edit endpoint, so
+      // when provider=openai the route falls back to text-only generation
+      // using the instruction as the prompt.
+      const provider = store.imageProvider === 'openai' ? 'gemini' : store.imageProvider;
       const res = await fetch('/api/ai/image', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ prompt: transformedPrompt, mode: 'transform', provider: store.imageProvider }),
+        body: JSON.stringify({
+          prompt: `${store.transformPrompt}. Maintain animal anatomy accuracy and wildlife realism.`,
+          mode: 'transform',
+          provider,
+          inputImageUrl: store.transformSourceUrl,
+        }),
       });
       const json = await res.json();
-      if (json.success) store.addGeneratedImage(json);
+      if (!json.success) throw new Error(json.error || 'Transform failed');
+      store.addGeneratedImage(json);
     } catch (err) {
       console.error('[Transform]', err);
     } finally {
