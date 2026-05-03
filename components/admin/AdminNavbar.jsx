@@ -217,16 +217,17 @@ export function AdminNavbar({ onMenu, sidebarOpen, isDesktop }) {
           background: isDark ? 'rgba(212,175,55,0.3)' : 'rgba(212,175,55,0.45)',
         }} />
 
-        {/* CMS — Playfair italic, gold gradient */}
+        {/* CMS — Playfair italic, gold gradient, theme-responsive via filter */}
         <span style={{
           fontFamily: 'var(--font-playfair), Georgia, serif',
           fontSize: '1rem', fontWeight: 700, fontStyle: 'italic',
           letterSpacing: '0.04em',
-          background: isDark
-            ? 'linear-gradient(135deg, #d4af37 0%, #f0d060 50%, #c9a227 100%)'
-            : 'linear-gradient(135deg, #b8860b 0%, #d4af37 50%, #a07010 100%)',
+          background: 'linear-gradient(135deg, #d4af37 0%, #f0d060 50%, #c9a227 100%)',
           WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-          backgroundClip: 'text', userSelect: 'none',
+          backgroundClip: 'text',
+          filter: isDark ? 'none' : 'brightness(0.72) saturate(1.3)',
+          transition: 'filter 0.3s ease',
+          userSelect: 'none',
         }}>
           CMS
         </span>
