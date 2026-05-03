@@ -62,7 +62,7 @@ function TBtn({ tip, onMouseDown, active, children }) {
       onMouseEnter={() => setHov(true)}
       onMouseLeave={() => setHov(false)}
       style={{
-        minWidth: 26, height: 24, padding: '0 4px', borderRadius: 4, border: 'none',
+        minWidth: 30, height: 30, padding: '0 5px', borderRadius: 5, border: 'none',
         background: active ? 'rgba(124,58,237,0.12)' : hov ? 'var(--adm-hover-bg)' : 'transparent',
         color: active ? '#7c3aed' : 'var(--adm-text)',
         cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
@@ -114,8 +114,8 @@ function FormatDropdown({ editor, isActive }) {
       <button
         onMouseDown={e => { e.preventDefault(); setOpen(o => !o); }}
         style={{
-          display: 'flex', alignItems: 'center', gap: 3, height: 24,
-          padding: '0 8px', borderRadius: 4, fontSize: 11, fontWeight: 500,
+          display: 'flex', alignItems: 'center', gap: 3, height: 30,
+          padding: '0 9px', borderRadius: 5, fontSize: 12, fontWeight: 500,
           border: '1px solid var(--adm-border)', background: 'transparent',
           color: 'var(--adm-text)', cursor: 'pointer', whiteSpace: 'nowrap',
         }}
@@ -345,10 +345,13 @@ export function PostEditor({ initial, onSave, onCancel }) {
         {/* ── STICKY HEADER ── */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 50,
-          height: HEADER_H, display: 'flex', alignItems: 'center', gap: 12,
-          padding: '0 24px', boxSizing: 'border-box',
           background: 'var(--adm-bg)', borderBottom: '1px solid var(--adm-border)',
         }}>
+          <div style={{
+            maxWidth: 1160, margin: '0 auto',
+            height: HEADER_H, display: 'flex', alignItems: 'center', gap: 10,
+            padding: '0 24px', boxSizing: 'border-box',
+          }}>
           {/* Back */}
           <button
             onClick={onCancel}
@@ -383,7 +386,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
               className="pe-hbtn"
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '6px 11px', borderRadius: 7, border: '1px solid var(--adm-border)',
+                height: 34, padding: '0 12px', borderRadius: 7, border: '1px solid var(--adm-border)',
                 background: 'transparent', color: 'var(--adm-text)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
               }}
             >
@@ -393,11 +396,11 @@ export function PostEditor({ initial, onSave, onCancel }) {
               className="pe-hbtn"
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '6px 11px', borderRadius: 7, border: '1px solid var(--adm-border)',
+                height: 34, padding: '0 12px', borderRadius: 7, border: '1px solid var(--adm-border)',
                 background: 'transparent', color: 'var(--adm-text)', fontSize: 12, fontWeight: 500, cursor: 'pointer',
               }}
             >
-              <Eye size={13} /> Preview
+              <Eye size={14} /> Preview
             </button>
             <button
               onClick={() => window.print()}
@@ -415,7 +418,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
               disabled={saving}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '6px 14px', borderRadius: 7, border: 'none',
+                height: 34, padding: '0 16px', borderRadius: 7, border: 'none',
                 background: '#374151', color: '#fff', fontSize: 12, fontWeight: 600,
                 cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1,
               }}
@@ -427,7 +430,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
               disabled={saving}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
-                padding: '6px 14px', borderRadius: 7, border: 'none',
+                height: 34, padding: '0 16px', borderRadius: 7, border: 'none',
                 background: '#1d4ed8', color: '#fff', fontSize: 12, fontWeight: 600,
                 cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1,
               }}
@@ -435,10 +438,12 @@ export function PostEditor({ initial, onSave, onCancel }) {
               <Send size={13} /> Publish Now
             </button>
           </div>
+          </div>
         </div>
 
         {/* ── BODY ── */}
         <div style={{
+          maxWidth: 1160, margin: '0 auto', width: '100%',
           display: 'flex', gap: 20, padding: '20px 24px 60px',
           alignItems: 'flex-start', flex: 1,
         }}>
@@ -509,8 +514,8 @@ export function PostEditor({ initial, onSave, onCancel }) {
             }}>
               {/* Row 1 */}
               <div style={{
-                display: 'flex', flexWrap: 'wrap', alignItems: 'center',
-                gap: 1, padding: '5px 10px',
+                display: 'flex', flexWrap: 'nowrap', overflowX: 'auto', alignItems: 'center',
+                gap: 2, padding: '5px 10px',
               }}>
                 <TBtn tip="Undo" onMouseDown={e => { e.preventDefault(); editor?.chain().focus().undo().run(); }}>
                   <Undo2 size={13} />
@@ -522,8 +527,8 @@ export function PostEditor({ initial, onSave, onCancel }) {
                 <FormatDropdown editor={editor} isActive={isActive} />
                 <div style={{ display: 'flex', alignItems: 'center', gap: 3, marginLeft: 3, flexShrink: 0 }}>
                   <div style={{
-                    display: 'flex', alignItems: 'center', gap: 3, height: 24,
-                    padding: '0 7px', borderRadius: 4, fontSize: 11, fontWeight: 500,
+                    display: 'flex', alignItems: 'center', gap: 3, height: 30,
+                    padding: '0 9px', borderRadius: 5, fontSize: 12, fontWeight: 500,
                     border: '1px solid var(--adm-border)', color: 'var(--adm-text-subtle)', whiteSpace: 'nowrap',
                   }}>
                     pt <ChevronDown size={9} />
@@ -617,9 +622,9 @@ export function PostEditor({ initial, onSave, onCancel }) {
                   onMouseDown={e => e.preventDefault()}
                   style={{
                     display: 'flex', alignItems: 'center', gap: 5,
-                    padding: '4px 10px', borderRadius: 5, border: 'none',
+                    height: 30, padding: '0 12px', borderRadius: 5, border: 'none',
                     background: '#7c3aed', color: '#fff',
-                    fontSize: 11, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
+                    fontSize: 12, fontWeight: 600, cursor: 'pointer', flexShrink: 0,
                   }}
                 >
                   <Sparkles size={12} /> Toolkit
@@ -756,7 +761,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
           {/* ── SIDEBAR ── */}
           {sidebarOpen && (
             <div style={{
-              width: 275, flexShrink: 0,
+              width: 290, flexShrink: 0,
               display: 'flex', flexDirection: 'column', gap: 14,
               position: 'sticky', top: HEADER_H + 20, alignSelf: 'flex-start',
               maxHeight: `calc(100vh - ${HEADER_H + 20}px)`, overflowY: 'auto',
