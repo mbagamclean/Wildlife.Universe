@@ -162,7 +162,7 @@ function SideCard({ title, icon, accentBg, badge, children, defaultOpen = true }
         onClick={() => setOpen(o => !o)}
         style={{
           width: '100%', display: 'flex', alignItems: 'center', gap: 8,
-          padding: '11px 14px', background: accentBg || 'transparent',
+          padding: '13px 16px', background: accentBg || 'transparent',
           border: 'none', cursor: 'pointer', textAlign: 'left',
         }}
       >
@@ -171,7 +171,7 @@ function SideCard({ title, icon, accentBg, badge, children, defaultOpen = true }
             {icon}
           </span>
         )}
-        <span style={{ fontSize: 13, fontWeight: 700, color: accentBg ? '#fff' : 'var(--adm-text)', flex: 1 }}>
+        <span style={{ fontSize: 13, fontWeight: 700, color: accentBg ? '#fff' : 'var(--adm-text)', flex: 1, letterSpacing: '-0.01em' }}>
           {title}
         </span>
         {badge && (
@@ -192,7 +192,7 @@ function SideCard({ title, icon, accentBg, badge, children, defaultOpen = true }
       </button>
       {open && (
         <div style={{
-          padding: '13px 14px',
+          padding: '14px 16px',
           borderTop: `1px solid ${accentBg ? 'rgba(255,255,255,0.15)' : 'var(--adm-border)'}`,
         }}>
           {children}
@@ -204,7 +204,7 @@ function SideCard({ title, icon, accentBg, badge, children, defaultOpen = true }
 
 const fieldStyle = {
   borderRadius: 7, border: '1px solid var(--adm-border)', background: 'var(--adm-bg)',
-  color: 'var(--adm-text)', padding: '7px 10px', fontSize: 13, outline: 'none',
+  color: 'var(--adm-text)', padding: '8px 11px', fontSize: 13, outline: 'none',
   width: '100%', boxSizing: 'border-box', transition: 'border-color 0.15s, box-shadow 0.15s',
 };
 
@@ -348,7 +348,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
           background: 'var(--adm-bg)', borderBottom: '1px solid var(--adm-border)',
         }}>
           <div style={{
-            maxWidth: 1160, margin: '0 auto',
+            maxWidth: 1600, margin: '0 auto',
             height: HEADER_H, display: 'flex', alignItems: 'center', gap: 10,
             padding: '0 24px', boxSizing: 'border-box',
           }}>
@@ -443,7 +443,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
 
         {/* ── BODY ── */}
         <div style={{
-          maxWidth: 1160, margin: '0 auto', width: '100%',
+          maxWidth: 1600, margin: '0 auto', width: '100%',
           display: 'flex', gap: 20, padding: '20px 24px 60px',
           alignItems: 'flex-start', flex: 1,
         }}>
@@ -761,23 +761,24 @@ export function PostEditor({ initial, onSave, onCancel }) {
           {/* ── SIDEBAR ── */}
           {sidebarOpen && (
             <div style={{
-              width: 290, flexShrink: 0,
-              display: 'flex', flexDirection: 'column', gap: 14,
-              position: 'sticky', top: HEADER_H + 20, alignSelf: 'flex-start',
-              maxHeight: `calc(100vh - ${HEADER_H + 20}px)`, overflowY: 'auto',
+              width: 320, flexShrink: 0,
+              display: 'flex', flexDirection: 'column', gap: 12,
+              position: 'sticky', top: HEADER_H, alignSelf: 'flex-start',
+              maxHeight: `calc(100vh - ${HEADER_H}px - 20px)`, overflowY: 'auto',
+              paddingRight: 2,
             }}>
 
               {/* Publishing */}
               <SideCard title="Publishing">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', color: 'var(--adm-text)' }}>
                     <input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)}
-                      style={{ width: 15, height: 15, accentColor: '#7c3aed', cursor: 'pointer', flexShrink: 0 }} />
+                      style={{ width: 16, height: 16, accentColor: '#7c3aed', cursor: 'pointer', flexShrink: 0 }} />
                     Published
                   </label>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', color: 'var(--adm-text)' }}>
                     <input type="checkbox" checked={featured} onChange={e => setFeatured(e.target.checked)}
-                      style={{ width: 15, height: 15, accentColor: '#d4af37', cursor: 'pointer', flexShrink: 0 }} />
+                      style={{ width: 16, height: 16, accentColor: '#d4af37', cursor: 'pointer', flexShrink: 0 }} />
                     <Star size={13} style={{ color: '#d4af37', flexShrink: 0 }} fill="#d4af37" />
                     Featured Post
                   </label>
@@ -822,7 +823,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
 
               {/* Organization */}
               <SideCard title="Organization">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
                       <Folder size={12} style={{ color: 'var(--adm-text-muted)' }} />
@@ -872,7 +873,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
 
               {/* Featured Image */}
               <SideCard title="Featured Image" icon={<ImageIcon size={14} />}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <MediaUpload value={cover} onChange={v => setCover(v)} label="" />
                   <div>
                     <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--adm-text-muted)', marginBottom: 6 }}>
@@ -893,7 +894,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
               </SideCard>
 
               {/* Writing Toolkit */}
-              <SideCard title="Writing Toolkit" accentBg="#7c3aed" icon={<Sparkles size={14} />} badge="2026">
+              <SideCard title="Writing Toolkit" accentBg="#7c3aed" icon={<Sparkles size={14} />} badge="2026" defaultOpen={false}>
                 <AIWritingToolkit editor={editor} title={title} wordCount={wordCount} />
               </SideCard>
 
