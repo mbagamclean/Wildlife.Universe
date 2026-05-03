@@ -1,49 +1,85 @@
 'use client';
+
 import Link from 'next/link';
-import { Globe, ArrowRight } from 'lucide-react';
+import { useTheme } from 'next-themes';
+import { Globe, ArrowUpRight } from 'lucide-react';
 
 const PAGES = [
-  { title: 'Home', href: '/', desc: 'Landing page with hero rotation' },
-  { title: 'Posts', href: '/posts', desc: 'All posts category page' },
-  { title: 'Animals', href: '/animals', desc: 'Animals category page' },
-  { title: 'Birds', href: '/birds', desc: 'Birds category page' },
-  { title: 'Plants', href: '/plants', desc: 'Plants category page' },
-  { title: 'Insects', href: '/insects', desc: 'Insects category page' },
-  { title: 'About', href: '/about', desc: 'About Wildlife Universe' },
-  { title: 'Privacy Policy', href: '/privacy', desc: 'Legal — privacy policy' },
-  { title: 'Terms of Service', href: '/terms', desc: 'Legal — terms of service' },
+  { title: 'Home',           href: '/',        desc: 'Landing page with hero carousel' },
+  { title: 'Posts',          href: '/posts',   desc: 'All blog posts'                  },
+  { title: 'Animals',        href: '/animals', desc: 'Animals category'                },
+  { title: 'Birds',          href: '/birds',   desc: 'Birds category'                  },
+  { title: 'Plants',         href: '/plants',  desc: 'Plants category'                 },
+  { title: 'Insects',        href: '/insects', desc: 'Insects category'                },
+  { title: 'About',          href: '/about',   desc: 'About Wildlife Universe'         },
+  { title: 'Privacy Policy', href: '/privacy', desc: 'Legal — privacy policy'          },
+  { title: 'Terms of Service', href: '/terms', desc: 'Legal — terms of service'        },
 ];
 
 export default function AdminPagesPage() {
+  const { resolvedTheme } = useTheme();
+  const isDark = resolvedTheme === 'dark';
+
   return (
     <div className="p-5 sm:p-8">
-      <div className="mb-6">
-        <p className="mb-1 flex items-center gap-2 text-[11px] font-bold uppercase tracking-widest text-[#d4af37]">
-          <span className="h-3 w-1 rounded-full bg-[#d4af37]" />
-          CONTENT
+      {/* Header */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{
+          fontSize: 28, fontWeight: 800, letterSpacing: '-0.02em',
+          lineHeight: 1.15, marginBottom: 4, color: 'var(--adm-text)',
+        }}>
+          Pages
+        </h1>
+        <p style={{ fontSize: 14, color: 'var(--adm-text-muted)', margin: 0 }}>
+          Quick links to all public website pages
         </p>
-        <h1 className="text-2xl font-black sm:text-3xl" style={{ color: 'var(--adm-text)' }}>Pages</h1>
-        <p className="mt-1 text-sm" style={{ color: 'var(--adm-text-muted)' }}>Quick links to all website pages.</p>
       </div>
-      <div className="rounded-2xl" style={{ background: 'var(--adm-surface)', boxShadow: 'var(--adm-shadow)', border: '1px solid var(--adm-border)' }}>
+
+      {/* Pages table */}
+      <div style={{
+        background: 'var(--adm-surface)',
+        border: '1px solid var(--adm-border)',
+        borderRadius: 14,
+        boxShadow: isDark ? 'none' : '0 1px 6px rgba(0,0,0,0.05)',
+        overflow: 'hidden',
+      }}>
         {PAGES.map((p, i) => (
           <Link
             key={p.href}
             href={p.href}
             target="_blank"
-            className="flex items-center gap-4 px-5 py-4 transition-colors"
-            style={i < PAGES.length - 1 ? { borderBottom: '1px solid var(--adm-border)' } : {}}
-            onMouseEnter={(e) => { e.currentTarget.style.background = 'var(--adm-hover-bg)'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; }}
+            rel="noopener noreferrer"
+            style={{
+              display: 'flex', alignItems: 'center', gap: 14,
+              padding: '14px 20px',
+              borderBottom: i < PAGES.length - 1 ? '1px solid var(--adm-border)' : 'none',
+              textDecoration: 'none',
+              transition: 'background 0.12s',
+            }}
+            onMouseEnter={e => { e.currentTarget.style.background = 'var(--adm-hover-bg)'; }}
+            onMouseLeave={e => { e.currentTarget.style.background = 'transparent'; }}
           >
-            <div className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg" style={{ background: '#00800015' }}>
-              <Globe className="h-4 w-4 text-[#008000]" />
+            {/* Icon */}
+            <div style={{
+              width: 34, height: 34, borderRadius: 9, flexShrink: 0,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              background: isDark ? 'rgba(0,128,0,0.12)' : 'rgba(0,128,0,0.08)',
+            }}>
+              <Globe size={16} color="#008000" strokeWidth={1.8} />
             </div>
-            <div className="min-w-0 flex-1">
-              <p className="text-[13px] font-semibold" style={{ color: 'var(--adm-text)' }}>{p.title}</p>
-              <p className="text-[11px]" style={{ color: 'var(--adm-text-subtle)' }}>{p.desc}</p>
+
+            {/* Text */}
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <p style={{ margin: 0, fontSize: 14, fontWeight: 500, color: 'var(--adm-text)' }}>
+                {p.title}
+              </p>
+              <p style={{ margin: 0, fontSize: 12, color: 'var(--adm-text-subtle)', marginTop: 1 }}>
+                {p.href}  ·  {p.desc}
+              </p>
             </div>
-            <ArrowRight className="h-4 w-4" style={{ color: 'var(--adm-text-subtle)' }} />
+
+            {/* Arrow */}
+            <ArrowUpRight size={15} strokeWidth={1.8} style={{ color: 'var(--adm-text-subtle)', flexShrink: 0 }} />
           </Link>
         ))}
       </div>
