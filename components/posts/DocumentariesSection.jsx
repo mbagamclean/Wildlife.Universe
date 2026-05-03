@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Play, Film, X } from 'lucide-react';
 import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
+import { VideoPlayer } from '@/components/ui/VideoPlayer';
 
 function resolveCoverSrc(cover) {
   if (!cover) return null;
@@ -233,19 +234,31 @@ export function DocumentariesSection() {
                 animate={{ scale: 1, opacity: 1, y: 0 }}
                 exit={{ scale: 0.92, opacity: 0, y: 40 }}
                 transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-                className="relative w-full max-w-[1200px] overflow-hidden rounded-2xl bg-black shadow-[0_0_60px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
-                style={{ aspectRatio: '16/9' }}
+                className="relative w-full max-w-[1200px]"
                 onClick={(e) => e.stopPropagation()}
               >
-                  {/* Simulated YouTube Embed */}
-                  {resolveCoverSrc(docs[activeIndex].cover) && (
-                     <img src={resolveCoverSrc(docs[activeIndex].cover)} alt="" className="absolute inset-0 h-full w-full object-cover blur-sm brightness-[0.25]" />
-                  )}
-                  <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center z-10">
-                     <Play className="mb-6 h-20 w-20 text-white/50" fill="currentColor" />
-                     <h2 className="text-2xl font-bold text-white mb-2">{docs[activeIndex].title}</h2>
-                     <p className="text-gray-400">Cinematic Video Embed Simulator</p>
+                {docs[activeIndex]?.videoUrl || docs[activeIndex]?.video ? (
+                  <VideoPlayer
+                    src={docs[activeIndex].videoUrl || docs[activeIndex].video}
+                    poster={resolveCoverSrc(docs[activeIndex].cover)}
+                    rounded
+                    showBadge
+                  />
+                ) : (
+                  <div
+                    className="overflow-hidden rounded-2xl bg-black shadow-[0_0_60px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
+                    style={{ aspectRatio: '16/9' }}
+                  >
+                    {resolveCoverSrc(docs[activeIndex]?.cover) && (
+                      <img src={resolveCoverSrc(docs[activeIndex].cover)} alt="" className="absolute inset-0 h-full w-full object-cover blur-sm brightness-[0.25]" />
+                    )}
+                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center z-10">
+                      <Play className="mb-6 h-20 w-20 text-white/50" fill="currentColor" />
+                      <h2 className="text-2xl font-bold text-white mb-2">{docs[activeIndex]?.title}</h2>
+                      <p className="text-gray-400 text-sm">No video URL set — add a videoUrl field to this post</p>
+                    </div>
                   </div>
+                )}
               </motion.div>
            </motion.div>
         )}

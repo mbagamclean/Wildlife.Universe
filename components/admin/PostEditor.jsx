@@ -11,6 +11,7 @@ import Link from '@tiptap/extension-link';
 import Image from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import CharacterCount from '@tiptap/extension-character-count';
+import Youtube from '@tiptap/extension-youtube';
 
 import { categories } from '@/lib/mock/categories';
 import { MediaUpload } from './MediaUpload';
@@ -156,6 +157,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
       Superscript,
       Link.configure({ openOnClick: false, HTMLAttributes: { rel: 'noopener noreferrer' } }),
       Image.configure({ inline: false, allowBase64: false }),
+      Youtube.configure({ width: 640, height: 360, allowFullscreen: true, controls: true, nocookie: true }),
       Placeholder.configure({ placeholder: 'Start writing your article… let the wildlife story unfold.' }),
       CharacterCount,
     ],
@@ -192,10 +194,15 @@ export function PostEditor({ initial, onSave, onCancel }) {
     [title, description, slug, cover, wordCount]
   );
 
-  // Insert link via prompt
   const insertLink = useCallback(() => {
     const url = prompt('Enter URL:');
     if (url) editor?.chain().focus().setLink({ href: url }).run();
+  }, [editor]);
+
+  const insertVideo = useCallback(() => {
+    const url = prompt('Enter video URL (YouTube, Vimeo, or direct .mp4 link):');
+    if (!url) return;
+    editor?.commands.setYoutubeVideo({ src: url });
   }, [editor]);
 
   // Toolbar active checks
@@ -246,6 +253,8 @@ export function PostEditor({ initial, onSave, onCancel }) {
         .tiptap-content img { max-width: 100%; border-radius: 10px; display: block; margin: 1em 0; }
         .tiptap-content figure { margin: 1em 0; }
         .tiptap-content figcaption { font-size: 0.85em; color: var(--adm-text-muted); text-align: center; margin-top: 4px; }
+        .tiptap-content div[data-youtube-video] { margin: 1em 0; border-radius: 10px; overflow: hidden; }
+        .tiptap-content div[data-youtube-video] iframe { width: 100%; aspect-ratio: 16/9; display: block; border: none; }
         .tiptap-content p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--adm-text-subtle); pointer-events: none; float: left; height: 0; }
         .tiptap-content ::selection { background: rgba(124,58,237,0.15); }
       `}</style>
@@ -325,6 +334,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
               <TDiv />
               <TBtn tip="Insert Link" active={isActive('link')} onMouseDown={e => { e.preventDefault(); insertLink(); }}>🔗</TBtn>
               <TBtn tip="Remove Link" onMouseDown={e => { e.preventDefault(); editor?.chain().focus().unsetLink().run(); }}>✂🔗</TBtn>
+              <TBtn tip="Embed Video (YouTube / Vimeo / MP4)" onMouseDown={e => { e.preventDefault(); insertVideo(); }}>▶</TBtn>
               <TBtn tip="Horizontal Rule" onMouseDown={e => { e.preventDefault(); editor?.chain().focus().setHorizontalRule().run(); }}>—</TBtn>
               <TBtn tip="Clear Formatting" onMouseDown={e => { e.preventDefault(); editor?.chain().focus().clearNodes().unsetAllMarks().run(); }}>Tx</TBtn>
               <TBtn tip="Undo" onMouseDown={e => { e.preventDefault(); editor?.chain().focus().undo().run(); }}>↩</TBtn>

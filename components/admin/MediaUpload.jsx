@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react';
 import { Upload, X } from 'lucide-react';
+import { VideoPlayer } from '@/components/ui/VideoPlayer';
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20 MB
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 MB
@@ -66,22 +67,8 @@ export function MediaUpload({ value, onChange, label = 'Cover media', accept = '
       return <img src={value} alt="" className="h-40 w-full object-cover" />;
     }
 
-    // New format: { type, sources }
     if (value.type === 'video') {
-      return (
-        <video 
-          className="h-40 w-full object-cover"
-          autoPlay 
-          loop 
-          muted 
-          playsInline
-        >
-          {value.sources.map((s, i) => (
-            <source key={i} src={s.src} type={s.type} />
-          ))}
-          Your browser does not support the video tag.
-        </video>
-      );
+      return <VideoPlayer src={value} rounded={false} showBadge={false} muted autoplay />;
     }
 
     if (value.type === 'image') {

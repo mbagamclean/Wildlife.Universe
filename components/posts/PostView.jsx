@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
+import { VideoPlayer } from '@/components/ui/VideoPlayer';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { PostCard } from './PostCard';
 import { ArticleAudioPlayer } from './ArticleAudioPlayer';
@@ -179,14 +180,21 @@ function SocialShareRow({ title, slug }) {
 
 function CoverMedia({ cover, title, className = '' }) {
   if (!cover) return null;
-  if (typeof cover === 'string')
+
+  if (typeof cover === 'string') {
+    // Could be a video URL or image URL
+    const isVideoUrl = /\.(mp4|webm|ogv|mov)(\?|$)/i.test(cover) ||
+      cover.includes('youtube.com') || cover.includes('youtu.be') ||
+      cover.includes('vimeo.com') || cover.includes('tiktok.com') ||
+      cover.includes('instagram.com') || cover.includes('facebook.com');
+    if (isVideoUrl)
+      return <VideoPlayer src={cover} className={className} rounded={false} showBadge />;
     return <img src={cover} alt={title} className={`w-full object-cover ${className}`} />;
+  }
+
   if (cover.type === 'video')
-    return (
-      <video className={`w-full object-cover ${className}`} controls muted playsInline>
-        {cover.sources?.map((s, i) => <source key={i} src={s.src} type={s.type} />)}
-      </video>
-    );
+    return <VideoPlayer src={cover} className={className} rounded={false} showBadge={false} />;
+
   return (
     <picture>
       {(cover.sources || []).slice(0, -1).map((s, i) => <source key={i} srcSet={s.src} type={s.type} />)}

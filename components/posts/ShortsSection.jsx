@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, Play, X, Clapperboard } from 'lucide-react';
 import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
+import { VideoPlayer } from '@/components/ui/VideoPlayer';
 
 function resolveCoverSrc(cover) {
   if (!cover) return null;
@@ -173,21 +174,34 @@ export function ShortsSection() {
                     initial={{ scale: 0.8, opacity: 0, x: 100 }}
                     animate={{ scale: 1, opacity: 1, x: 0 }}
                     exit={{ scale: 0.8, opacity: 0, x: -100 }}
-                    transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                    className="relative flex h-full max-h-[85vh] w-full max-w-[50vh] flex-col items-center justify-center overflow-hidden rounded-3xl bg-gray-900 shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10"
-                    style={{ aspectRatio: '9/16' }}
+                    transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+                    className="relative w-full max-w-[50vh] rounded-3xl overflow-hidden shadow-[0_0_50px_rgba(0,0,0,0.5)] border border-white/10"
+                    onClick={(e) => e.stopPropagation()}
                   >
-                     {/* Simulated Video Placeholder */}
-                     {resolveCoverSrc(shorts[activeIndex].cover) ? (
-                        <img src={resolveCoverSrc(shorts[activeIndex].cover)} alt={shorts[activeIndex].title} className="absolute inset-0 h-full w-full object-cover blur-sm brightness-50" />
-                     ) : null}
-                     <div className="absolute inset-0 bg-black/40" />
-
-                     <div className="relative z-10 flex flex-col items-center justify-center p-8 text-center">
-                        <Play className="mb-4 h-16 w-16 text-white/80" fill="currentColor" />
-                        <h2 className="text-xl font-bold text-white">{shorts[activeIndex].title}</h2>
-                        <p className="mt-2 text-sm text-gray-400">Simulating embedded playback...</p>
-                     </div>
+                    {shorts[activeIndex]?.videoUrl || shorts[activeIndex]?.video ? (
+                      <VideoPlayer
+                        src={shorts[activeIndex].videoUrl || shorts[activeIndex].video}
+                        poster={resolveCoverSrc(shorts[activeIndex].cover)}
+                        aspectRatio="9/16"
+                        rounded={false}
+                        showBadge
+                      />
+                    ) : (
+                      <div className="relative bg-gray-900" style={{ aspectRatio: '9/16' }}>
+                        {resolveCoverSrc(shorts[activeIndex]?.cover) && (
+                          <img
+                            src={resolveCoverSrc(shorts[activeIndex].cover)}
+                            alt={shorts[activeIndex]?.title}
+                            className="absolute inset-0 h-full w-full object-cover blur-sm brightness-50"
+                          />
+                        )}
+                        <div className="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-8 text-center">
+                          <Play className="mb-4 h-16 w-16 text-white/80" fill="currentColor" />
+                          <h2 className="text-xl font-bold text-white">{shorts[activeIndex]?.title}</h2>
+                          <p className="mt-2 text-xs text-gray-400">Add a videoUrl field to play</p>
+                        </div>
+                      </div>
+                    )}
                   </motion.div>
                 </AnimatePresence>
 
