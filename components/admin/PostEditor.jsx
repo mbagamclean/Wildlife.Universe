@@ -779,8 +779,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
             <div style={{
               width: 320, flexShrink: 0,
               display: 'flex', flexDirection: 'column', gap: 12,
-              position: 'sticky', top: HEADER_H, alignSelf: 'flex-start',
-              maxHeight: `calc(100vh - ${HEADER_H}px - 20px)`, overflowY: 'auto',
+              alignSelf: 'flex-start',
               paddingRight: 2,
             }}>
 
