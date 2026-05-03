@@ -169,6 +169,10 @@ export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
     return `/${seg}/${p.slug}`;
   };
 
+  // ── Thumbnail flag (category pages only, not the all-Posts page) ─────────
+  const showThumb = !!category;
+  const colCount  = showThumb ? 8 : 7;
+
   // ── Shared style tokens ───────────────────────────────────────────────────
   const border  = '1px solid var(--adm-border)';
   const surface = {
@@ -324,7 +328,7 @@ export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
       {/* ── Data table ───────────────────────────────────────────────────── */}
       <div style={surface}>
         <div style={{ overflowX: 'auto' }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: showThumb ? 740 : 680 }}>
 
             {/* Head */}
             <thead>
@@ -339,6 +343,9 @@ export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
                     style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#2563eb' }}
                   />
                 </th>
+
+                {/* Thumbnail column header — category pages only */}
+                {showThumb && <th style={{ width: 68, padding: '13px 8px 13px 0' }} />}
 
                 {[
                   { label: 'TITLE',                      style: { textAlign: 'left', paddingLeft: 8 } },
@@ -363,13 +370,13 @@ export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
             <tbody>
               {!loaded ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '52px 24px', textAlign: 'center', color: 'var(--adm-text-muted)', fontSize: 14 }}>
+                  <td colSpan={colCount} style={{ padding: '52px 24px', textAlign: 'center', color: 'var(--adm-text-muted)', fontSize: 14 }}>
                     Loading…
                   </td>
                 </tr>
               ) : pageItems.length === 0 ? (
                 <tr>
-                  <td colSpan={7} style={{ padding: '52px 24px', textAlign: 'center', color: 'var(--adm-text-muted)', fontSize: 14 }}>
+                  <td colSpan={colCount} style={{ padding: '52px 24px', textAlign: 'center', color: 'var(--adm-text-muted)', fontSize: 14 }}>
                     {search || activeFilter !== 'all'
                       ? 'No matching results.'
                       : `No ${title.toLowerCase()} yet — click "+ New ${noun}" to create the first one.`}
@@ -406,6 +413,27 @@ export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
                         style={{ width: 15, height: 15, cursor: 'pointer', accentColor: '#2563eb' }}
                       />
                     </td>
+
+                    {/* Thumbnail — category pages only */}
+                    {showThumb && (
+                      <td style={{ padding: '10px 8px 10px 0', width: 68 }}>
+                        <div style={{
+                          width: 56, height: 42, borderRadius: 8, overflow: 'hidden', flexShrink: 0,
+                          background: p.coverPalette
+                            ? `linear-gradient(135deg, ${p.coverPalette.from || '#0c4a1a'}, ${p.coverPalette.to || '#d4af37'})`
+                            : 'var(--adm-surface-3)',
+                        }}>
+                          {p.cover && (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={p.cover}
+                              alt=""
+                              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                            />
+                          )}
+                        </div>
+                      </td>
+                    )}
 
                     {/* Title */}
                     <td style={{ padding: '13px 8px' }}>
