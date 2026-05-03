@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
 import { useEditor } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import TextAlign from '@tiptap/extension-text-align';
@@ -183,21 +184,36 @@ function SideCard({ title, icon, accentBg, badge, children, defaultOpen = true }
             {badge}
           </span>
         )}
-        <span style={{
-          fontSize: 10, color: accentBg ? 'rgba(255,255,255,0.7)' : 'var(--adm-text-subtle)',
-          transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform 0.18s', display: 'inline-block',
-        }}>
+        <motion.span
+          animate={{ rotate: open ? 0 : -90 }}
+          transition={{ duration: 0.22, ease: [0.4, 0, 0.2, 1] }}
+          style={{
+            fontSize: 10, color: accentBg ? 'rgba(255,255,255,0.7)' : 'var(--adm-text-subtle)',
+            display: 'inline-block', transformOrigin: 'center',
+          }}
+        >
           ▾
-        </span>
+        </motion.span>
       </button>
-      {open && (
-        <div style={{
-          padding: '14px 16px',
-          borderTop: `1px solid ${accentBg ? 'rgba(255,255,255,0.15)' : 'var(--adm-border)'}`,
-        }}>
-          {children}
-        </div>
-      )}
+      <AnimatePresence initial={false}>
+        {open && (
+          <motion.div
+            key="body"
+            initial={{ height: 0, opacity: 0 }}
+            animate={{ height: 'auto', opacity: 1 }}
+            exit={{ height: 0, opacity: 0 }}
+            transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
+            style={{ overflow: 'hidden' }}
+          >
+            <div style={{
+              padding: '14px 16px',
+              borderTop: `1px solid ${accentBg ? 'rgba(255,255,255,0.15)' : 'var(--adm-border)'}`,
+            }}>
+              {children}
+            </div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }
@@ -899,12 +915,12 @@ export function PostEditor({ initial, onSave, onCancel }) {
               </SideCard>
 
               {/* AI SEO Assistant */}
-              <SideCard title="📈 AI SEO Assistant" defaultOpen={false}>
+              <SideCard title="📈 AI SEO Assistant">
                 <AISEOAssistant title={title} editor={editor} slug={slug} onFieldsInserted={handleSEOInserted} />
               </SideCard>
 
               {/* AI Image Generator */}
-              <SideCard title="🖼 AI Image Generator" defaultOpen={false}>
+              <SideCard title="🖼 AI Image Generator">
                 <AIImageGenerator editor={editor} onCoverChange={url => setCover(url)} />
               </SideCard>
             </div>
