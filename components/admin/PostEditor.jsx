@@ -25,6 +25,7 @@ import {
   Maximize2, Minimize2, Eye,
   Sparkles, Star, Folder, Tag, Calendar, User,
   ChevronDown, Save, Send, Quote,
+  FileText, Clock, Check, TrendingUp, Wand2,
 } from 'lucide-react';
 
 import { categories } from '@/lib/mock/categories';
@@ -390,8 +391,12 @@ export function PostEditor({ initial, onSave, onCancel }) {
               {title || 'New Post'}
             </div>
             <div style={{ display: 'flex', gap: 10, marginTop: 2 }}>
-              <span style={{ fontSize: 11, color: 'var(--adm-text-muted)' }}>📄 {wordCount} words</span>
-              <span style={{ fontSize: 11, color: 'var(--adm-text-muted)' }}>⏱ {readTime(wordCount)}</span>
+              <span style={{ fontSize: 11, color: 'var(--adm-text-muted)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <FileText size={11} strokeWidth={1.75} /> {wordCount} words
+              </span>
+              <span style={{ fontSize: 11, color: 'var(--adm-text-muted)', display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                <Clock size={11} strokeWidth={1.75} /> {readTime(wordCount)}
+              </span>
             </div>
           </div>
 
@@ -683,7 +688,9 @@ export function PostEditor({ initial, onSave, onCancel }) {
                   {wordsLeft.toLocaleString()} more words for full AdSense score
                 </span>
               ) : (
-                <span style={{ color: '#16a34a', fontWeight: 500 }}>✓ AdSense word target reached</span>
+                <span style={{ color: '#16a34a', fontWeight: 500, display: 'inline-flex', alignItems: 'center', gap: 5 }}>
+                  <Check size={12} strokeWidth={2.25} /> AdSense word target reached
+                </span>
               )}
               <div style={{ flex: 1 }} />
               <span style={{ fontSize: 10 }}>
@@ -784,7 +791,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
             }}>
 
               {/* Publishing */}
-              <SideCard title="Publishing">
+              <SideCard title="Publishing" icon={<Calendar size={14} />}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', color: 'var(--adm-text)' }}>
                     <input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)}
@@ -837,7 +844,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
               </SideCard>
 
               {/* Organization */}
-              <SideCard title="Organization">
+              <SideCard title="Organization" icon={<Folder size={14} />}>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
@@ -868,21 +875,6 @@ export function PostEditor({ initial, onSave, onCancel }) {
                     </div>
                   </div>
 
-                  <div>
-                    <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--adm-text-muted)', marginBottom: 5 }}>Tags</span>
-                    <input value={tags} onChange={e => setTags(e.target.value)}
-                      placeholder="safari, conservation…" className="pe-field" style={fieldStyle} />
-                  </div>
-
-                  <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 5 }}>
-                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--adm-text-muted)' }}>Short Description</span>
-                      <span style={{ fontSize: 11, color: description.length > 250 ? '#f59e0b' : 'var(--adm-text-subtle)' }}>{description.length}/280</span>
-                    </div>
-                    <textarea value={description} onChange={e => setDescription(e.target.value)}
-                      maxLength={280} rows={3} placeholder="Brief description…"
-                      className="pe-field" style={{ ...fieldStyle, resize: 'vertical' }} />
-                  </div>
                 </div>
               </SideCard>
 
@@ -914,12 +906,12 @@ export function PostEditor({ initial, onSave, onCancel }) {
               </SideCard>
 
               {/* AI SEO Assistant */}
-              <SideCard title="📈 AI SEO Assistant">
+              <SideCard title="AI SEO Assistant" icon={<TrendingUp size={14} />}>
                 <AISEOAssistant title={title} editor={editor} slug={slug} onFieldsInserted={handleSEOInserted} />
               </SideCard>
 
               {/* AI Image Generator */}
-              <SideCard title="🖼 AI Image Generator">
+              <SideCard title="AI Image Generator" icon={<Wand2 size={14} />}>
                 <AIImageGenerator editor={editor} onCoverChange={url => setCover(url)} />
               </SideCard>
             </div>
