@@ -60,6 +60,7 @@ const NAV = [
       { href: '/admin/configuration/social-media',      label: 'Social Media Auto.',     icon: Share2 },
       { href: '/admin/configuration/content-quality',   label: 'Content Quality',        icon: CheckCircle2 },
       { href: '/admin/configuration/messages',          label: 'Messages',               icon: Inbox },
+      { href: '/admin/settings/ai-providers',           label: 'AI Providers',           icon: Megaphone },
     ],
   },
   {

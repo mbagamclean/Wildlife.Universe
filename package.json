@@ -9,15 +9,32 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@ai-sdk/anthropic": "^3.0.74",
+    "@ai-sdk/openai": "^3.0.58",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.105.1",
+    "@tiptap/extension-character-count": "^3.22.5",
+    "@tiptap/extension-image": "^3.22.5",
+    "@tiptap/extension-link": "^3.22.5",
+    "@tiptap/extension-placeholder": "^3.22.5",
+    "@tiptap/extension-subscript": "^3.22.5",
+    "@tiptap/extension-superscript": "^3.22.5",
+    "@tiptap/extension-text-align": "^3.22.5",
+    "@tiptap/extension-underline": "^3.22.5",
+    "@tiptap/pm": "^3.22.5",
+    "@tiptap/react": "^3.22.5",
+    "@tiptap/starter-kit": "^3.22.5",
+    "ai": "^6.0.174",
     "framer-motion": "^11.11.0",
     "lucide-react": "^0.454.0",
     "next": "^15.0.0",
     "next-themes": "^0.4.0",
+    "openai": "^6.35.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "sharp": "^0.34.5"
+    "sharp": "^0.34.5",
+    "zod": "^4.4.2",
+    "zustand": "^5.0.12"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.0.0",

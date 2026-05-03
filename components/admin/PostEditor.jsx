@@ -1,18 +1,27 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useEditor } from '@tiptap/react';
+import StarterKit from '@tiptap/starter-kit';
+import TextAlign from '@tiptap/extension-text-align';
+import Underline from '@tiptap/extension-underline';
+import Subscript from '@tiptap/extension-subscript';
+import Superscript from '@tiptap/extension-superscript';
+import Link from '@tiptap/extension-link';
+import Image from '@tiptap/extension-image';
+import Placeholder from '@tiptap/extension-placeholder';
+import CharacterCount from '@tiptap/extension-character-count';
+
 import { categories } from '@/lib/mock/categories';
 import { MediaUpload } from './MediaUpload';
-import { WritingToolkit } from './editor/WritingToolkit';
+import { TiptapEditor } from './editor/TiptapEditor';
+import { AIWritingToolkit } from './editor/AIWritingToolkit';
+import { AISEOAssistant } from './editor/AISEOAssistant';
+import { AIImageGenerator } from './editor/AIImageGenerator';
 
-// ---- Utilities ----
+// ── Utilities ────────────────────────────────────────────────
 function toSlug(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-}
-
-function countWords(html) {
-  const text = (html || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
-  return text ? text.split(' ').filter(Boolean).length : 0;
 }
 
 function readTime(words) {
@@ -30,8 +39,8 @@ function calcSeo(title, desc, slug, cover, words) {
   return Math.min(s, 100);
 }
 
-// ---- Toolbar button ----
-function TBtn({ title: tip, onMouseDown, children }) {
+// ── Toolbar ──────────────────────────────────────────────────
+function TBtn({ tip, onMouseDown, active, children }) {
   const [hov, setHov] = useState(false);
   return (
     <button
@@ -41,10 +50,10 @@ function TBtn({ title: tip, onMouseDown, children }) {
       onMouseLeave={() => setHov(false)}
       style={{
         minWidth: 28, height: 26, padding: '0 5px', borderRadius: 5, border: 'none',
-        background: hov ? 'var(--adm-hover-bg)' : 'transparent',
-        color: 'var(--adm-text)', cursor: 'pointer', fontSize: 12,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        fontWeight: 500, transition: 'background 0.1s', flexShrink: 0,
+        background: active ? 'rgba(124,58,237,0.12)' : hov ? 'var(--adm-hover-bg)' : 'transparent',
+        color: active ? '#7c3aed' : 'var(--adm-text)',
+        cursor: 'pointer', fontSize: 12, display: 'flex', alignItems: 'center', justifyContent: 'center',
+        fontWeight: active ? 700 : 500, transition: 'background 0.1s, color 0.1s', flexShrink: 0,
       }}
     >
       {children}
@@ -52,12 +61,12 @@ function TBtn({ title: tip, onMouseDown, children }) {
   );
 }
 
-function TDivider() {
+function TDiv() {
   return <div style={{ width: 1, height: 18, background: 'var(--adm-border)', margin: '0 3px', alignSelf: 'center', flexShrink: 0 }} />;
 }
 
-// ---- Sidebar section ----
-function SideSection({ label, children, defaultOpen = true }) {
+// ── Sidebar section ───────────────────────────────────────────
+function SideSection({ label, children, defaultOpen = true, accent }) {
   const [open, setOpen] = useState(defaultOpen);
   return (
     <div style={{ borderBottom: '1px solid var(--adm-border)' }}>
@@ -66,39 +75,31 @@ function SideSection({ label, children, defaultOpen = true }) {
         style={{
           width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
           padding: '10px 14px', background: 'transparent', border: 'none',
-          color: 'var(--adm-text)', fontSize: 10, fontWeight: 800,
+          color: accent || 'var(--adm-text)', fontSize: 10, fontWeight: 800,
           cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.09em',
         }}
       >
         {label}
         <span style={{ opacity: 0.5, fontSize: 9, transform: open ? 'none' : 'rotate(-90deg)', transition: 'transform 0.18s', display: 'inline-block' }}>▾</span>
       </button>
-      {open && <div style={{ padding: '0 14px 13px' }}>{children}</div>}
+      {open && <div style={{ padding: '0 14px 14px' }}>{children}</div>}
     </div>
   );
 }
 
-// ---- Header action buttons ----
-function HBtn({ onClick, primary, disabled, style: extra, children }) {
+// ── Header button ─────────────────────────────────────────────
+function HBtn({ onClick, primary, disabled, children }) {
   const [hov, setHov] = useState(false);
   return (
-    <button
-      onClick={onClick}
-      disabled={disabled}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+    <button onClick={onClick} disabled={disabled}
+      onMouseEnter={() => setHov(true)} onMouseLeave={() => setHov(false)}
       style={{
-        padding: '5px 13px', borderRadius: 7, fontSize: 11, fontWeight: 600,
+        padding: '5px 13px', borderRadius: 7, fontSize: 11, fontWeight: 600, flexShrink: 0,
         border: primary ? 'none' : '1px solid var(--adm-border)',
-        background: primary
-          ? (hov ? '#b8952e' : '#d4af37')
-          : (hov ? 'var(--adm-hover-bg)' : 'transparent'),
+        background: primary ? (hov ? '#b8952e' : '#d4af37') : (hov ? 'var(--adm-hover-bg)' : 'transparent'),
         color: primary ? '#000' : 'var(--adm-text)',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.6 : 1,
-        transition: 'background 0.13s',
-        whiteSpace: 'nowrap', flexShrink: 0,
-        ...extra,
+        cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1,
+        transition: 'background 0.13s', whiteSpace: 'nowrap',
       }}
     >
       {children}
@@ -106,42 +107,23 @@ function HBtn({ onClick, primary, disabled, style: extra, children }) {
   );
 }
 
-// ---- Small field label ----
-function FieldLabel({ children, count, max }) {
-  return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-        {children}
-      </span>
-      {max != null && (
-        <span style={{ fontSize: 10, color: count > max * 0.9 ? '#f59e0b' : 'var(--adm-text-subtle)' }}>
-          {count}/{max}
-        </span>
-      )}
-    </div>
-  );
-}
-
 const fieldStyle = {
   borderRadius: 7, border: '1px solid var(--adm-border)', background: 'var(--adm-bg)',
-  color: 'var(--adm-text)', padding: '6px 9px', fontSize: 12, outline: 'none', width: '100%',
-  boxSizing: 'border-box',
+  color: 'var(--adm-text)', padding: '6px 9px', fontSize: 12, outline: 'none',
+  width: '100%', boxSizing: 'border-box',
 };
 
-// ---- Main component ----
+// ── Main ──────────────────────────────────────────────────────
 export function PostEditor({ initial, onSave, onCancel }) {
-  const editorRef = useRef(null);
-  const debounceRef = useRef(null);
-  const autosaveTimerRef = useRef(null);
   const draftKey = `cms-draft-${initial?.id || 'new'}`;
+  const autosaveRef = useRef(null);
+  const HEADER_H = 52;
 
   const [slugEdited, setSlugEdited] = useState(!!initial?.slug);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [seoOpen, setSeoOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
-  const [wordCount, setWordCount] = useState(0);
-  const [bodyHtml, setBodyHtml] = useState(initial?.body || '');
 
   const [title, setTitle] = useState(initial?.title || '');
   const [slug, setSlug] = useState(initial?.slug || '');
@@ -164,36 +146,45 @@ export function PostEditor({ initial, onSave, onCancel }) {
   const currentCat = useMemo(() => categories.find(c => c.slug === category), [category]);
   const labelOptions = currentCat?.labels || [];
 
-  // Reset label when category changes
-  useEffect(() => {
-    if (!labelOptions.includes(label)) setLabel(labelOptions[0] || '');
-  }, [category]); // eslint-disable-line
+  // Tiptap editor instance
+  const editor = useEditor({
+    extensions: [
+      StarterKit.configure({ heading: { levels: [1, 2, 3] }, codeBlock: { languageClassPrefix: 'language-' } }),
+      TextAlign.configure({ types: ['heading', 'paragraph'] }),
+      Underline,
+      Subscript,
+      Superscript,
+      Link.configure({ openOnClick: false, HTMLAttributes: { rel: 'noopener noreferrer' } }),
+      Image.configure({ inline: false, allowBase64: false }),
+      Placeholder.configure({ placeholder: 'Start writing your article… let the wildlife story unfold.' }),
+      CharacterCount,
+    ],
+    content: initial?.body || '',
+    editorProps: {
+      attributes: { class: 'tiptap-content' },
+    },
+  });
 
-  // Auto-slug from title
+  const wordCount = editor?.storage?.characterCount?.words() ?? 0;
+
   useEffect(() => {
     if (!slugEdited) setSlug(toSlug(title));
   }, [title, slugEdited]);
 
-  // Seed editor with initial body
   useEffect(() => {
-    if (editorRef.current) {
-      editorRef.current.innerHTML = initial?.body || '';
-      const wc = countWords(initial?.body || '');
-      setWordCount(wc);
-      setBodyHtml(initial?.body || '');
-    }
-  }, []); // eslint-disable-line
+    if (!labelOptions.includes(label)) setLabel(labelOptions[0] || '');
+  }, [category]); // eslint-disable-line
 
-  // Autosave every 10s
+  // Autosave
   useEffect(() => {
-    autosaveTimerRef.current = setInterval(() => {
-      const html = editorRef.current?.innerHTML || '';
+    autosaveRef.current = setInterval(() => {
+      const body = editor?.getHTML() || '';
       try {
-        localStorage.setItem(draftKey, JSON.stringify({ title, slug, category, label, description, body: html, cover, palette, featured, tags }));
+        localStorage.setItem(draftKey, JSON.stringify({ title, slug, category, label, description, body, cover, palette, featured, tags }));
         setSavedAt(new Date());
       } catch (_) {}
     }, 10000);
-    return () => clearInterval(autosaveTimerRef.current);
+    return () => clearInterval(autosaveRef.current);
   }, [title, slug, category, label, description, cover, palette, featured, tags]); // eslint-disable-line
 
   const seoScore = useMemo(
@@ -201,47 +192,24 @@ export function PostEditor({ initial, onSave, onCancel }) {
     [title, description, slug, cover, wordCount]
   );
 
-  // Editor input handler
-  const handleInput = useCallback(() => {
-    const html = editorRef.current?.innerHTML || '';
-    setWordCount(countWords(html));
-    clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => setBodyHtml(html), 1200);
-  }, []);
-
-  // execCommand wrapper — onMouseDown + e.preventDefault() keeps editor focus
-  const exec = useCallback((cmd, val = null) => {
-    document.execCommand(cmd, false, val);
-    editorRef.current?.focus();
-  }, []);
-
-  const fmtBlock = useCallback((tag) => {
-    document.execCommand('formatBlock', false, tag);
-    editorRef.current?.focus();
-  }, []);
-
+  // Insert link via prompt
   const insertLink = useCallback(() => {
     const url = prompt('Enter URL:');
-    if (url) exec('createLink', url);
-  }, [exec]);
+    if (url) editor?.chain().focus().setLink({ href: url }).run();
+  }, [editor]);
+
+  // Toolbar active checks
+  const isActive = useCallback((name, attrs) => editor?.isActive(name, attrs) ?? false, [editor]);
 
   // Save
   const handleSave = async (status) => {
     setSaving(true);
-    const body = editorRef.current?.innerHTML || '';
-    const coverUrl = typeof cover === 'string' ? cover : (cover?.sources?.[0] || '');
+    const body = editor?.getHTML() || '';
+    const coverUrl = typeof cover === 'string' ? cover : cover?.sources?.[0]?.src || '';
     const payload = {
-      title: title.trim(),
-      slug: slug.trim(),
-      category,
-      label,
-      description: description.trim(),
-      body,
-      cover: coverUrl,
-      coverPalette: palette,
-      featured,
-      status,
-      tags: tags.split(',').map(t => t.trim()).filter(Boolean),
+      title: title.trim(), slug: slug.trim(), category, label,
+      description: description.trim(), body, cover: coverUrl, coverPalette: palette,
+      featured, status, tags: tags.split(',').map(t => t.trim()).filter(Boolean),
     };
     try {
       await onSave(payload);
@@ -251,51 +219,51 @@ export function PostEditor({ initial, onSave, onCancel }) {
     }
   };
 
-  const HEADER_H = 52;
+  // Handler for SEO assistant inserting fields
+  const handleSEOInserted = useCallback(({ metaTitle: mt, metaDesc: md, metaKw: mk, excerpt: ex } = {}) => {
+    if (mt !== undefined) setMetaTitle(mt);
+    if (md !== undefined) setMetaDesc(md);
+    if (mk !== undefined) setMetaKw(mk);
+    if (ex !== undefined) setExcerpt(ex);
+  }, []);
 
   return (
     <>
-      {/* Editor typography */}
       <style>{`
-        [data-post-editor] h1{font-size:2em;font-weight:700;margin:.4em 0;line-height:1.2}
-        [data-post-editor] h2{font-size:1.5em;font-weight:700;margin:.4em 0;line-height:1.25}
-        [data-post-editor] h3{font-size:1.2em;font-weight:600;margin:.35em 0;line-height:1.3}
-        [data-post-editor] p{margin:.5em 0}
-        [data-post-editor] ul{list-style:disc;padding-left:1.6em;margin:.5em 0}
-        [data-post-editor] ol{list-style:decimal;padding-left:1.6em;margin:.5em 0}
-        [data-post-editor] li{margin:.2em 0}
-        [data-post-editor] a{color:#d4af37;text-decoration:underline}
-        [data-post-editor] blockquote{border-left:3px solid #d4af37;padding-left:1em;margin:.5em 0;color:var(--adm-text-muted);font-style:italic}
-        [data-post-editor] pre{background:var(--adm-surface);border:1px solid var(--adm-border);padding:12px 14px;border-radius:8px;font-family:monospace;font-size:.85em;overflow-x:auto;margin:.5em 0}
-        [data-post-editor] code{background:var(--adm-hover-bg);padding:1px 4px;border-radius:3px;font-size:.88em;font-family:monospace}
-        [data-post-editor] hr{border:none;border-top:1px solid var(--adm-border);margin:1em 0}
-        [data-post-editor]:empty:before{content:attr(data-placeholder);color:var(--adm-text-subtle);pointer-events:none}
-        [data-post-editor]:focus{outline:none}
+        .tiptap-content { outline: none; min-height: 480px; }
+        .tiptap-content h1 { font-size: 2em; font-weight: 700; margin: 0.5em 0 0.3em; line-height: 1.2; }
+        .tiptap-content h2 { font-size: 1.55em; font-weight: 700; margin: 1em 0 0.3em; line-height: 1.25; }
+        .tiptap-content h3 { font-size: 1.2em; font-weight: 600; margin: 0.8em 0 0.25em; line-height: 1.3; }
+        .tiptap-content p { margin: 0.55em 0; line-height: 1.85; }
+        .tiptap-content ul { list-style: disc; padding-left: 1.7em; margin: 0.5em 0; }
+        .tiptap-content ol { list-style: decimal; padding-left: 1.7em; margin: 0.5em 0; }
+        .tiptap-content li { margin: 0.2em 0; }
+        .tiptap-content a { color: #d4af37; text-decoration: underline; }
+        .tiptap-content blockquote { border-left: 3px solid #7c3aed; padding-left: 1em; margin: 0.7em 0; font-style: italic; color: var(--adm-text-muted); }
+        .tiptap-content pre { background: var(--adm-surface); border: 1px solid var(--adm-border); padding: 14px 16px; border-radius: 8px; font-family: monospace; font-size: 0.85em; overflow-x: auto; margin: 0.5em 0; }
+        .tiptap-content code { background: var(--adm-hover-bg); padding: 1px 5px; border-radius: 3px; font-size: 0.88em; font-family: monospace; }
+        .tiptap-content hr { border: none; border-top: 1px solid var(--adm-border); margin: 1.2em 0; }
+        .tiptap-content img { max-width: 100%; border-radius: 10px; display: block; margin: 1em 0; }
+        .tiptap-content figure { margin: 1em 0; }
+        .tiptap-content figcaption { font-size: 0.85em; color: var(--adm-text-muted); text-align: center; margin-top: 4px; }
+        .tiptap-content p.is-editor-empty:first-child::before { content: attr(data-placeholder); color: var(--adm-text-subtle); pointer-events: none; float: left; height: 0; }
+        .tiptap-content ::selection { background: rgba(124,58,237,0.15); }
       `}</style>
 
       <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', background: 'var(--adm-bg)' }}>
 
-        {/* ===== STICKY HEADER ===== */}
+        {/* ───── STICKY HEADER ───── */}
         <div style={{
           position: 'sticky', top: 0, zIndex: 50,
-          background: 'var(--adm-surface)',
-          borderBottom: '1px solid var(--adm-border)',
+          background: 'var(--adm-surface)', borderBottom: '1px solid var(--adm-border)',
           display: 'flex', alignItems: 'center', gap: 8,
-          padding: '8px 14px', height: HEADER_H,
-          boxSizing: 'border-box',
+          padding: '8px 14px', height: HEADER_H, boxSizing: 'border-box',
         }}>
-          {/* Left */}
-          <button
-            onClick={onCancel}
-            style={{
-              display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px',
-              borderRadius: 6, border: '1px solid var(--adm-border)',
-              background: 'transparent', color: 'var(--adm-text)',
-              fontSize: 11, cursor: 'pointer', flexShrink: 0,
-            }}
-          >
-            ← Back
-          </button>
+          <button onClick={onCancel} style={{
+            display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px',
+            borderRadius: 6, border: '1px solid var(--adm-border)', background: 'transparent',
+            color: 'var(--adm-text)', fontSize: 11, cursor: 'pointer', flexShrink: 0,
+          }}>← Back</button>
 
           <div style={{ width: 1, height: 18, background: 'var(--adm-border)', flexShrink: 0 }} />
 
@@ -303,42 +271,27 @@ export function PostEditor({ initial, onSave, onCancel }) {
             value={title}
             onChange={e => setTitle(e.target.value)}
             placeholder="Post title…"
-            style={{
-              flex: 1, minWidth: 0, background: 'transparent', border: 'none',
-              outline: 'none', fontSize: 13, fontWeight: 600, color: 'var(--adm-text)',
-            }}
+            style={{ flex: 1, minWidth: 0, background: 'transparent', border: 'none', outline: 'none', fontSize: 13, fontWeight: 600, color: 'var(--adm-text)' }}
           />
 
-          {/* Word / time badges */}
           <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
             {[`${wordCount} words`, readTime(wordCount)].map(t => (
-              <span key={t} style={{
-                fontSize: 10, color: 'var(--adm-text-subtle)',
-                background: 'var(--adm-hover-bg)',
-                padding: '2px 7px', borderRadius: 20, whiteSpace: 'nowrap',
-              }}>{t}</span>
+              <span key={t} style={{ fontSize: 10, color: 'var(--adm-text-subtle)', background: 'var(--adm-hover-bg)', padding: '2px 7px', borderRadius: 20, whiteSpace: 'nowrap' }}>{t}</span>
             ))}
           </div>
 
-          {/* Right actions */}
           <div style={{ display: 'flex', gap: 5, flexShrink: 0 }}>
-            <HBtn onClick={() => setSidebarOpen(o => !o)}>
-              {sidebarOpen ? 'Hide Panel' : 'Show Panel'}
-            </HBtn>
+            <HBtn onClick={() => setSidebarOpen(o => !o)}>{sidebarOpen ? 'Hide Panel' : 'Show Panel'}</HBtn>
             <HBtn onClick={() => window.print()}>Print</HBtn>
-            <HBtn onClick={() => handleSave('draft')} disabled={saving}>
-              {saving ? 'Saving…' : 'Save Draft'}
-            </HBtn>
-            <HBtn primary onClick={() => handleSave('published')} disabled={saving}>
-              Publish Now
-            </HBtn>
+            <HBtn onClick={() => handleSave('draft')} disabled={saving}>{saving ? 'Saving…' : 'Save Draft'}</HBtn>
+            <HBtn primary onClick={() => handleSave('published')} disabled={saving}>Publish Now</HBtn>
           </div>
         </div>
 
-        {/* ===== BODY ROW ===== */}
+        {/* ───── BODY ───── */}
         <div style={{ display: 'flex', flex: 1, alignItems: 'flex-start' }}>
 
-          {/* ===== MAIN COLUMN ===== */}
+          {/* ───── MAIN COLUMN ───── */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
             {/* Formatting toolbar */}
@@ -348,44 +301,40 @@ export function PostEditor({ initial, onSave, onCancel }) {
               background: 'var(--adm-surface)',
               position: 'sticky', top: HEADER_H, zIndex: 40,
             }}>
-              <TBtn tip="Bold" onMouseDown={e => { e.preventDefault(); exec('bold'); }}><b>B</b></TBtn>
-              <TBtn tip="Italic" onMouseDown={e => { e.preventDefault(); exec('italic'); }}><i>I</i></TBtn>
-              <TBtn tip="Underline" onMouseDown={e => { e.preventDefault(); exec('underline'); }}><u>U</u></TBtn>
-              <TBtn tip="Strikethrough" onMouseDown={e => { e.preventDefault(); exec('strikeThrough'); }}><s>S</s></TBtn>
-              <TBtn tip="Subscript" onMouseDown={e => { e.preventDefault(); exec('subscript'); }}>x₂</TBtn>
-              <TBtn tip="Superscript" onMouseDown={e => { e.preventDefault(); exec('superscript'); }}>x²</TBtn>
-              <TDivider />
-              <TBtn tip="Heading 1" onMouseDown={e => { e.preventDefault(); fmtBlock('h1'); }}>H1</TBtn>
-              <TBtn tip="Heading 2" onMouseDown={e => { e.preventDefault(); fmtBlock('h2'); }}>H2</TBtn>
-              <TBtn tip="Heading 3" onMouseDown={e => { e.preventDefault(); fmtBlock('h3'); }}>H3</TBtn>
-              <TBtn tip="Paragraph" onMouseDown={e => { e.preventDefault(); fmtBlock('p'); }}>¶</TBtn>
-              <TBtn tip="Blockquote" onMouseDown={e => { e.preventDefault(); fmtBlock('blockquote'); }}>"</TBtn>
-              <TDivider />
-              <TBtn tip="Align Left" onMouseDown={e => { e.preventDefault(); exec('justifyLeft'); }}>≡L</TBtn>
-              <TBtn tip="Center" onMouseDown={e => { e.preventDefault(); exec('justifyCenter'); }}>≡C</TBtn>
-              <TBtn tip="Align Right" onMouseDown={e => { e.preventDefault(); exec('justifyRight'); }}>R≡</TBtn>
-              <TBtn tip="Justify" onMouseDown={e => { e.preventDefault(); exec('justifyFull'); }}>≡≡</TBtn>
-              <TDivider />
-              <TBtn tip="Bullet List" onMouseDown={e => { e.preventDefault(); exec('insertUnorderedList'); }}>•—</TBtn>
-              <TBtn tip="Numbered List" onMouseDown={e => { e.preventDefault(); exec('insertOrderedList'); }}>1—</TBtn>
-              <TBtn tip="Indent" onMouseDown={e => { e.preventDefault(); exec('indent'); }}>→|</TBtn>
-              <TBtn tip="Outdent" onMouseDown={e => { e.preventDefault(); exec('outdent'); }}>|←</TBtn>
-              <TDivider />
-              <TBtn tip="Insert Link" onMouseDown={e => { e.preventDefault(); insertLink(); }}>🔗</TBtn>
-              <TBtn tip="Unlink" onMouseDown={e => { e.preventDefault(); exec('unlink'); }}>✂🔗</TBtn>
-              <TBtn tip="Inline Code" onMouseDown={e => { e.preventDefault(); fmtBlock('pre'); }}>{`</>`}</TBtn>
-              <TBtn tip="Horizontal Rule" onMouseDown={e => { e.preventDefault(); exec('insertHorizontalRule'); }}>—</TBtn>
-              <TBtn tip="Clear Formatting" onMouseDown={e => { e.preventDefault(); exec('removeFormat'); }}>Tx</TBtn>
+              <TBtn tip="Bold" active={isActive('bold')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleBold().run(); }}><b>B</b></TBtn>
+              <TBtn tip="Italic" active={isActive('italic')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleItalic().run(); }}><i>I</i></TBtn>
+              <TBtn tip="Underline" active={isActive('underline')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleUnderline().run(); }}><u>U</u></TBtn>
+              <TBtn tip="Strikethrough" active={isActive('strike')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleStrike().run(); }}><s>S</s></TBtn>
+              <TBtn tip="Subscript" active={isActive('subscript')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleSubscript().run(); }}>x₂</TBtn>
+              <TBtn tip="Superscript" active={isActive('superscript')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleSuperscript().run(); }}>x²</TBtn>
+              <TDiv />
+              <TBtn tip="Heading 1" active={isActive('heading', { level: 1 })} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleHeading({ level: 1 }).run(); }}>H1</TBtn>
+              <TBtn tip="Heading 2" active={isActive('heading', { level: 2 })} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleHeading({ level: 2 }).run(); }}>H2</TBtn>
+              <TBtn tip="Heading 3" active={isActive('heading', { level: 3 })} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleHeading({ level: 3 }).run(); }}>H3</TBtn>
+              <TBtn tip="Paragraph" active={isActive('paragraph')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().setParagraph().run(); }}>¶</TBtn>
+              <TBtn tip="Blockquote" active={isActive('blockquote')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleBlockquote().run(); }}>"</TBtn>
+              <TDiv />
+              <TBtn tip="Align Left" active={isActive({ textAlign: 'left' })} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().setTextAlign('left').run(); }}>≡L</TBtn>
+              <TBtn tip="Center" active={isActive({ textAlign: 'center' })} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().setTextAlign('center').run(); }}>≡C</TBtn>
+              <TBtn tip="Align Right" active={isActive({ textAlign: 'right' })} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().setTextAlign('right').run(); }}>R≡</TBtn>
+              <TBtn tip="Justify" active={isActive({ textAlign: 'justify' })} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().setTextAlign('justify').run(); }}>≡≡</TBtn>
+              <TDiv />
+              <TBtn tip="Bullet List" active={isActive('bulletList')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleBulletList().run(); }}>•—</TBtn>
+              <TBtn tip="Numbered List" active={isActive('orderedList')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleOrderedList().run(); }}>1—</TBtn>
+              <TBtn tip="Code Block" active={isActive('codeBlock')} onMouseDown={e => { e.preventDefault(); editor?.chain().focus().toggleCodeBlock().run(); }}>{`</>`}</TBtn>
+              <TDiv />
+              <TBtn tip="Insert Link" active={isActive('link')} onMouseDown={e => { e.preventDefault(); insertLink(); }}>🔗</TBtn>
+              <TBtn tip="Remove Link" onMouseDown={e => { e.preventDefault(); editor?.chain().focus().unsetLink().run(); }}>✂🔗</TBtn>
+              <TBtn tip="Horizontal Rule" onMouseDown={e => { e.preventDefault(); editor?.chain().focus().setHorizontalRule().run(); }}>—</TBtn>
+              <TBtn tip="Clear Formatting" onMouseDown={e => { e.preventDefault(); editor?.chain().focus().clearNodes().unsetAllMarks().run(); }}>Tx</TBtn>
+              <TBtn tip="Undo" onMouseDown={e => { e.preventDefault(); editor?.chain().focus().undo().run(); }}>↩</TBtn>
+              <TBtn tip="Redo" onMouseDown={e => { e.preventDefault(); editor?.chain().focus().redo().run(); }}>↪</TBtn>
             </div>
 
             {/* Slug bar */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '12px 28px 0' }}>
               <span style={{ fontSize: 10, color: 'var(--adm-text-subtle)', flexShrink: 0 }}>URL:</span>
-              <div style={{
-                display: 'flex', alignItems: 'center', flex: 1,
-                background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',
-                borderRadius: 6, overflow: 'hidden',
-              }}>
+              <div style={{ display: 'flex', alignItems: 'center', flex: 1, background: 'var(--adm-surface)', border: '1px solid var(--adm-border)', borderRadius: 6, overflow: 'hidden' }}>
                 <span style={{ padding: '4px 8px', fontSize: 10, color: 'var(--adm-text-subtle)', borderRight: '1px solid var(--adm-border)', background: 'var(--adm-hover-bg)', whiteSpace: 'nowrap' }}>
                   wildlife.universe/
                 </span>
@@ -397,36 +346,18 @@ export function PostEditor({ initial, onSave, onCancel }) {
                 />
               </div>
               {slugEdited && (
-                <button
-                  onClick={() => { setSlug(toSlug(title)); setSlugEdited(false); }}
-                  style={{ fontSize: 10, color: '#d4af37', background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0 }}
-                >
+                <button onClick={() => { setSlug(toSlug(title)); setSlugEdited(false); }}
+                  style={{ fontSize: 10, color: '#7c3aed', background: 'transparent', border: 'none', cursor: 'pointer', flexShrink: 0, padding: 0 }}>
                   ↺ Auto
                 </button>
               )}
             </div>
 
-            {/* ContentEditable editor */}
-            <div
-              ref={editorRef}
-              contentEditable
-              suppressContentEditableWarning
-              onInput={handleInput}
-              data-post-editor
-              data-placeholder="Start writing your article…"
-              style={{
-                minHeight: 480, padding: '20px 28px',
-                fontSize: 15, lineHeight: 1.85,
-                color: 'var(--adm-text)', caretColor: '#d4af37',
-              }}
-            />
+            {/* Tiptap editor */}
+            <TiptapEditor editor={editor} />
 
             {/* Status bar */}
-            <div style={{
-              display: 'flex', gap: 16, flexWrap: 'wrap',
-              padding: '9px 28px', borderTop: '1px solid var(--adm-border)',
-              fontSize: 10, color: 'var(--adm-text-subtle)',
-            }}>
+            <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', padding: '9px 28px', borderTop: '1px solid var(--adm-border)', fontSize: 10, color: 'var(--adm-text-subtle)' }}>
               <span>{wordCount} words</span>
               <span>{readTime(wordCount)}</span>
               <span style={{ marginLeft: 'auto' }}>
@@ -436,92 +367,67 @@ export function PostEditor({ initial, onSave, onCancel }) {
 
             {/* Excerpt */}
             <div style={{ padding: '18px 28px', borderTop: '1px solid var(--adm-border)' }}>
-              <FieldLabel count={excerpt.length} max={280}>Excerpt</FieldLabel>
-              <textarea
-                value={excerpt}
-                onChange={e => setExcerpt(e.target.value)}
-                maxLength={280}
-                rows={3}
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 6 }}>
+                <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Excerpt</span>
+                <span style={{ fontSize: 10, color: excerpt.length > 250 ? '#f59e0b' : 'var(--adm-text-subtle)' }}>{excerpt.length}/280</span>
+              </div>
+              <textarea value={excerpt} onChange={e => setExcerpt(e.target.value)} maxLength={280} rows={3}
                 placeholder="Short excerpt for previews and search results…"
-                style={{
-                  ...fieldStyle, resize: 'vertical', background: 'var(--adm-surface)',
-                  fontSize: 13, lineHeight: 1.6,
-                }}
+                style={{ ...fieldStyle, resize: 'vertical', background: 'var(--adm-surface)', fontSize: 13, lineHeight: 1.6 }}
               />
             </div>
 
             {/* SEO Settings (collapsible) */}
             <div style={{ padding: '0 28px 36px' }}>
-              <button
-                onClick={() => setSeoOpen(o => !o)}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 7, width: '100%',
-                  padding: '12px 0', background: 'transparent', border: 'none',
-                  borderTop: '1px solid var(--adm-border)',
-                  color: 'var(--adm-text)', fontSize: 11, fontWeight: 700,
-                  cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.07em',
-                }}
-              >
+              <button onClick={() => setSeoOpen(o => !o)} style={{
+                display: 'flex', alignItems: 'center', gap: 7, width: '100%',
+                padding: '12px 0', background: 'transparent', border: 'none',
+                borderTop: '1px solid var(--adm-border)', color: 'var(--adm-text)',
+                fontSize: 11, fontWeight: 700, cursor: 'pointer', textTransform: 'uppercase', letterSpacing: '0.07em',
+              }}>
                 <span style={{ opacity: 0.5, fontSize: 9, transform: seoOpen ? 'none' : 'rotate(-90deg)', transition: 'transform 0.18s', display: 'inline-block' }}>▾</span>
                 SEO Settings
-                <span style={{
-                  marginLeft: 'auto', fontSize: 10, fontWeight: 800,
-                  color: seoScore >= 70 ? '#22c55e' : seoScore >= 40 ? '#f59e0b' : '#ef4444',
-                }}>
+                <span style={{ marginLeft: 'auto', fontSize: 10, fontWeight: 800, color: seoScore >= 70 ? '#22c55e' : seoScore >= 40 ? '#f59e0b' : '#ef4444' }}>
                   Score: {seoScore}/100
                 </span>
               </button>
               {seoOpen && (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14, paddingTop: 14 }}>
-                  <div>
-                    <FieldLabel count={metaTitle.length} max={60}>Meta Title</FieldLabel>
-                    <input
-                      value={metaTitle}
-                      onChange={e => setMetaTitle(e.target.value)}
-                      placeholder={title || 'Page title for search engines…'}
-                      maxLength={80}
-                      style={fieldStyle}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel count={metaDesc.length} max={160}>Meta Description</FieldLabel>
-                    <textarea
-                      value={metaDesc}
-                      onChange={e => setMetaDesc(e.target.value)}
-                      placeholder={description || 'Description for search results…'}
-                      rows={2}
-                      maxLength={200}
-                      style={{ ...fieldStyle, resize: 'vertical' }}
-                    />
-                  </div>
-                  <div>
-                    <FieldLabel>Keywords</FieldLabel>
-                    <input
-                      value={metaKw}
-                      onChange={e => setMetaKw(e.target.value)}
-                      placeholder="wildlife, conservation, savanna…"
-                      style={fieldStyle}
-                    />
-                  </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 12, paddingTop: 12 }}>
+                  {[
+                    { label: 'Meta Title', value: metaTitle, set: setMetaTitle, max: 60, ph: title || 'Page title for search engines…' },
+                    { label: 'Meta Description', value: metaDesc, set: setMetaDesc, max: 160, ph: description || 'Description for search results…', multi: true },
+                    { label: 'Keywords', value: metaKw, set: setMetaKw, ph: 'lion, savanna, wildlife safari…' },
+                  ].map(({ label, value, set, max, ph, multi }) => (
+                    <div key={label}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>{label}</span>
+                        {max && <span style={{ fontSize: 10, color: value.length > max * 0.9 ? '#f59e0b' : 'var(--adm-text-subtle)' }}>{value.length}/{max}</span>}
+                      </div>
+                      {multi ? (
+                        <textarea value={value} onChange={e => set(e.target.value)} placeholder={ph} rows={2} maxLength={200}
+                          style={{ ...fieldStyle, resize: 'vertical' }} />
+                      ) : (
+                        <input value={value} onChange={e => set(e.target.value)} placeholder={ph} maxLength={max ? max + 20 : undefined} style={fieldStyle} />
+                      )}
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
           </div>
 
-          {/* ===== SIDEBAR ===== */}
+          {/* ───── SIDEBAR ───── */}
           {sidebarOpen && (
             <div style={{
-              width: 282, flexShrink: 0,
-              borderLeft: '1px solid var(--adm-border)',
+              width: 290, flexShrink: 0, borderLeft: '1px solid var(--adm-border)',
               background: 'var(--adm-surface)',
               position: 'sticky', top: HEADER_H, alignSelf: 'flex-start',
-              maxHeight: `calc(100vh - ${HEADER_H}px)`,
-              overflowY: 'auto',
+              maxHeight: `calc(100vh - ${HEADER_H}px)`, overflowY: 'auto',
             }}>
 
               {/* Publishing */}
               <SideSection label="Publishing">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, cursor: 'pointer' }}>
                     <input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)} style={{ accentColor: '#d4af37' }} />
                     Published
@@ -531,39 +437,20 @@ export function PostEditor({ initial, onSave, onCancel }) {
                     Featured post
                   </label>
                   <div>
-                    <FieldLabel>Publish Date</FieldLabel>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Publish Date</div>
                     <input type="date" value={publishDate} onChange={e => setPublishDate(e.target.value)} style={fieldStyle} />
                   </div>
                   <div>
-                    <FieldLabel>Tags</FieldLabel>
-                    <input
-                      value={tags}
-                      onChange={e => setTags(e.target.value)}
-                      placeholder="safari, conservation…"
-                      style={fieldStyle}
-                    />
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Tags</div>
+                    <input value={tags} onChange={e => setTags(e.target.value)} placeholder="safari, conservation…" style={fieldStyle} />
                   </div>
                   <div style={{ display: 'flex', gap: 6, paddingTop: 2 }}>
-                    <button
-                      onClick={() => handleSave('draft')}
-                      disabled={saving}
-                      style={{
-                        flex: 1, padding: '7px', borderRadius: 7, fontSize: 11, fontWeight: 600,
-                        border: '1px solid var(--adm-border)', background: 'transparent',
-                        color: 'var(--adm-text)', cursor: saving ? 'wait' : 'pointer',
-                      }}
-                    >
+                    <button onClick={() => handleSave('draft')} disabled={saving}
+                      style={{ flex: 1, padding: '7px', borderRadius: 7, fontSize: 11, fontWeight: 600, border: '1px solid var(--adm-border)', background: 'transparent', color: 'var(--adm-text)', cursor: saving ? 'wait' : 'pointer' }}>
                       {saving ? '…' : 'Save Draft'}
                     </button>
-                    <button
-                      onClick={() => handleSave('published')}
-                      disabled={saving}
-                      style={{
-                        flex: 1, padding: '7px', borderRadius: 7, fontSize: 11, fontWeight: 700,
-                        border: 'none', background: '#d4af37', color: '#000',
-                        cursor: saving ? 'wait' : 'pointer',
-                      }}
-                    >
+                    <button onClick={() => handleSave('published')} disabled={saving}
+                      style={{ flex: 1, padding: '7px', borderRadius: 7, fontSize: 11, fontWeight: 700, border: 'none', background: '#d4af37', color: '#000', cursor: saving ? 'wait' : 'pointer' }}>
                       {saving ? '…' : 'Publish'}
                     </button>
                   </div>
@@ -572,82 +459,74 @@ export function PostEditor({ initial, onSave, onCancel }) {
 
               {/* Organization */}
               <SideSection label="Organization">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
                   <div>
-                    <FieldLabel>Category</FieldLabel>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Category</div>
                     <select value={category} onChange={e => setCategory(e.target.value)} style={fieldStyle}>
                       {categories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
                     </select>
                   </div>
                   <div>
-                    <FieldLabel>Label</FieldLabel>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 4 }}>Label</div>
                     <select value={label} onChange={e => setLabel(e.target.value)} style={fieldStyle}>
                       {labelOptions.map(l => <option key={l} value={l}>{l}</option>)}
                     </select>
                   </div>
                   <div>
-                    <FieldLabel count={description.length} max={280}>Short Description</FieldLabel>
-                    <textarea
-                      value={description}
-                      onChange={e => setDescription(e.target.value)}
-                      maxLength={280}
-                      rows={3}
-                      placeholder="Brief description…"
-                      style={{ ...fieldStyle, resize: 'vertical' }}
-                    />
+                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
+                      <span style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>Short Description</span>
+                      <span style={{ fontSize: 10, color: description.length > 250 ? '#f59e0b' : 'var(--adm-text-subtle)' }}>{description.length}/280</span>
+                    </div>
+                    <textarea value={description} onChange={e => setDescription(e.target.value)} maxLength={280} rows={3}
+                      placeholder="Brief description…" style={{ ...fieldStyle, resize: 'vertical' }} />
                   </div>
                 </div>
               </SideSection>
 
               {/* Featured Image */}
               <SideSection label="Featured Image">
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                  <MediaUpload
-                    value={cover}
-                    onChange={v => setCover(v)}
-                    label=""
-                  />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
+                  <MediaUpload value={cover} onChange={v => setCover(v)} label="" />
                   <div>
-                    <FieldLabel>Gradient Palette</FieldLabel>
+                    <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 6 }}>Gradient Palette</div>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
                       {['from', 'via', 'to'].map(k => (
                         <label key={k} style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
                           <span style={{ fontSize: 9, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{k}</span>
-                          <input
-                            type="color"
-                            value={palette[k]}
-                            onChange={e => setPalette(p => ({ ...p, [k]: e.target.value }))}
-                            style={{ width: '100%', height: 28, borderRadius: 5, border: '1px solid var(--adm-border)', cursor: 'pointer', padding: 1 }}
-                          />
+                          <input type="color" value={palette[k]} onChange={e => setPalette(p => ({ ...p, [k]: e.target.value }))}
+                            style={{ width: '100%', height: 28, borderRadius: 5, border: '1px solid var(--adm-border)', cursor: 'pointer', padding: 1 }} />
                         </label>
                       ))}
                     </div>
                   </div>
-                  <div style={{
-                    height: 52, borderRadius: 7, overflow: 'hidden',
-                    background: `linear-gradient(135deg, ${palette.from}, ${palette.via}, ${palette.to})`,
-                    position: 'relative',
-                  }}>
+                  <div style={{ height: 50, borderRadius: 7, overflow: 'hidden', background: `linear-gradient(135deg, ${palette.from}, ${palette.via}, ${palette.to})`, position: 'relative' }}>
                     {cover && typeof cover === 'string' && (
                       <img src={cover} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    )}
-                    {cover && cover?.sources?.[0] && (
-                      <img src={cover.sources[0]} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                     )}
                   </div>
                 </div>
               </SideSection>
 
-              {/* Writing Toolkit */}
-              <SideSection label="Writing Toolkit" defaultOpen={false}>
-                <WritingToolkit
+              {/* AI Writing Toolkit */}
+              <SideSection label="✦ AI Writing Toolkit" accent="#7c3aed" defaultOpen={false}>
+                <AIWritingToolkit editor={editor} title={title} wordCount={wordCount} />
+              </SideSection>
+
+              {/* AI SEO Assistant */}
+              <SideSection label="📈 AI SEO Assistant" accent="#059669" defaultOpen={false}>
+                <AISEOAssistant
                   title={title}
-                  body={bodyHtml}
-                  description={description}
+                  editor={editor}
                   slug={slug}
-                  cover={typeof cover === 'string' ? cover : cover?.sources?.[0] || ''}
-                  wordCount={wordCount}
-                  seoScore={seoScore}
+                  onFieldsInserted={handleSEOInserted}
+                />
+              </SideSection>
+
+              {/* AI Image Generator */}
+              <SideSection label="🖼 AI Image Generator" accent="#7c3aed" defaultOpen={false}>
+                <AIImageGenerator
+                  editor={editor}
+                  onCoverChange={(url) => setCover(url)}
                 />
               </SideSection>
 

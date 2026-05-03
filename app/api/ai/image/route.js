@@ -1,0 +1,133 @@
+import { createClient } from '@supabase/supabase-js';
+import sharp from 'sharp';
+import { generateText } from 'ai';
+import { anthropic } from '@ai-sdk/anthropic';
+import { openai } from '@ai-sdk/openai';
+
+export const runtime = 'nodejs';
+export const maxDuration = 120;
+
+const BUCKET = 'media';
+const STYLE_SUFFIX = ', Canon EOS R5 wildlife photography, 8K UHD, 16:9 cinematic aspect ratio, National Geographic documentary style, ultra-realistic fur and feathers texture, realistic animal eyes, natural environmental textures, professional safari telephoto lens, natural color grading, sharp depth of field, HDR, no AI smoothness, no plastic texture, no overprocessed look, real-life photography realism, cinematic wildlife framing';
+
+function getAdminClient() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL,
+    process.env.SUPABASE_SERVICE_ROLE_KEY,
+    { auth: { autoRefreshToken: false, persistSession: false } }
+  );
+}
+
+async function uploadToSupabase(imageBuffer, name) {
+  const admin = getAdminClient();
+  const [avifBuf, webpBuf] = await Promise.all([
+    sharp(imageBuffer).avif({ quality: 78, effort: 4 }).toBuffer(),
+    sharp(imageBuffer).webp({ quality: 82, effort: 4 }).toBuffer(),
+  ]);
+  const [r1, r2] = await Promise.all([
+    admin.storage.from(BUCKET).upload(`ai/${name}.avif`, avifBuf, { contentType: 'image/avif', upsert: true }),
+    admin.storage.from(BUCKET).upload(`ai/${name}.webp`, webpBuf, { contentType: 'image/webp', upsert: true }),
+  ]);
+  if (r1.error) throw new Error(r1.error.message);
+  if (r2.error) throw new Error(r2.error.message);
+  const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}`;
+  return {
+    avif: `${base}/ai/${name}.avif`,
+    webp: `${base}/ai/${name}.webp`,
+    primary: `${base}/ai/${name}.webp`,
+  };
+}
+
+async function generateWithOpenAI(prompt, apiKey) {
+  const { OpenAI } = await import('openai');
+  const client = new OpenAI({ apiKey: apiKey || process.env.OPENAI_API_KEY });
+  const response = await client.images.generate({
+    model: 'dall-e-3',
+    prompt: `${prompt}${STYLE_SUFFIX}`,
+    size: '1792x1024',
+    quality: 'hd',
+    style: 'natural',
+    n: 1,
+  });
+  const imageUrl = response.data[0].url;
+  const imgResponse = await fetch(imageUrl);
+  const buffer = Buffer.from(await imgResponse.arrayBuffer());
+  return buffer;
+}
+
+async function enrichPromptWithAI(heading, context, provider) {
+  const model = provider === 'openai'
+    ? openai(process.env.OPENAI_MODEL || 'gpt-4o')
+    : anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
+
+  const { text } = await generateText({
+    model,
+    prompt: `Create a detailed wildlife photography prompt for an image to accompany this article section.
+
+Section heading: "${heading}"
+Section content: ${context.slice(0, 600)}
+
+Requirements:
+- Describe exact animals, their behavior, pose
+- Specify environment, lighting, time of day
+- Include geographic setting if discernible
+- Create dramatic wildlife composition
+- Be specific (not generic) — based on the actual content
+
+Return ONLY the image description prompt (50-80 words, no preamble).`,
+    temperature: 0.6,
+    maxTokens: 200,
+  });
+  return text.trim();
+}
+
+export async function POST(req) {
+  try {
+    const { prompt, mode = 'text_to_image', provider = 'openai', headings, context, apiKey } = await req.json();
+
+    // Bulk mode
+    if (mode === 'bulk' && Array.isArray(headings)) {
+      const results = [];
+      for (const item of headings) {
+        try {
+          const enriched = await enrichPromptWithAI(item.heading, item.context || '', provider);
+          const buffer = await generateWithOpenAI(enriched, apiKey);
+          const uid = `bulk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+          const urls = await uploadToSupabase(buffer, uid);
+          results.push({
+            heading: item.heading,
+            imageUrl: urls.primary,
+            webp: urls.webp,
+            avif: urls.avif,
+            altText: `${item.heading} — wildlife photography`,
+            caption: item.heading,
+            prompt: enriched,
+            status: 'done',
+          });
+        } catch (err) {
+          results.push({ heading: item.heading, status: 'error', error: err.message });
+        }
+      }
+      return Response.json({ success: true, results });
+    }
+
+    // Single image (text_to_image or transform)
+    if (!prompt) return Response.json({ error: 'Prompt required' }, { status: 400 });
+
+    const buffer = await generateWithOpenAI(prompt, apiKey);
+    const uid = `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    const urls = await uploadToSupabase(buffer, uid);
+
+    return Response.json({
+      success: true,
+      imageUrl: urls.primary,
+      webp: urls.webp,
+      avif: urls.avif,
+      altText: prompt.slice(0, 100),
+      caption: prompt.slice(0, 120),
+    });
+  } catch (err) {
+    console.error('[AI Image]', err);
+    return Response.json({ error: err.message }, { status: 500 });
+  }
+}
