@@ -1,6 +1,7 @@
 'use client';
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 import Link from 'next/link';
 import {
@@ -9,7 +10,6 @@ import {
   ChevronLeft, ChevronRight,
 } from 'lucide-react';
 import { db } from '@/lib/storage/db';
-import { PostEditor } from '@/components/admin/PostEditor';
 
 const PAGE_SIZE = 10;
 
@@ -87,6 +87,7 @@ function ActionBtn({ onClick, title, color, hoverBg, hoverColor, children, as: T
 
 // ── Main component ────────────────────────────────────────────────────────────
 export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
+  const router = useRouter();
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
 
@@ -96,8 +97,6 @@ export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
   const [activeFilter, setActiveFilter] = useState('all');
   const [page,         setPage]         = useState(1);
   const [selected,     setSelected]     = useState(new Set());
-  const [creating,     setCreating]     = useState(false);
-  const [editing,      setEditing]      = useState(null);
 
   const load = useCallback(async () => {
     const data = category
@@ -184,23 +183,6 @@ export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
   };
 
   // ── Editor view ───────────────────────────────────────────────────────────
-  if (creating || editing) {
-    const isEdit = !!editing;
-    return (
-      <PostEditor
-        initial={isEdit ? editing : (category ? { category } : undefined)}
-        onSave={async (payload) => {
-          if (isEdit) await db.posts.update(editing.id, payload);
-          else        await db.posts.create(payload);
-          setCreating(false);
-          setEditing(null);
-          await load();
-        }}
-        onCancel={() => { setCreating(false); setEditing(null); }}
-      />
-    );
-  }
-
   // ── List view ─────────────────────────────────────────────────────────────
   return (
     <div className="p-5 sm:p-8">
@@ -224,7 +206,7 @@ export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
         </div>
 
         <button
-          onClick={() => setCreating(true)}
+          onClick={() => router.push('/admin/editor/new' + (category ? `?category=${encodeURIComponent(category)}` : ''))}
           style={{
             flexShrink: 0, display: 'inline-flex', alignItems: 'center', gap: 7,
             padding: '10px 20px', borderRadius: 10, border: 'none', cursor: 'pointer',
@@ -496,7 +478,7 @@ export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
 
                         <ActionBtn
                           title="Edit"
-                          onClick={() => setEditing(p)}
+                          onClick={() => router.push(`/admin/editor/${p.id}`)}
                           color="#0d9488"
                           hoverBg={isDark ? 'rgba(13,148,136,0.12)' : 'rgba(13,148,136,0.1)'}
                         >
