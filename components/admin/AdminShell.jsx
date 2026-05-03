@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useTheme } from 'next-themes';
 import { AdminGuard } from './AdminGuard';
 import { AdminNavbar } from './AdminNavbar';
@@ -10,24 +10,9 @@ const SIDEBAR_W = 270;
 
 export function AdminShell({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  // isDesktop drives the structural difference: persistent vs overlay sidebar.
-  // Starts false (safe SSR default); set immediately after mount via matchMedia.
-  const [isDesktop, setIsDesktop] = useState(false);
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
 
-  useEffect(() => {
-    const mq = window.matchMedia('(min-width: 1024px)');
-    setIsDesktop(mq.matches);
-    const handler = (e) => {
-      setIsDesktop(e.matches);
-      if (e.matches) setSidebarOpen(false); // close overlay when going desktop
-    };
-    mq.addEventListener('change', handler);
-    return () => mq.removeEventListener('change', handler);
-  }, []);
-
-  // Close overlay on route navigation (user tapped a link)
   const closeSidebar = () => setSidebarOpen(false);
 
   const cssVars = isDark
@@ -64,39 +49,6 @@ export function AdminShell({ children }) {
         '--adm-shadow-lg':     '0 4px 24px rgba(0,0,0,0.1)',
       };
 
-  // ─── Sidebar styles ──────────────────────────────────────────────────────
-  // Desktop: static flex item, always visible, no animation needed.
-  // Mobile : absolute overlay — GPU-composited transform animation only.
-  const sidebarStyle = isDesktop
-    ? {
-        position:    'relative',
-        width:        SIDEBAR_W,
-        flexShrink:   0,
-        display:      'flex',
-        flexDirection:'column',
-        background:  'var(--adm-surface)',
-        borderRight: `1px solid var(--adm-border)`,
-        overflowY:   'auto',
-      }
-    : {
-        position:    'absolute',
-        top:          0,
-        bottom:       0,
-        left:         0,
-        zIndex:       40,
-        width:        SIDEBAR_W,
-        display:      'flex',
-        flexDirection:'column',
-        background:  'var(--adm-surface)',
-        borderRight: `1px solid var(--adm-border)`,
-        willChange:  'transform',
-        transform:    sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
-        boxShadow:    sidebarOpen ? '4px 0 40px rgba(0,0,0,0.22)' : 'none',
-        transition:   sidebarOpen
-          ? 'transform 0.32s cubic-bezier(0.22,1,0.36,1), box-shadow 0.32s ease'
-          : 'transform 0.22s cubic-bezier(0.4,0,1,1),  box-shadow 0.22s ease',
-      };
-
   return (
     <AdminGuard>
       <div
@@ -106,39 +58,52 @@ export function AdminShell({ children }) {
         {/* ── Navbar ─────────────────────────────────────────────────────── */}
         <AdminNavbar
           sidebarOpen={sidebarOpen}
-          isDesktop={isDesktop}
           onMenu={() => setSidebarOpen((v) => !v)}
         />
 
         {/* ── Body ───────────────────────────────────────────────────────── */}
         <div className="relative flex min-h-0 flex-1 overflow-hidden">
 
-          {/* Backdrop — mobile overlay only, always mounted for smooth fade */}
+          {/* Backdrop — always an overlay; fades in when sidebar opens */}
           <div
             aria-hidden="true"
             onClick={closeSidebar}
             style={{
-              display:           isDesktop ? 'none' : 'block',
-              position:          'absolute',
-              inset:             0,
-              zIndex:            30,
-              background:        isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.38)',
-              backdropFilter:    sidebarOpen ? 'blur(4px)' : 'blur(0px)',
+              position:             'absolute',
+              inset:                0,
+              zIndex:               30,
+              background:           isDark ? 'rgba(0,0,0,0.55)' : 'rgba(0,0,0,0.35)',
+              backdropFilter:       sidebarOpen ? 'blur(4px)' : 'blur(0px)',
               WebkitBackdropFilter: sidebarOpen ? 'blur(4px)' : 'blur(0px)',
-              opacity:           sidebarOpen ? 1 : 0,
-              pointerEvents:     sidebarOpen ? 'auto' : 'none',
-              transition:        'opacity 0.28s ease, backdrop-filter 0.28s ease',
+              opacity:              sidebarOpen ? 1 : 0,
+              pointerEvents:        sidebarOpen ? 'auto' : 'none',
+              transition:           'opacity 0.28s ease, backdrop-filter 0.28s ease',
             }}
           />
 
-          {/* Sidebar */}
-          <aside style={sidebarStyle}>
+          {/* Sidebar — always a slide-in drawer, never a persistent column */}
+          <aside style={{
+            position:      'absolute',
+            top:            0,
+            bottom:         0,
+            left:           0,
+            zIndex:         40,
+            width:          SIDEBAR_W,
+            display:       'flex',
+            flexDirection: 'column',
+            background:    'var(--adm-surface)',
+            borderRight:   '1px solid var(--adm-border)',
+            willChange:    'transform',
+            transform:      sidebarOpen ? 'translateX(0)' : 'translateX(-100%)',
+            boxShadow:      sidebarOpen ? '6px 0 40px rgba(0,0,0,0.18)' : 'none',
+            transition:     sidebarOpen
+              ? 'transform 0.32s cubic-bezier(0.22,1,0.36,1), box-shadow 0.32s ease'
+              : 'transform 0.22s cubic-bezier(0.4,0,1,1), box-shadow 0.22s ease',
+          }}>
             <AdminSidebar onClose={closeSidebar} />
           </aside>
 
-          {/* Main content
-              min-w-0 prevents flex blowout on narrow screens.
-              overscroll-contain stops rubber-band scroll propagating to body. */}
+          {/* Main content — always takes full width since sidebar is overlay */}
           <main
             className="relative flex-1 min-w-0 overflow-y-auto"
             style={{ overscrollBehavior: 'contain' }}

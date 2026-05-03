@@ -340,7 +340,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
         .tiptap-body .tiptap div[data-youtube-video] iframe { width: 100%; aspect-ratio: 16/9; display: block; border: none; }
       `}</style>
 
-      <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100%', background: 'var(--adm-bg)' }}>
+      <div style={{ position: 'fixed', inset: 0, zIndex: 9999, display: 'flex', flexDirection: 'column', overflowY: 'auto', background: 'var(--adm-bg)' }}>
 
         {/* ── STICKY HEADER ── */}
         <div style={{

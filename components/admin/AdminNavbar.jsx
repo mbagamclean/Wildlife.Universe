@@ -147,7 +147,7 @@ function ThemeToggle({ isDark }) {
 }
 
 // ─── Navbar ───────────────────────────────────────────────────────────────────
-export function AdminNavbar({ onMenu, sidebarOpen, isDesktop }) {
+export function AdminNavbar({ onMenu, sidebarOpen }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
   const { user }  = useAuth();
@@ -166,13 +166,12 @@ export function AdminNavbar({ onMenu, sidebarOpen, isDesktop }) {
         transition:   'background-color 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease',
       }}
     >
-      {/* Menu toggle — hidden on desktop (sidebar is always visible there) */}
+      {/* Menu toggle */}
       <button
         onClick={onMenu}
         aria-label={sidebarOpen ? 'Close navigation' : 'Open navigation'}
         className="relative flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-lg active:scale-90"
         style={{
-          display:    isDesktop ? 'none' : undefined,
           color:      sidebarOpen ? (isDark ? '#ebebef' : '#1a1a1a') : (isDark ? '#9a9aab' : '#777'),
           background: sidebarOpen
             ? (isDark ? 'rgba(212,175,55,0.12)' : 'rgba(212,175,55,0.1)')
