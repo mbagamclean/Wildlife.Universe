@@ -7,6 +7,7 @@ export default function AdminAnimalsPage() {
       title="Animals"
       subtitle="Manage animal content and wildlife entries"
       category="animals"
+      noun="Animal"
     />
   );
 }

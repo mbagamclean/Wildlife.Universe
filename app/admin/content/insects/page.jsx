@@ -7,6 +7,7 @@ export default function AdminInsectsPage() {
       title="Insects"
       subtitle="Manage insect species and entomology content"
       category="insects"
+      noun="Insect"
     />
   );
 }

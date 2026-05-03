@@ -7,6 +7,7 @@ export default function AdminPlantsPage() {
       title="Plants"
       subtitle="Manage plant species and botanical content"
       category="plants"
+      noun="Plant"
     />
   );
 }

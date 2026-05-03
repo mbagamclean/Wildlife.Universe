@@ -86,7 +86,7 @@ function ActionBtn({ onClick, title, color, hoverBg, hoverColor, children, as: T
 }
 
 // ── Main component ────────────────────────────────────────────────────────────
-export function ContentListPage({ title, subtitle, category }) {
+export function ContentListPage({ title, subtitle, category, noun = 'Post' }) {
   const { resolvedTheme } = useTheme();
   const isDark = resolvedTheme === 'dark';
 
@@ -249,7 +249,7 @@ export function ContentListPage({ title, subtitle, category }) {
           onMouseUp={e =>   { e.currentTarget.style.transform = 'scale(1)'; }}
         >
           <Plus size={16} strokeWidth={2.5} />
-          New Post
+          New {noun}
         </button>
       </div>
 
@@ -372,7 +372,7 @@ export function ContentListPage({ title, subtitle, category }) {
                   <td colSpan={7} style={{ padding: '52px 24px', textAlign: 'center', color: 'var(--adm-text-muted)', fontSize: 14 }}>
                     {search || activeFilter !== 'all'
                       ? 'No matching results.'
-                      : `No ${title.toLowerCase()} yet — click "+ New Post" to create the first one.`}
+                      : `No ${title.toLowerCase()} yet — click "+ New ${noun}" to create the first one.`}
                   </td>
                 </tr>
               ) : pageItems.map((p, idx) => {

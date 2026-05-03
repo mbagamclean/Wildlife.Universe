@@ -7,6 +7,7 @@ export default function AdminBirdsPage() {
       title="Birds"
       subtitle="Manage bird species and avian content"
       category="birds"
+      noun="Bird"
     />
   );
 }
