@@ -14,6 +14,7 @@ import {
   Home, LogOut,
   ClipboardCheck, Sparkles, ShieldCheck, Compass, Search, Target, Rss,
   Languages, Send, CalendarDays,
+  Camera, TrendingUp,
 } from 'lucide-react';
 
 const NAV = [
@@ -62,6 +63,16 @@ const NAV = [
       { href: '/admin/configuration/topic-discovery',      label: 'Topic Discovery',      icon: CalendarDays },
       { href: '/admin/configuration/translate',            label: 'Translate',            icon: Languages },
       { href: '/admin/configuration/social-automation',    label: 'Social Automation',    icon: Send },
+      { href: '/admin/configuration/image-prompts',        label: 'Image Prompts',        icon: Camera },
+    ],
+  },
+  {
+    section: 'ANALYTICS',
+    items: [
+      { href: '/admin/configuration/analytics',         label: 'Overview',               icon: BarChart2 },
+      { href: '/admin/configuration/traffic-growth',    label: 'Traffic Growth',         icon: TrendingUp },
+      { href: '/admin/configuration/live-activity',     label: 'Live Activity',          icon: Activity },
+      { href: '/admin/configuration/indexing-monitor',  label: 'Indexing Monitor',       icon: Search },
     ],
   },
   {
@@ -71,9 +82,7 @@ const NAV = [
       { href: '/admin/configuration/settings',          label: 'Settings',               icon: Settings },
       { href: '/admin/configuration/subscribers',       label: 'Subscribers',            icon: Mail },
       { href: '/admin/configuration/publishers',        label: 'Publishers',             icon: Newspaper },
-      { href: '/admin/configuration/analytics',         label: 'Analytics',              icon: BarChart2 },
       { href: '/admin/configuration/ad-management',     label: 'Ad Management',          icon: Megaphone },
-      { href: '/admin/configuration/live-activity',     label: 'Live Activity',          icon: Activity },
       { href: '/admin/configuration/social-media',      label: 'Social Media Auto.',     icon: Share2 },
       { href: '/admin/configuration/messages',          label: 'Messages',               icon: Inbox },
       { href: '/admin/settings/ai-providers',           label: 'AI Providers',           icon: Megaphone },
