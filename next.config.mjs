@@ -17,7 +17,7 @@ const nextConfig = {
       },
     ],
   },
-  serverExternalPackages: ['sharp'],
+  serverExternalPackages: ['sharp', 'ffmpeg-static'],
 };
 
 export default nextConfig;

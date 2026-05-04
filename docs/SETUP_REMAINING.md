@@ -1,5 +1,9 @@
 # Wildlife Universe — Remaining setup
 
+> **Vercel plan note for media uploads:** the upload route (`app/api/upload/route.js`) sets `export const maxDuration = 300` to give ffmpeg enough time to transcode video to WebM. **This requires the Vercel Pro plan.** On the Hobby plan, `maxDuration` is capped at 60s and large videos will time out — the route gracefully falls back to storing the original file when ffmpeg fails or the input is over 120 MB.
+
+
+
 This file tracks the **manual** configuration left after the Mayobe Bros → Wildlife Universe feature port. Code-side everything is in place; these steps are environment / Supabase / external-service work that the assistant cannot do for you.
 
 ## 1. Run Supabase migrations `004_seo_extensions.sql` AND `005_post_editor_fields.sql`

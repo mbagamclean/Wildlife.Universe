@@ -184,8 +184,11 @@ export default function HomepageVideosPage() {
       const res = await fetch('/api/upload', { method: 'POST', body: fd });
       const json = await res.json();
       if (!res.ok || !json.success) throw new Error(json.error || 'Upload failed');
-      const url = json.result?.sources?.find((s) => s.type === 'video/mp4')?.src
-        || json.result?.sources?.[0]?.src;
+      // Prefer WebM if produced (smaller, modern), otherwise the original source.
+      const sources = json.result?.sources || [];
+      const url = sources.find((s) => s.type === 'video/webm')?.src
+        || sources.find((s) => s.type?.startsWith('video/'))?.src
+        || sources[0]?.src;
       if (url) {
         updateForm('sourceUrl', url);
         updateForm('sourceType', 'upload');

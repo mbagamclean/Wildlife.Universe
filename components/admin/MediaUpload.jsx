@@ -7,15 +7,24 @@ import { VideoPlayer } from '@/components/ui/VideoPlayer';
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20 MB
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 MB
 
+function fmtSize(bytes) {
+  if (!bytes && bytes !== 0) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+}
+
 export function MediaUpload({ value, onChange, label = 'Cover media', accept = 'image/*,video/*' }) {
   const ref = useRef(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [progressMsg, setProgressMsg] = useState('');
+  const [savings, setSavings] = useState(null);
 
   const handle = async (file) => {
     setError('');
     setProgressMsg('');
+    setSavings(null);
     if (!file) return;
 
     const isVideo = file.type.startsWith('video/');
@@ -30,9 +39,9 @@ export function MediaUpload({ value, onChange, label = 'Cover media', accept = '
 
     setBusy(true);
     if (isVideo) {
-      setProgressMsg('Uploading & Optimizing Video (This may take a few minutes)...');
+      setProgressMsg('Uploading… then transcoding to WebM (may take 1–4 minutes)');
     } else {
-      setProgressMsg('Optimizing Image...');
+      setProgressMsg('Optimizing image to AVIF + WebP…');
     }
 
     try {
@@ -45,11 +54,37 @@ export function MediaUpload({ value, onChange, label = 'Cover media', accept = '
       });
 
       const data = await res.json();
-      if (!res.ok) {
+      if (!res.ok || !data.success) {
         throw new Error(data.error || 'Upload failed');
       }
 
-      // the object: { type: 'image'|'video', sources: [...] }
+      // Compute size savings (original → smallest available variant)
+      const r = data.result;
+      const orig = r?.bytes?.original || file.size;
+      const smallest = r?.type === 'image'
+        ? Math.min(r.bytes?.avif || Infinity, r.bytes?.webp || Infinity)
+        : (r?.bytes?.webm || orig);
+      if (orig && smallest && smallest < orig) {
+        const pct = Math.round(((orig - smallest) / orig) * 100);
+        setSavings({
+          orig,
+          smallest,
+          pct,
+          transcoded: r?.type === 'video' ? r.transcoded : true,
+          reason: r?.transcodeSkipReason || null,
+        });
+        setTimeout(() => setSavings(null), 8000);
+      } else if (r?.type === 'video' && r?.transcoded === false) {
+        setSavings({
+          orig,
+          smallest: orig,
+          pct: 0,
+          transcoded: false,
+          reason: r.transcodeSkipReason,
+        });
+        setTimeout(() => setSavings(null), 8000);
+      }
+
       onChange(data.result);
     } catch (e) {
       setError(e.message || 'Could not process file.');
@@ -125,6 +160,15 @@ export function MediaUpload({ value, onChange, label = 'Cover media', accept = '
         onChange={(e) => handle(e.target.files?.[0])}
       />
       {error && <p className="text-xs text-red-500">{error}</p>}
+      {savings && !error && (
+        <p className="text-xs text-emerald-600">
+          {savings.transcoded
+            ? `Compressed ${fmtSize(savings.orig)} → ${fmtSize(savings.smallest)} (saved ${savings.pct}%).`
+            : savings.reason === 'too_large'
+              ? `Stored at original size (${fmtSize(savings.orig)}). Files >120 MB skip transcoding to avoid timeouts.`
+              : `Stored at original size (${fmtSize(savings.orig)}). Transcoding fell back to the source.`}
+        </p>
+      )}
     </div>
   );
 }
