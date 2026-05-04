@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { ShareButton } from '@/components/ui/ShareButton';
 import { GlassPanel } from '@/components/ui/GlassPanel';
+import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 
 export function PostCard({ post }) {
   const palette = post.coverPalette || {
@@ -21,35 +22,26 @@ export function PostCard({ post }) {
           }}
         >
           {post.cover ? (
-            typeof post.cover === 'string' ? (
-              <img
-                src={post.cover}
-                alt=""
-                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-              />
-            ) : post.cover.type === 'video' ? (
+            post.cover && typeof post.cover === 'object' && post.cover.type === 'video' ? (
               <video
                 className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
                 autoPlay
                 muted
                 loop
                 playsInline
+                poster={post.cover.poster || undefined}
               >
                 {post.cover.sources?.map((s, i) => (
                   <source key={i} src={s.src} type={s.type} />
                 ))}
               </video>
             ) : (
-              <picture>
-                {(post.cover.sources || []).slice(0, -1).map((s, i) => (
-                  <source key={i} srcSet={s.src} type={s.type} />
-                ))}
-                <img
-                  src={post.cover.sources?.[Math.max(0, (post.cover.sources?.length || 1) - 1)]?.src || ''}
-                  alt=""
-                  className="h-full w-full object-cover"
-                />
-              </picture>
+              <ResponsiveImage
+                media={post.cover}
+                alt={post.title || ''}
+                sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
+                className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
             )
           ) : (
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_30%,rgba(255,255,255,0.3),transparent_60%)]" />

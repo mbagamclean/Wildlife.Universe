@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { ShareButton } from '@/components/ui/ShareButton';
+import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 import { User } from 'lucide-react';
 
 const BADGE_MAP = {
@@ -34,18 +35,16 @@ function fmtDate(iso) {
   });
 }
 
-function resolveCoverSrc(cover) {
-  if (!cover) return null;
-  if (typeof cover === 'string') return cover;
-  const sources = cover.sources;
-  if (!sources?.length) return null;
-  return sources[sources.length - 1]?.src || null;
+function hasCover(cover) {
+  if (!cover) return false;
+  if (typeof cover === 'string') return true;
+  return Array.isArray(cover.sources) && cover.sources.length > 0;
 }
 
 export function LatestPostCard({ post, index = 0 }) {
   const gradient = badgeStyle(post);
   const palette  = post.coverPalette || { from: '#0c4a1a', via: '#3aa15a', to: '#d4af37' };
-  const coverSrc = resolveCoverSrc(post.cover);
+  const showCover = hasCover(post.cover);
   const label    = post.label || post.category || '';
 
   return (
@@ -67,11 +66,11 @@ export function LatestPostCard({ post, index = 0 }) {
       >
         {/* ─── IMAGE ─────────────────────────────── */}
         <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
-          {coverSrc ? (
-            <img
-              src={coverSrc}
-              alt={post.title}
-              loading="lazy"
+          {showCover ? (
+            <ResponsiveImage
+              media={post.cover}
+              alt={post.title || ''}
+              sizes="(max-width: 768px) 100vw, (max-width: 1280px) 50vw, 33vw"
               className="h-full w-full object-cover transition-transform duration-[600ms] ease-[cubic-bezier(0.2,1,0.2,1)]
                          group-hover:scale-[1.15]"
             />
