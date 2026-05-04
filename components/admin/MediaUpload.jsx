@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 import { Upload, X } from 'lucide-react';
 import { VideoPlayer } from '@/components/ui/VideoPlayer';
 import { uploadMedia } from '@/lib/upload/client';
@@ -17,10 +17,15 @@ function fmtSize(bytes) {
 
 export function MediaUpload({ value, onChange, label = 'Cover media', accept = 'image/*,video/*' }) {
   const ref = useRef(null);
+  const abortRef = useRef(null);
   const [error, setError] = useState('');
   const [busy, setBusy] = useState(false);
   const [progressMsg, setProgressMsg] = useState('');
   const [savings, setSavings] = useState(null);
+  const [transcoding, setTranscoding] = useState(false);
+
+  // Cancel any in-flight upload/transcode if this component unmounts
+  useEffect(() => () => abortRef.current?.abort(), []);
 
   const handle = async (file) => {
     setError('');
@@ -38,52 +43,59 @@ export function MediaUpload({ value, onChange, label = 'Cover media', accept = '
       return;
     }
 
+    // Cancel anything in flight from a previous file pick
+    abortRef.current?.abort();
+    abortRef.current = new AbortController();
+
     setBusy(true);
-    if (isVideo) {
-      setProgressMsg('Uploading video to storage…');
-    } else {
-      setProgressMsg('Optimizing image to AVIF + WebP…');
-    }
+    setTranscoding(false);
+    setProgressMsg(isVideo ? 'Uploading video to storage…' : 'Optimizing image to AVIF + WebP…');
 
     try {
       const result = await uploadMedia(file, {
+        signal: abortRef.current.signal,
         onProgress: (pct) => {
           if (isVideo) setProgressMsg(`Uploading video to storage… ${pct}%`);
         },
       });
 
-      // Compute size savings (original → smallest available variant)
-      const orig = result?.bytes?.original || file.size;
-      const smallest = result?.type === 'image'
-        ? Math.min(result.bytes?.avif || Infinity, result.bytes?.webp || Infinity)
-        : (result?.bytes?.webm || orig);
-      if (orig && smallest && smallest < orig) {
-        const pct = Math.round(((orig - smallest) / orig) * 100);
-        setSavings({
-          orig,
-          smallest,
-          pct,
-          transcoded: result?.type === 'video' ? result.transcoded : true,
-          reason: result?.transcodeSkipReason || null,
-        });
-        setTimeout(() => setSavings(null), 8000);
-      } else if (result?.type === 'video' && result?.transcoded === false) {
-        setSavings({
-          orig,
-          smallest: orig,
-          pct: 0,
-          transcoded: false,
-          reason: result.transcodeSkipReason,
-        });
-        setTimeout(() => setSavings(null), 8000);
-      }
+      const reportSavings = (r) => {
+        const orig = r?.bytes?.original || file.size;
+        const smallest = r?.type === 'image'
+          ? Math.min(r.bytes?.avif || Infinity, r.bytes?.webp || Infinity)
+          : (r?.bytes?.webm || orig);
+        if (orig && smallest && smallest < orig) {
+          const pct = Math.round(((orig - smallest) / orig) * 100);
+          setSavings({ orig, smallest, pct, transcoded: r?.type === 'video' ? r.transcoded : true, reason: r?.transcodeSkipReason || null });
+        } else if (r?.type === 'video' && r?.transcoded === false) {
+          setSavings({ orig, smallest: orig, pct: 0, transcoded: false, reason: r.transcodeSkipReason });
+        }
+      };
 
+      // 1st phase: upload finished. Form gets the original-only sources
+      // immediately so the user can save right now if they want.
       onChange(result);
+      reportSavings(result);
+
+      // 2nd phase (videos only): wait for the background transcode and
+      // re-emit onChange with the WebM-enriched sources when it lands.
+      if (result?.transcodePromise) {
+        setBusy(false);
+        setTranscoding(true);
+        setProgressMsg('Transcoding to WebM in background — you can save now…');
+        const upgraded = await result.transcodePromise;
+        if (upgraded) {
+          onChange(upgraded);
+          reportSavings(upgraded);
+        }
+      }
     } catch (e) {
-      setError(e.message || 'Could not process file.');
+      if (e?.name !== 'AbortError') setError(e.message || 'Could not process file.');
     } finally {
       setBusy(false);
+      setTranscoding(false);
       setProgressMsg('');
+      setTimeout(() => setSavings(null), 8000);
     }
   };
 
@@ -144,6 +156,12 @@ export function MediaUpload({ value, onChange, label = 'Cover media', accept = '
           {busy ? (progressMsg || 'Processing…') : 'Click to upload'}
           <span className="text-xs">Image (max 20 MB) or Video (max 200 MB)</span>
         </button>
+      )}
+      {transcoding && !busy && (
+        <p className="flex items-center gap-2 text-xs text-amber-600">
+          <span className="inline-block h-2 w-2 animate-pulse rounded-full bg-amber-500" />
+          {progressMsg || 'Transcoding to WebM in background…'}
+        </p>
       )}
       <input
         ref={ref}
