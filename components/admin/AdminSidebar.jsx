@@ -13,6 +13,7 @@ import {
   Shield, UserCircle,
   Home, LogOut,
   ClipboardCheck, Sparkles, ShieldCheck, Compass, Search, Target, Rss,
+  Languages, Send, CalendarDays,
 } from 'lucide-react';
 
 const NAV = [
@@ -58,6 +59,9 @@ const NAV = [
       { href: '/admin/configuration/discover-score',       label: 'Discover Score',       icon: Compass },
       { href: '/admin/configuration/keyword-research',     label: 'Keyword Research',     icon: Search },
       { href: '/admin/configuration/competitor-analysis',  label: 'Competitor Analysis',  icon: Target },
+      { href: '/admin/configuration/topic-discovery',      label: 'Topic Discovery',      icon: CalendarDays },
+      { href: '/admin/configuration/translate',            label: 'Translate',            icon: Languages },
+      { href: '/admin/configuration/social-automation',    label: 'Social Automation',    icon: Send },
     ],
   },
   {
