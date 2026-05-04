@@ -1,6 +1,7 @@
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
+import { pickTextModel } from '@/lib/ai/select-model';
 
 export const runtime = 'nodejs';
 export const maxDuration = 90;
@@ -38,6 +39,7 @@ export async function POST(req) {
       targetLanguage = 'English',
       preserveTone = true,
       provider = 'claude',
+      model = null,
     } = await req.json();
 
     if (!text || !String(text).trim()) {
@@ -86,13 +88,10 @@ Return ONLY this JSON shape:
 Source text:
 ${trimmed}`;
 
-    const model =
-      provider === 'openai'
-        ? openai(process.env.OPENAI_MODEL || 'gpt-4o')
-        : anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
+    const aiModel = pickTextModel({ provider, model });
 
     const { text: raw } = await generateText({
-      model,
+      model: aiModel,
       system: SYSTEM,
       prompt,
       temperature: 0.3,

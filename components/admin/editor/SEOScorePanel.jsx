@@ -157,7 +157,7 @@ export function SEOScorePanel({ title = '', body = '', metaTitle = '', metaDescr
       const res = await fetch('/api/ai/seo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, provider: store.provider, task: 'analyze' }),
+        body: JSON.stringify({ title, body, provider: store.provider, model: store.getCurrentTextModel(), task: 'analyze' }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'AI analysis failed');

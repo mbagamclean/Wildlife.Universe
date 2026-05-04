@@ -46,12 +46,16 @@ export async function POST(req) {
     }
 
     const language = formData.get('language')?.toString() || undefined;
+    const requestedModel = formData.get('model')?.toString() || null;
+
+    const { resolveModel } = await import('@/lib/ai/models');
+    const model = resolveModel('openaiTranscribe', requestedModel);
 
     const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 
     const result = await openai.audio.transcriptions.create({
       file,
-      model: 'whisper-1',
+      model,
       response_format: 'verbose_json',
       ...(language ? { language } : {}),
     });

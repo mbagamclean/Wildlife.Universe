@@ -39,7 +39,8 @@ export async function POST(req) {
     const text = (body.text || '').toString().trim();
     const voice = VALID_VOICES.has(body.voice) ? body.voice : 'nova';
     const speed = Math.max(0.25, Math.min(4, Number(body.speed) || 1));
-    const model = body.model === 'tts-1-hd' ? 'tts-1-hd' : 'tts-1';
+    const { resolveModel } = await import('@/lib/ai/models');
+    const model = resolveModel('openaiTts', body.model);
 
     if (!text) {
       return NextResponse.json({ success: false, error: 'text is required' }, { status: 400 });

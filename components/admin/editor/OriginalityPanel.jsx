@@ -51,7 +51,7 @@ export function OriginalityPanel({ editor }) {
       const res = await fetch('/api/ai/plagiarism', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: html, provider: store.provider }),
+        body: JSON.stringify({ content: html, provider: store.provider, model: store.getCurrentTextModel() }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Originality check failed');

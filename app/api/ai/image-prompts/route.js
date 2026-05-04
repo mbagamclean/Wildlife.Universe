@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
+import { pickTextModel } from '@/lib/ai/select-model';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -24,6 +25,7 @@ export async function POST(req) {
       aspectRatio = '16:9',
       quantity = 10,
       provider = 'claude',
+      model = null,
     } = body || {};
 
     if (!subject.trim()) {
@@ -57,12 +59,10 @@ Return JSON exactly in this shape:
   ]
 }`;
 
-    const modelClaude = process.env.ANTHROPIC_MODEL || 'claude-opus-4-7';
-    const modelOpenai = process.env.OPENAI_MODEL || 'gpt-4o';
-    const model = provider === 'openai' ? openai(modelOpenai) : anthropic(modelClaude);
+    const aiModel = pickTextModel({ provider, model });
 
     const { text } = await generateText({
-      model,
+      model: aiModel,
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: 0.85,

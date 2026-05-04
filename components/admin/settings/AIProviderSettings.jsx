@@ -1,328 +1,319 @@
 'use client';
-import { useState, useEffect } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+
+import { useEffect, useState } from 'react';
+import {
+  Loader2, KeyRound, Check, AlertCircle, ExternalLink, Save, ShieldCheck, Cpu, Sparkles,
+} from 'lucide-react';
+import { ProviderLogo, PROVIDER_META } from '@/components/ai/ProviderLogo';
+import { AIPageHeader } from '@/components/admin/configuration/AIPageHeader';
 import { useAIStore } from '@/lib/stores/aiStore';
+import {
+  OPENAI_TEXT_MODELS, OPENAI_TTS_MODELS, OPENAI_TTS_VOICES,
+  OPENAI_TRANSCRIBE_MODELS, OPENAI_IMAGE_MODELS,
+  ANTHROPIC_TEXT_MODELS,
+  GEMINI_TEXT_MODELS, GEMINI_IMAGE_MODELS,
+  DEFAULTS,
+} from '@/lib/ai/models';
 
 const PROVIDERS = [
   {
-    id: 'claude', label: 'Claude (Anthropic)', icon: '🧠',
-    color: '#d97706', defaultModel: 'claude-opus-4-7',
-    models: ['claude-opus-4-7', 'claude-sonnet-4-6', 'claude-haiku-4-5-20251001'],
-    description: 'Primary AI for long-form wildlife articles, EEAT optimization, and nuanced storytelling.',
-    docsUrl: 'https://console.anthropic.com/settings/keys',
+    id: 'anthropic',
+    keyEnvVar: 'ANTHROPIC_API_KEY',
+    consoleUrl: 'https://console.anthropic.com/settings/keys',
+    docsUrl: 'https://platform.claude.com/docs/en/intro',
+    accent: PROVIDER_META.anthropic.color,
   },
   {
-    id: 'openai', label: 'OpenAI (GPT-4o)', icon: '⚡',
-    color: '#059669', defaultModel: 'gpt-4o',
-    models: ['gpt-4o', 'gpt-4o-mini', 'gpt-4-turbo'],
-    description: 'Used for SEO field generation, image generation (DALL·E 3), and secondary writing tasks.',
-    docsUrl: 'https://platform.openai.com/api-keys',
+    id: 'openai',
+    keyEnvVar: 'OPENAI_API_KEY',
+    consoleUrl: 'https://platform.openai.com/api-keys',
+    docsUrl: 'https://developers.openai.com/api/docs',
+    accent: '#10a37f',
   },
   {
-    id: 'gemini', label: 'Google Gemini', icon: '✦',
-    color: '#7c3aed', defaultModel: 'gemini-1.5-pro',
-    models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-2.0-flash'],
-    description: 'Powers Imagen 3 for ultra-realistic 8K wildlife photography generation.',
-    docsUrl: 'https://aistudio.google.com/app/apikey',
+    id: 'gemini',
+    keyEnvVar: 'GEMINI_API_KEY',
+    consoleUrl: 'https://aistudio.google.com/apikey',
+    docsUrl: 'https://ai.google.dev/gemini-api/docs',
+    accent: PROVIDER_META.gemini.color,
   },
 ];
 
-function ProviderCard({ provider, settings, onSave }) {
-  const [key, setKey] = useState('');
-  const [model, setModel] = useState(settings?.preferredModel || provider.defaultModel);
-  const [enabled, setEnabled] = useState(settings?.enabled ?? false);
-  const [preferred, setPreferred] = useState(settings?.isPreferred ?? false);
-  const [showKey, setShowKey] = useState(false);
-  const [saving, setSaving] = useState(false);
-  const [testing, setTesting] = useState(false);
-  const [testResult, setTestResult] = useState(null);
-  const [expanded, setExpanded] = useState(false);
+export function AIProviderSettings() {
+  const store = useAIStore();
+  const [active, setActive] = useState('anthropic');
+  const [keyStatus, setKeyStatus] = useState({ loading: true, anthropic: null, openai: null, gemini: null });
+  const [saved, setSaved] = useState(null);
 
-  const save = async () => {
-    setSaving(true);
-    setTestResult(null);
-    try {
-      const res = await fetch('/api/ai/settings', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: provider.id, apiKey: key || undefined, enabled, isPreferred: preferred, preferredModel: model }),
-      });
-      const json = await res.json();
-      if (json.success) {
-        setKey('');
-        onSave?.();
-        setTestResult({ success: true, message: 'Settings saved.' });
-      } else {
-        setTestResult({ success: false, message: json.error });
-      }
-    } catch (err) {
-      setTestResult({ success: false, message: err.message });
-    } finally {
-      setSaving(false);
-    }
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/ai/keys-check')
+      .then((r) => r.json())
+      .then((j) => {
+        if (!alive) return;
+        if (j?.success && j.data) {
+          setKeyStatus({
+            loading: false,
+            anthropic: !!j.data.anthropic,
+            openai:    !!j.data.openai,
+            gemini:    !!j.data.gemini,
+          });
+        } else {
+          setKeyStatus({ loading: false, anthropic: null, openai: null, gemini: null });
+        }
+      })
+      .catch(() => alive && setKeyStatus({ loading: false, anthropic: null, openai: null, gemini: null }));
+    return () => { alive = false; };
+  }, []);
+
+  const flash = (msg) => {
+    setSaved(msg);
+    setTimeout(() => setSaved(null), 2200);
   };
 
-  const testConnection = async () => {
-    setTesting(true);
-    setTestResult(null);
-    try {
-      const res = await fetch('/api/ai/settings', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ provider: provider.id }),
-      });
-      const json = await res.json();
-      setTestResult(json);
-    } catch (err) {
-      setTestResult({ success: false, message: err.message });
-    } finally {
-      setTesting(false);
-    }
+  const reset = () => {
+    store.setModel('claudeModel', DEFAULTS.anthropicText);
+    store.setModel('openaiModel', DEFAULTS.openaiText);
+    store.setModel('openaiTtsModel', DEFAULTS.openaiTts);
+    store.setModel('openaiTtsVoice', DEFAULTS.openaiVoice);
+    store.setModel('openaiTranscribeModel', DEFAULTS.openaiTranscribe);
+    store.setModel('openaiImageModel', DEFAULTS.openaiImage);
+    store.setModel('geminiTextModel', DEFAULTS.geminiText);
+    store.setModel('geminiImageModel', DEFAULTS.geminiImage);
+    flash('Defaults restored.');
   };
 
   return (
-    <div style={{
-      borderRadius: 12, border: `1px solid ${enabled ? provider.color + '40' : 'var(--adm-border)'}`,
-      background: enabled ? `${provider.color}08` : 'var(--adm-surface)',
-      overflow: 'hidden', transition: 'all 0.2s',
-    }}>
-      {/* Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px' }}>
-        <div style={{
-          width: 38, height: 38, borderRadius: 10, background: `${provider.color}20`,
-          display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0,
-        }}>
-          {provider.icon}
-        </div>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ fontSize: 13, fontWeight: 800, color: 'var(--adm-text)' }}>{provider.label}</div>
-          <div style={{ fontSize: 10, color: 'var(--adm-text-subtle)', marginTop: 1 }}>{provider.description}</div>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          {settings?.hasKey && (
-            <span style={{ fontSize: 9, padding: '2px 7px', borderRadius: 10, background: `${provider.color}20`, color: provider.color, fontWeight: 700 }}>
-              KEY SET
-            </span>
-          )}
-          <div
-            onClick={() => setEnabled(e => !e)}
-            style={{
-              width: 36, height: 20, borderRadius: 10, position: 'relative', cursor: 'pointer',
-              background: enabled ? provider.color : 'var(--adm-border)', transition: 'background 0.2s',
-            }}
-          >
-            <div style={{
-              position: 'absolute', top: 2, left: enabled ? 18 : 2,
-              width: 16, height: 16, borderRadius: '50%', background: '#fff',
-              transition: 'left 0.2s', boxShadow: '0 1px 3px rgba(0,0,0,0.2)',
-            }} />
-          </div>
-          <button
-            onClick={() => setExpanded(e => !e)}
-            style={{ background: 'transparent', border: 'none', cursor: 'pointer', color: 'var(--adm-text-subtle)', fontSize: 12, padding: 4 }}
-          >
-            {expanded ? '▲' : '▼'}
-          </button>
-        </div>
+    <div className="p-5 sm:p-8">
+      <AIPageHeader
+        eyebrow="CONFIGURATION"
+        title="AI Providers"
+        description="Pick the default model for each provider. Selections persist in your browser and are sent with every AI request."
+        icon={Cpu}
+        accent="#7c3aed"
+      />
+
+      <div className="mb-5 flex flex-wrap gap-2">
+        {PROVIDERS.map((p) => {
+          const meta = PROVIDER_META[p.id];
+          const isActive = active === p.id;
+          const present = keyStatus[p.id];
+          return (
+            <button
+              key={p.id}
+              onClick={() => setActive(p.id)}
+              style={{
+                display: 'flex', alignItems: 'center', gap: 8,
+                padding: '8px 14px', borderRadius: 12,
+                border: `1.5px solid ${isActive ? p.accent : 'var(--adm-border)'}`,
+                background: isActive ? `${p.accent}10` : 'transparent',
+                color: isActive ? p.accent : 'var(--adm-text)',
+                fontWeight: 700, fontSize: 13, cursor: 'pointer',
+                transition: 'all 0.15s',
+              }}
+            >
+              <ProviderLogo provider={p.id} size={18} />
+              {meta.name}
+              {keyStatus.loading ? (
+                <Loader2 size={11} className="animate-spin" />
+              ) : present === true ? (
+                <ShieldCheck size={12} style={{ color: '#16a34a' }} />
+              ) : present === false ? (
+                <AlertCircle size={12} style={{ color: '#dc2626' }} />
+              ) : null}
+            </button>
+          );
+        })}
       </div>
 
-      {/* Expanded settings */}
-      <AnimatePresence>
-        {expanded && (
-          <motion.div
-            initial={{ height: 0, opacity: 0 }}
-            animate={{ height: 'auto', opacity: 1 }}
-            exit={{ height: 0, opacity: 0 }}
-            style={{ overflow: 'hidden' }}
-          >
-            <div style={{ padding: '0 16px 16px', display: 'flex', flexDirection: 'column', gap: 12, borderTop: '1px solid var(--adm-border)' }}>
-              <div style={{ paddingTop: 12 }}>
-                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>
-                  API Key
-                </label>
-                <a href={provider.docsUrl} target="_blank" rel="noopener noreferrer"
-                  style={{ float: 'right', fontSize: 10, color: provider.color, fontWeight: 600 }}
-                >
-                  Get API Key ↗
-                </a>
-                <div style={{ display: 'flex', gap: 0, marginTop: 5 }}>
-                  <input
-                    type={showKey ? 'text' : 'password'}
-                    value={key}
-                    onChange={e => setKey(e.target.value)}
-                    placeholder={settings?.hasKey ? '••••••••••••••••••••• (already set)' : 'sk-...'}
-                    style={{
-                      flex: 1, borderRadius: '7px 0 0 7px', border: '1px solid var(--adm-border)',
-                      borderRight: 'none', background: 'var(--adm-bg)', color: 'var(--adm-text)',
-                      padding: '7px 10px', fontSize: 12, outline: 'none',
-                    }}
-                  />
-                  <button
-                    onClick={() => setShowKey(s => !s)}
-                    style={{
-                      padding: '7px 10px', borderRadius: '0 7px 7px 0', border: '1px solid var(--adm-border)',
-                      background: 'var(--adm-hover-bg)', color: 'var(--adm-text-subtle)', cursor: 'pointer', fontSize: 11,
-                    }}
-                  >
-                    {showKey ? '🙈' : '👁'}
-                  </button>
-                </div>
-              </div>
+      {saved && (
+        <div className="mb-4 flex items-center gap-2 rounded-xl px-4 py-2.5 text-sm"
+             style={{ background: 'rgba(22,163,74,0.08)', color: '#16a34a', border: '1px solid rgba(22,163,74,0.2)' }}>
+          <Check size={14} /> {saved}
+        </div>
+      )}
 
-              <div>
-                <label style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', display: 'block', marginBottom: 5 }}>
-                  Model
-                </label>
-                <select
-                  value={model}
-                  onChange={e => setModel(e.target.value)}
-                  style={{
-                    width: '100%', borderRadius: 7, border: '1px solid var(--adm-border)',
-                    background: 'var(--adm-bg)', color: 'var(--adm-text)', padding: '6px 9px', fontSize: 12, outline: 'none',
-                  }}
-                >
-                  {provider.models.map(m => <option key={m} value={m}>{m}</option>)}
-                </select>
-              </div>
+      {active === 'anthropic' && (
+        <ProviderPanel providerId="anthropic" present={keyStatus.anthropic}>
+          <ModelDropdown
+            label="Default text model"
+            description="Used by every text-generating tool (write, SEO, headlines, proof, originality, AdSense, internal links, humanize, translate, etc.)."
+            value={store.claudeModel}
+            options={ANTHROPIC_TEXT_MODELS}
+            onChange={(v) => { store.setModel('claudeModel', v); flash('Anthropic text model saved.'); }}
+            recommended="claude-opus-4-7"
+          />
+        </ProviderPanel>
+      )}
 
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, cursor: 'pointer' }}>
-                <input type="checkbox" checked={preferred} onChange={e => setPreferred(e.target.checked)} style={{ accentColor: provider.color }} />
-                Set as preferred provider
-              </label>
+      {active === 'openai' && (
+        <ProviderPanel providerId="openai" present={keyStatus.openai}>
+          <ModelDropdown
+            label="Default text model"
+            description="Used when 'OpenAI' is selected as the active provider in the editor."
+            value={store.openaiModel}
+            options={OPENAI_TEXT_MODELS}
+            onChange={(v) => { store.setModel('openaiModel', v); flash('OpenAI text model saved.'); }}
+            recommended="gpt-5.4"
+          />
+          <ModelDropdown
+            label="Text-to-speech (TTS) model"
+            description="Used by AI Media → Voiceover and quick TTS."
+            value={store.openaiTtsModel}
+            options={OPENAI_TTS_MODELS}
+            onChange={(v) => { store.setModel('openaiTtsModel', v); flash('TTS model saved.'); }}
+            recommended="gpt-4o-mini-tts"
+          />
+          <ModelDropdown
+            label="TTS voice"
+            description="13 voices total. tts-1 / tts-1-hd only support the first 9. marin and cedar are docs-recommended for best narration."
+            value={store.openaiTtsVoice}
+            options={OPENAI_TTS_VOICES}
+            onChange={(v) => { store.setModel('openaiTtsVoice', v); flash('Voice saved.'); }}
+            recommended="nova"
+          />
+          <ModelDropdown
+            label="Transcription (speech-to-text)"
+            description="Used by AI Media → Transcribe."
+            value={store.openaiTranscribeModel}
+            options={OPENAI_TRANSCRIBE_MODELS}
+            onChange={(v) => { store.setModel('openaiTranscribeModel', v); flash('Transcribe model saved.'); }}
+            recommended="gpt-4o-transcribe"
+          />
+          <ModelDropdown
+            label="Image generation"
+            description="Future use — current image generation routes through Gemini by default."
+            value={store.openaiImageModel}
+            options={OPENAI_IMAGE_MODELS}
+            onChange={(v) => { store.setModel('openaiImageModel', v); flash('OpenAI image model saved.'); }}
+            recommended="gpt-image-2"
+          />
+        </ProviderPanel>
+      )}
 
-              {/* Test result */}
-              <AnimatePresence>
-                {testResult && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0 }}
-                    style={{
-                      padding: '8px 11px', borderRadius: 7, fontSize: 11,
-                      background: testResult.success ? 'rgba(5,150,105,0.08)' : 'rgba(239,68,68,0.08)',
-                      border: `1px solid ${testResult.success ? 'rgba(5,150,105,0.25)' : 'rgba(239,68,68,0.25)'}`,
-                      color: testResult.success ? '#059669' : '#dc2626',
-                    }}
-                  >
-                    {testResult.success ? '✓' : '✗'} {testResult.message}
-                  </motion.div>
-                )}
-              </AnimatePresence>
+      {active === 'gemini' && (
+        <ProviderPanel providerId="gemini" present={keyStatus.gemini}>
+          <ModelDropdown
+            label="Default text model"
+            description="Future use — Wildlife.Universe currently routes text through Anthropic/OpenAI."
+            value={store.geminiTextModel}
+            options={GEMINI_TEXT_MODELS}
+            onChange={(v) => { store.setModel('geminiTextModel', v); flash('Gemini text model saved.'); }}
+            recommended="gemini-2.5-pro"
+          />
+          <ModelDropdown
+            label="Image generation model"
+            description="Used by AI Image Generator."
+            value={store.geminiImageModel}
+            options={GEMINI_IMAGE_MODELS}
+            onChange={(v) => { store.setModel('geminiImageModel', v); flash('Gemini image model saved.'); }}
+            recommended="gemini-3.1-flash-image-preview"
+          />
+        </ProviderPanel>
+      )}
 
-              <div style={{ display: 'flex', gap: 7 }}>
-                <button
-                  onClick={testConnection}
-                  disabled={testing || !settings?.hasKey}
-                  style={{
-                    flex: 1, padding: '7px', borderRadius: 7, fontSize: 11, fontWeight: 600,
-                    border: `1px solid ${provider.color}40`, background: `${provider.color}10`,
-                    color: provider.color, cursor: testing ? 'wait' : 'pointer',
-                    opacity: !settings?.hasKey ? 0.5 : 1,
-                  }}
-                >
-                  {testing ? '⟳ Testing…' : '⚡ Test Connection'}
-                </button>
-                <button
-                  onClick={save}
-                  disabled={saving}
-                  style={{
-                    flex: 1, padding: '7px', borderRadius: 7, fontSize: 11, fontWeight: 700,
-                    border: 'none', background: provider.color,
-                    color: '#fff', cursor: saving ? 'wait' : 'pointer',
-                  }}
-                >
-                  {saving ? 'Saving…' : 'Save Settings'}
-                </button>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+      <div className="mt-6 flex flex-wrap items-center gap-2 text-xs" style={{ color: 'var(--adm-text-subtle)' }}>
+        <Save size={12} />
+        Saved automatically to your browser. Server validates every request against the same model registry.
+        <button
+          onClick={reset}
+          className="ml-auto rounded-lg border px-3 py-1.5 font-semibold transition-colors"
+          style={{ borderColor: 'var(--adm-border)', color: 'var(--adm-text-muted)' }}
+        >
+          Reset to recommended defaults
+        </button>
+      </div>
     </div>
   );
 }
 
-export function AIProviderSettings() {
-  const store = useAIStore();
-  const [providerData, setProviderData] = useState([]);
-  const [loading, setLoading] = useState(true);
-
-  const load = async () => {
-    setLoading(true);
-    try {
-      const res = await fetch('/api/ai/settings');
-      const json = await res.json();
-      if (json.success) setProviderData(json.providers);
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => { load(); }, []);
-
-  const getSettings = (id) => providerData.find(p => p.provider === id);
+function ProviderPanel({ providerId, present, children }) {
+  const meta = PROVIDER_META[providerId];
+  const provider = PROVIDERS.find((p) => p.id === providerId);
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-      {/* Header */}
-      <div style={{ padding: '20px 24px 0' }}>
-        <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--adm-text)', marginBottom: 4 }}>AI Providers</div>
-        <div style={{ fontSize: 13, color: 'var(--adm-text-subtle)' }}>
-          Configure your AI provider API keys. Keys are encrypted with AES-256-GCM before storage.
+    <div
+      className="rounded-2xl p-5"
+      style={{
+        background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',
+        boxShadow: 'var(--adm-shadow)',
+      }}
+    >
+      <div className="mb-4 flex items-start gap-4">
+        <div
+          className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-2xl"
+          style={{ background: `${provider.accent}1a`, border: `1px solid ${provider.accent}30` }}
+        >
+          <ProviderLogo provider={providerId} size={28} />
         </div>
-      </div>
-
-      {/* Global provider selector */}
-      <div style={{ margin: '0 24px', padding: '14px 16px', borderRadius: 12, background: 'var(--adm-surface)', border: '1px solid var(--adm-border)' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10 }}>
-          Active Provider (Writing)
-        </div>
-        <div style={{ display: 'flex', gap: 8 }}>
-          {['claude', 'openai'].map(p => (
-            <button
-              key={p}
-              onClick={() => store.setProvider(p)}
-              style={{
-                flex: 1, padding: '8px', borderRadius: 8, fontSize: 12, fontWeight: 700,
-                border: `1px solid ${store.provider === p ? PROVIDERS.find(pr => pr.id === p)?.color + '60' : 'var(--adm-border)'}`,
-                background: store.provider === p ? PROVIDERS.find(pr => pr.id === p)?.color + '15' : 'transparent',
-                color: store.provider === p ? PROVIDERS.find(pr => pr.id === p)?.color : 'var(--adm-text-muted)',
-                cursor: 'pointer', transition: 'all 0.15s',
-              }}
-            >
-              {PROVIDERS.find(pr => pr.id === p)?.icon} {p === 'claude' ? 'Claude' : 'OpenAI'}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Provider cards */}
-      <div style={{ padding: '0 24px', display: 'flex', flexDirection: 'column', gap: 12 }}>
-        {loading ? (
-          <div style={{ textAlign: 'center', padding: '30px 0', color: 'var(--adm-text-subtle)', fontSize: 13 }}>
-            Loading provider settings…
+        <div className="min-w-0 flex-1">
+          <h2 className="text-lg font-black" style={{ color: 'var(--adm-text)' }}>{meta.name}</h2>
+          <p className="text-xs" style={{ color: 'var(--adm-text-subtle)' }}>
+            <code style={{ background: 'var(--adm-hover-bg)', padding: '1px 5px', borderRadius: 4 }}>{provider.keyEnvVar}</code>{' '}
+            {present === true && <span style={{ color: '#16a34a', fontWeight: 700 }}>configured ✓</span>}
+            {present === false && <span style={{ color: '#dc2626', fontWeight: 700 }}>missing</span>}
+            {present === null && <span>status unknown</span>}
+          </p>
+          <div className="mt-2 flex gap-3 text-xs">
+            <a href={provider.consoleUrl} target="_blank" rel="noreferrer"
+               className="inline-flex items-center gap-1 font-semibold hover:underline"
+               style={{ color: provider.accent }}>
+              <KeyRound size={11} /> Get API key <ExternalLink size={10} />
+            </a>
+            <a href={provider.docsUrl} target="_blank" rel="noreferrer"
+               className="inline-flex items-center gap-1 font-semibold hover:underline"
+               style={{ color: 'var(--adm-text-muted)' }}>
+              <Sparkles size={11} /> Docs <ExternalLink size={10} />
+            </a>
           </div>
-        ) : (
-          PROVIDERS.map(p => (
-            <ProviderCard
-              key={p.id}
-              provider={p}
-              settings={getSettings(p.id)}
-              onSave={load}
-            />
-          ))
+        </div>
+      </div>
+
+      <div className="flex flex-col gap-4">
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function ModelDropdown({ label, description, value, options, onChange, recommended }) {
+  const selected = options.find((o) => o.id === value) || options[0];
+  return (
+    <div>
+      <div className="mb-1 flex items-center justify-between gap-2">
+        <label className="text-xs font-bold uppercase tracking-wide" style={{ color: 'var(--adm-text-subtle)' }}>
+          {label}
+        </label>
+        {recommended && value !== recommended && (
+          <button
+            onClick={() => onChange(recommended)}
+            className="rounded-full px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider transition-colors"
+            style={{ background: 'rgba(124,58,237,0.10)', color: '#7c3aed' }}
+          >
+            Use recommended
+          </button>
         )}
       </div>
-
-      {/* Security note */}
-      <div style={{ margin: '0 24px 24px', padding: '12px 14px', borderRadius: 10, background: 'rgba(212,175,55,0.08)', border: '1px solid rgba(212,175,55,0.25)' }}>
-        <div style={{ fontSize: 11, fontWeight: 700, color: '#d4af37', marginBottom: 5 }}>🔐 Security</div>
-        <div style={{ fontSize: 11, color: 'var(--adm-text-subtle)', lineHeight: 1.6 }}>
-          API keys are encrypted with AES-256-GCM using a server-side key before storage. Keys are never sent to the client and only decrypted server-side during API calls. Set <code>AI_ENCRYPTION_KEY</code> in your environment variables for a custom encryption key.
-        </div>
-      </div>
+      <select
+        value={value || ''}
+        onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded-xl px-3 py-2.5 text-sm outline-none focus:border-[#7c3aed]"
+        style={{ background: 'var(--adm-bg)', border: '1px solid var(--adm-border)', color: 'var(--adm-text)' }}
+      >
+        {options.map((o) => (
+          <option key={o.id} value={o.id}>
+            {o.label}{o.tier ? ` · ${o.tier}` : ''}{o.context ? ` · ${o.context}` : ''}
+          </option>
+        ))}
+      </select>
+      {description && (
+        <p className="mt-1 text-[11px]" style={{ color: 'var(--adm-text-subtle)' }}>{description}</p>
+      )}
+      {selected?.note && (
+        <p className="mt-1 text-[11px] italic" style={{ color: 'var(--adm-text-muted)' }}>
+          {selected.note}
+        </p>
+      )}
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
+import { pickTextModel } from '@/lib/ai/select-model';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -18,20 +19,18 @@ const STYLE_INSTRUCTIONS = {
 
 export async function POST(req) {
   try {
-    const { text, style = 'improve', provider = 'claude' } = await req.json();
+    const { text, style = 'improve', provider = 'claude',
+      model = null, } = await req.json();
     if (!text || !text.trim()) {
       return Response.json({ success: false, error: 'Text is required' }, { status: 400 });
     }
 
     const instruction = STYLE_INSTRUCTIONS[style] || STYLE_INSTRUCTIONS.improve;
 
-    const model =
-      provider === 'openai'
-        ? openai(process.env.OPENAI_MODEL || 'gpt-4o')
-        : anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
+    const aiModel = pickTextModel({ provider, model });
 
     const { text: result } = await generateText({
-      model,
+      model: aiModel,
       system: SYSTEM,
       prompt: `${instruction}\n\n${text.slice(0, 4000)}`,
       temperature: 0.5,

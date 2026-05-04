@@ -1,6 +1,7 @@
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
+import { pickTextModel } from '@/lib/ai/select-model';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -19,7 +20,8 @@ function clamp(n) {
 
 export async function POST(req) {
   try {
-    const { title = '', content = '', excerpt = '', provider = 'claude' } = await req.json();
+    const { title = '', content = '', excerpt = '', provider = 'claude',
+      model = null, } = await req.json();
     if (!content || !content.trim()) {
       return Response.json({ success: false, error: 'Content is required' }, { status: 400 });
     }
@@ -62,13 +64,10 @@ Return ONLY this JSON:
 
 Quantities: 5-8 recommendations, 3-6 strengths. Each item must reference actual content, not generic advice.`;
 
-    const model =
-      provider === 'openai'
-        ? openai(process.env.OPENAI_MODEL || 'gpt-4o')
-        : anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
+    const aiModel = pickTextModel({ provider, model });
 
     const { text: raw } = await generateText({
-      model,
+      model: aiModel,
       system: SYSTEM,
       prompt,
       temperature: 0.3,

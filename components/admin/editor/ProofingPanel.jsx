@@ -25,7 +25,7 @@ export function ProofingPanel({ editor }) {
       const res = await fetch('/api/ai/proofread', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text, provider: store.provider }),
+        body: JSON.stringify({ text, provider: store.provider, model: store.getCurrentTextModel() }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Proofread failed');

@@ -45,7 +45,7 @@ export function HeadlinePanel({ initialTopic = '', initialCategory = '', onUseHe
       const res = await fetch('/api/ai/headlines', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ topic, category, count: 8, provider: store.provider }),
+        body: JSON.stringify({ topic, category, count: 8, provider: store.provider, model: store.getCurrentTextModel() }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Headline generation failed');

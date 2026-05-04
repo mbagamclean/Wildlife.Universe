@@ -109,7 +109,7 @@ export function AIRewriteFloater({ editor }) {
       const res = await fetch('/api/ai/rewrite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: selection.text, style: mode, provider: store.provider }),
+        body: JSON.stringify({ text: selection.text, style: mode, provider: store.provider, model: store.getCurrentTextModel() }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Rewrite failed');
@@ -132,7 +132,7 @@ export function AIRewriteFloater({ editor }) {
       const res = await fetch('/api/ai/multi-rewrite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text: selection.text, count: 3, provider: store.provider }),
+        body: JSON.stringify({ text: selection.text, count: 3, provider: store.provider, model: store.getCurrentTextModel() }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error || 'Alternatives failed');

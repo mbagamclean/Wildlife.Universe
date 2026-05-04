@@ -204,7 +204,7 @@ export function AIWritingToolkit({
         signal: ctrl.signal,
         body: JSON.stringify({
           task,
-          provider: store.provider,
+          provider: store.provider, model: store.getCurrentTextModel(),
           context: {
             title,
             body: bodyText,

@@ -117,7 +117,7 @@ export function AISEOAssistant({ title, editor, slug, onFieldsInserted }) {
       const res = await fetch('/api/ai/seo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, provider: store.provider, task: 'generate' }),
+        body: JSON.stringify({ title, body, provider: store.provider, model: store.getCurrentTextModel(), task: 'generate' }),
       });
       const json = await res.json();
       if (!json.success) throw new Error(json.error);
@@ -151,7 +151,7 @@ export function AISEOAssistant({ title, editor, slug, onFieldsInserted }) {
       const res = await fetch('/api/ai/seo', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title, body, provider: store.provider, task: 'analyze' }),
+        body: JSON.stringify({ title, body, provider: store.provider, model: store.getCurrentTextModel(), task: 'analyze' }),
       });
       const json = await res.json();
       if (json.success) setAnalysis(json.data);

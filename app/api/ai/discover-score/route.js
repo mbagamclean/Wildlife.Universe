@@ -1,6 +1,7 @@
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
+import { pickTextModel } from '@/lib/ai/select-model';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -26,7 +27,8 @@ function gradeFromScore(score) {
 
 export async function POST(req) {
   try {
-    const { title = '', content = '', cover = '', provider = 'claude' } = await req.json();
+    const { title = '', content = '', cover = '', provider = 'claude',
+      model = null, } = await req.json();
     if (!title || !content || !content.trim()) {
       return Response.json({ success: false, error: 'title and content are required' }, { status: 400 });
     }
@@ -68,13 +70,10 @@ Return ONLY this JSON:
   "improvements": ["actionable improvement 1", "actionable improvement 2", "actionable improvement 3"]
 }`;
 
-    const model =
-      provider === 'openai'
-        ? openai(process.env.OPENAI_MODEL || 'gpt-4o')
-        : anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
+    const aiModel = pickTextModel({ provider, model });
 
     const { text: raw } = await generateText({
-      model,
+      model: aiModel,
       system: SYSTEM,
       prompt,
       temperature: 0.4,

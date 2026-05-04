@@ -1,6 +1,7 @@
 import { generateText } from 'ai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
+import { pickTextModel } from '@/lib/ai/select-model';
 
 export const runtime = 'nodejs';
 export const maxDuration = 60;
@@ -22,7 +23,8 @@ function extractJson(raw) {
 
 export async function POST(req) {
   try {
-    const { text, tone = 'Conversational', provider = 'claude' } = await req.json();
+    const { text, tone = 'Conversational', provider = 'claude',
+      model = null, } = await req.json();
     if (!text || !text.trim()) {
       return Response.json({ success: false, error: 'Text is required' }, { status: 400 });
     }
@@ -55,13 +57,10 @@ readabilityShift is an integer from -50 to +50 estimating how much friendlier/mo
 Original text:
 ${cleaned}`;
 
-    const model =
-      provider === 'openai'
-        ? openai(process.env.OPENAI_MODEL || 'gpt-4o')
-        : anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
+    const aiModel = pickTextModel({ provider, model });
 
     const { text: raw } = await generateText({
-      model,
+      model: aiModel,
       system: SYSTEM,
       prompt,
       temperature: 0.7,
