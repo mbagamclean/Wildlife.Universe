@@ -14,6 +14,9 @@ import { DocumentariesSection } from '@/components/posts/DocumentariesSection';
 import { categories } from '@/lib/mock/categories';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
+import { buildHomeMetadata } from '@/lib/seo';
+
+export const metadata = buildHomeMetadata();
 
 /* Per-category visual identity */
 const CAT_META = {
