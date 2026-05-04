@@ -37,20 +37,58 @@ async function processImage(buffer, uid) {
   const admin = getAdminClient();
   const t = await transcodeImage(buffer);
 
-  const [avifUrl, webpUrl] = await Promise.all([
-    uploadToBucket(admin, `${uid}.avif`, t.avif, 'image/avif'),
-    uploadToBucket(admin, `${uid}.webp`, t.webp, 'image/webp'),
-  ]);
+  // Upload original-resolution pair
+  const uploads = [
+    uploadToBucket(admin, `${uid}.avif`, t.original.avif, 'image/avif')
+      .then((src) => ({ key: 'origAvif', src })),
+    uploadToBucket(admin, `${uid}.webp`, t.original.webp, 'image/webp')
+      .then((src) => ({ key: 'origWebp', src })),
+  ];
+
+  // Upload responsive variants (one cap each pair)
+  for (const [w, v] of Object.entries(t.responsive)) {
+    uploads.push(
+      uploadToBucket(admin, `${uid}-${w}.avif`, v.avif, 'image/avif')
+        .then((src) => ({ key: `r${w}Avif`, src })),
+      uploadToBucket(admin, `${uid}-${w}.webp`, v.webp, 'image/webp')
+        .then((src) => ({ key: `r${w}Webp`, src })),
+    );
+  }
+
+  const settled = await Promise.all(uploads);
+  const urls = Object.fromEntries(settled.map(({ key, src }) => [key, src]));
+
+  // Build the responsive map for srcset-aware consumers.
+  // Each width entry has the AVIF+WebP source pair for that resolution.
+  const responsive = {};
+  const bytes = {
+    original: t.originalBytes,
+    avif: t.original.avifBytes,
+    webp: t.original.webpBytes,
+  };
+  for (const [w, v] of Object.entries(t.responsive)) {
+    responsive[w] = [
+      { src: urls[`r${w}Avif`], type: 'image/avif' },
+      { src: urls[`r${w}Webp`], type: 'image/webp' },
+    ];
+    bytes[`avif${w}`] = v.avifBytes;
+    bytes[`webp${w}`] = v.webpBytes;
+  }
 
   return {
     type: 'image',
     width: t.width,
     height: t.height,
+    // `sources` keeps original resolution — backward compatible with every
+    // existing consumer (PostEditor cover, HeroEditor, MediaUpload preview).
     sources: [
-      { src: avifUrl, type: 'image/avif' },
-      { src: webpUrl, type: 'image/webp' },
+      { src: urls.origAvif, type: 'image/avif' },
+      { src: urls.origWebp, type: 'image/webp' },
     ],
-    bytes: { original: t.originalBytes, avif: t.avifBytes, webp: t.webpBytes },
+    // `responsive` is opt-in for code that wants srcset (HomePage feed,
+    // PostCard, search results). Width keys are strings: '1600', etc.
+    responsive,
+    bytes,
   };
 }
 
