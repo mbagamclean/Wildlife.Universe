@@ -54,10 +54,14 @@ export function HeroOrchestrator() {
           slides = picked.map(postToSlide);
         } else {
           // graceful fallback to default heroes
-          slides = await db.heroes.list();
+          slides = (await db.heroes.list())
+            .filter((h) => h.active !== false)
+            .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
         }
       } else {
-        slides = await db.heroes.list();
+        slides = (await db.heroes.list())
+          .filter((h) => h.active !== false)
+          .sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
       }
 
       if (!cancelled) setState({ ready: true, mode, slides });

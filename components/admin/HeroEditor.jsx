@@ -1,7 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { MediaUpload } from './MediaUpload';
+import { db } from '@/lib/storage/db';
 
 const SUBJECTS = ['lion', 'forest', 'eagle'];
 
@@ -126,10 +127,14 @@ export function HeroEditor({ initial, onSave, onCancel }) {
           <input
             value={form.ctaHref}
             onChange={(e) => set('ctaHref', e.target.value)}
+            placeholder="/posts/<slug> or any URL"
             className="rounded-xl border border-[var(--glass-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
           />
         </label>
       </div>
+
+      <PickPost onPick={(href) => set('ctaHref', href)} />
+
 
       <fieldset className="grid gap-4 sm:grid-cols-4">
         <label className="flex flex-col gap-1.5 text-sm">
@@ -171,3 +176,78 @@ export function HeroEditor({ initial, onSave, onCancel }) {
     </form>
   );
 }
+
+/**
+ * Pick a published post and write its /posts/<slug> URL into the CTA field.
+ * Filters as you type. Closes after pick.
+ */
+function PickPost({ onPick }) {
+  const [open, setOpen] = useState(false);
+  const [posts, setPosts] = useState([]);
+  const [q, setQ] = useState('');
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    if (!open || posts.length > 0) return;
+    setLoading(true);
+    db.posts.list()
+      .then((rows) => setPosts((rows || []).filter((p) => p.status !== 'draft')))
+      .finally(() => setLoading(false));
+  }, [open, posts.length]);
+
+  const filtered = q.trim()
+    ? posts.filter((p) => (p.title || '').toLowerCase().includes(q.toLowerCase()))
+    : posts;
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="self-start text-xs font-semibold text-[var(--color-primary)] hover:underline"
+      >
+        + Pick a published post for the CTA
+      </button>
+    );
+  }
+
+  return (
+    <div className="glass flex flex-col gap-2 rounded-xl p-3">
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-xs font-bold uppercase tracking-wider text-[var(--color-fg-soft)]">
+          Pick post
+        </span>
+        <button type="button" onClick={() => setOpen(false)} className="text-xs text-[var(--color-fg-soft)] hover:underline">
+          Cancel
+        </button>
+      </div>
+      <input
+        autoFocus
+        value={q}
+        onChange={(e) => setQ(e.target.value)}
+        placeholder="Search published posts…"
+        className="rounded-lg border border-[var(--glass-border)] bg-[var(--color-bg)] px-3 py-2 text-sm"
+      />
+      <div className="max-h-56 overflow-y-auto">
+        {loading && <p className="px-2 py-3 text-xs text-[var(--color-fg-soft)]">Loading…</p>}
+        {!loading && filtered.length === 0 && (
+          <p className="px-2 py-3 text-xs text-[var(--color-fg-soft)]">No matching published posts.</p>
+        )}
+        {filtered.slice(0, 25).map((p) => (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => { onPick(`/posts/${p.slug}`); setOpen(false); }}
+            className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-[var(--color-primary)]/10"
+          >
+            <span className="truncate">{p.title || '(untitled)'}</span>
+            <span className="flex-shrink-0 text-[10px] uppercase tracking-wider text-[var(--color-fg-soft)]">
+              {p.category || '—'}
+            </span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+

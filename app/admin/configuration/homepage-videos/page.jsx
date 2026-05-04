@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import {
   Video, Plus, Loader2, AlertCircle, Trash2, Pencil, Eye, EyeOff, GripVertical,
-  Upload, Link as LinkIcon, X, Check, Save,
+  Upload, Check, Save,
 } from 'lucide-react';
 import { AIPageHeader } from '@/components/admin/configuration/AIPageHeader';
 import { detectVideoProvider, PROVIDER_LABELS, PROVIDER_COLORS } from '@/lib/video/detect';
@@ -38,6 +38,7 @@ export default function HomepageVideosPage() {
   const [saved, setSaved] = useState(null);
   const fileInputRef = useRef(null);
   const [uploading, setUploading] = useState(false);
+  const dragId = useRef(null);
 
   const flash = (msg) => { setSaved(msg); setTimeout(() => setSaved(null), 2200); };
 
@@ -137,6 +138,40 @@ export default function HomepageVideosPage() {
       load();
     } catch (e) {
       setError(e.message);
+    }
+  };
+
+  // Drag-to-reorder within a section
+  const onDragStart = (id) => () => { dragId.current = id; };
+  const onDragOver = (e) => { e.preventDefault(); };
+  const onDrop = (sectionItems, overId) => async (e) => {
+    e.preventDefault();
+    const fromId = dragId.current;
+    dragId.current = null;
+    if (!fromId || fromId === overId) return;
+    const arr = [...sectionItems];
+    const fromIdx = arr.findIndex((x) => x.id === fromId);
+    const toIdx = arr.findIndex((x) => x.id === overId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const [moved] = arr.splice(fromIdx, 1);
+    arr.splice(toIdx, 0, moved);
+    // Optimistic local reorder
+    const reordered = arr.map((it, i) => ({ ...it, position: i }));
+    setVideos((v) => {
+      const others = v.filter((x) => x.section !== arr[0].section);
+      return [...others, ...reordered];
+    });
+    // Persist
+    try {
+      await Promise.all(reordered.map((it) =>
+        fetch('/api/admin/homepage-videos', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ id: it.id, position: it.position }),
+        })
+      ));
+    } finally {
+      load();
     }
   };
 
@@ -380,13 +415,30 @@ export default function HomepageVideosPage() {
 
       {grouped.map((g) => g.items.length > 0 && (
         <div key={g.id} className="mb-6">
-          <h3 className="mb-3 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--adm-text-subtle)' }}>
+          <h3 className="mb-2 text-xs font-bold uppercase tracking-widest" style={{ color: 'var(--adm-text-subtle)' }}>
             {g.label} <span style={{ color: 'var(--adm-text-muted)' }}>({g.items.length})</span>
           </h3>
+          <p className="mb-3 text-[11px]" style={{ color: 'var(--adm-text-subtle)' }}>
+            Drag the handle to reorder. Eye toggles visibility on the public site.
+          </p>
           <div className="overflow-hidden rounded-2xl" style={{ background: 'var(--adm-surface)', border: '1px solid var(--adm-border)', boxShadow: 'var(--adm-shadow)' }}>
             {g.items.map((v) => (
-              <div key={v.id} className="flex items-center gap-3 border-b px-4 py-3" style={{ borderColor: 'var(--adm-border)' }}>
-                <span style={{ color: 'var(--adm-text-subtle)' }}><GripVertical size={14} /></span>
+              <div
+                key={v.id}
+                draggable
+                onDragStart={onDragStart(v.id)}
+                onDragOver={onDragOver}
+                onDrop={onDrop(g.items, v.id)}
+                className="flex items-center gap-3 border-b px-4 py-3"
+                style={{ borderColor: 'var(--adm-border)', opacity: v.active ? 1 : 0.55 }}
+              >
+                <span
+                  className="cursor-grab active:cursor-grabbing"
+                  title="Drag to reorder"
+                  style={{ color: 'var(--adm-text-subtle)' }}
+                >
+                  <GripVertical size={14} />
+                </span>
                 <span style={{
                   flexShrink: 0,
                   fontSize: 10, fontWeight: 800, padding: '2px 7px', borderRadius: 5,

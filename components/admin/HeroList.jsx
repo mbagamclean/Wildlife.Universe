@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { Plus, Pencil, Trash2 } from 'lucide-react';
+import { useEffect, useState, useRef } from 'react';
+import { Plus, Pencil, Trash2, Eye, EyeOff, GripVertical } from 'lucide-react';
 import { db } from '@/lib/storage/db';
 import { HERO_MODE, MAX_HEROES } from '@/lib/storage/keys';
 import { HeroEditor } from './HeroEditor';
@@ -47,6 +47,35 @@ export function HeroList() {
     if (!confirm(`Delete hero "${h.title}"?`)) return;
     await db.heroes.remove(h.id);
     await load();
+  };
+
+  const onToggleActive = async (h) => {
+    await db.heroes.update(h.id, { active: h.active === false });
+    await load();
+  };
+
+  // Drag-to-reorder
+  const dragId = useRef(null);
+  const onDragStart = (id) => () => { dragId.current = id; };
+  const onDragOver = (e) => { e.preventDefault(); };
+  const onDrop = (overId) => async (e) => {
+    e.preventDefault();
+    const fromId = dragId.current;
+    dragId.current = null;
+    if (!fromId || fromId === overId) return;
+    const arr = heroes.slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0));
+    const fromIdx = arr.findIndex((x) => x.id === fromId);
+    const toIdx = arr.findIndex((x) => x.id === overId);
+    if (fromIdx === -1 || toIdx === -1) return;
+    const [moved] = arr.splice(fromIdx, 1);
+    arr.splice(toIdx, 0, moved);
+    const reordered = arr.map((it, i) => ({ ...it, position: i }));
+    setHeroes(reordered);
+    try {
+      await db.heroes.reorder(reordered.map((it) => ({ id: it.id, position: it.position })));
+    } finally {
+      load();
+    }
   };
 
   if (!loaded) {
@@ -112,41 +141,85 @@ export function HeroList() {
           No hero items yet. Click "New hero" to add one.
         </div>
       ) : (
-        <ul className="grid gap-3">
-          {heroes.map((h) => (
-            <li key={h.id} className="glass flex items-center gap-4 rounded-2xl p-4">
-              <div
-                className="h-16 w-24 shrink-0 overflow-hidden rounded-xl"
-                style={{ background: `linear-gradient(135deg, ${h.palette?.from || '#0c4a1a'}, ${h.palette?.to || '#d4af37'})` }}
-              >
-                {h.src && (
-                  /* eslint-disable-next-line @next/next/no-img-element */
-                  <img src={h.src} alt="" className="h-full w-full object-cover" />
-                )}
-              </div>
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-semibold">{h.title}</p>
-                <p className="truncate text-xs text-[var(--color-fg-soft)]">{h.description}</p>
-              </div>
-              <div className="flex gap-1.5">
-                <button
-                  onClick={() => setEditing(h)}
-                  aria-label="Edit"
-                  className="glass flex h-9 w-9 items-center justify-center rounded-full hover:text-[var(--color-primary)]"
+        <>
+          <p className="text-xs text-[var(--color-fg-soft)]">
+            Drag the handle to reorder. Toggle the eye to hide a hero without deleting it.
+          </p>
+          <ul className="grid gap-3">
+            {heroes.slice().sort((a, b) => (a.position ?? 0) - (b.position ?? 0)).map((h) => {
+              const isHidden = h.active === false;
+              return (
+                <li
+                  key={h.id}
+                  draggable
+                  onDragStart={onDragStart(h.id)}
+                  onDragOver={onDragOver}
+                  onDrop={onDrop(h.id)}
+                  className="glass flex items-center gap-3 rounded-2xl p-4"
+                  style={{ opacity: isHidden ? 0.55 : 1 }}
                 >
-                  <Pencil className="h-4 w-4" />
-                </button>
-                <button
-                  onClick={() => onDelete(h)}
-                  aria-label="Delete"
-                  className="glass flex h-9 w-9 items-center justify-center rounded-full hover:text-red-500"
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            </li>
-          ))}
-        </ul>
+                  <span
+                    className="cursor-grab text-[var(--color-fg-soft)] active:cursor-grabbing"
+                    title="Drag to reorder"
+                    aria-label="Drag to reorder"
+                  >
+                    <GripVertical className="h-4 w-4" />
+                  </span>
+                  <span
+                    className="flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-[11px] font-bold"
+                    style={{ background: 'var(--glass-bg)', color: 'var(--color-fg-soft)' }}
+                  >
+                    {(h.position ?? 0) + 1}
+                  </span>
+                  <div
+                    className="h-16 w-24 shrink-0 overflow-hidden rounded-xl"
+                    style={{ background: `linear-gradient(135deg, ${h.palette?.from || '#0c4a1a'}, ${h.palette?.to || '#d4af37'})` }}
+                  >
+                    {h.src && (
+                      /* eslint-disable-next-line @next/next/no-img-element */
+                      <img src={h.src} alt="" className="h-full w-full object-cover" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate text-sm font-semibold">
+                      {h.title}
+                      {isHidden && (
+                        <span className="ml-2 inline-block rounded-full bg-amber-500/15 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-amber-700">Hidden</span>
+                      )}
+                    </p>
+                    <p className="truncate text-xs text-[var(--color-fg-soft)]">{h.description}</p>
+                  </div>
+                  <div className="flex gap-1.5">
+                    <button
+                      onClick={() => onToggleActive(h)}
+                      aria-label={isHidden ? 'Show on homepage' : 'Hide from homepage'}
+                      title={isHidden ? 'Show on homepage' : 'Hide from homepage'}
+                      className="glass flex h-9 w-9 items-center justify-center rounded-full"
+                    >
+                      {isHidden
+                        ? <EyeOff className="h-4 w-4 text-[var(--color-fg-soft)]" />
+                        : <Eye className="h-4 w-4 text-emerald-600" />}
+                    </button>
+                    <button
+                      onClick={() => setEditing(h)}
+                      aria-label="Edit"
+                      className="glass flex h-9 w-9 items-center justify-center rounded-full hover:text-[var(--color-primary)]"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onDelete(h)}
+                      aria-label="Delete"
+                      className="glass flex h-9 w-9 items-center justify-center rounded-full hover:text-red-500"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </>
       )}
     </div>
   );
