@@ -1,6 +1,10 @@
 'use client';
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import {
+  Sparkles, Newspaper, Link2, CheckCircle2, TrendingUp, Search,
+  Palette, Film, Clock, Clapperboard, ShieldCheck,
+} from 'lucide-react';
 import { useAIStore } from '@/lib/stores/aiStore';
 import { HeadlinePanel } from './HeadlinePanel';
 import { ProofingPanel } from './ProofingPanel';
@@ -8,6 +12,25 @@ import { SEOScorePanel } from './SEOScorePanel';
 import { AIMediaPanel } from './AIMediaPanel';
 import { InternalLinksPanel } from './InternalLinksPanel';
 import { AdSenseCheckPanel } from './AdSenseCheckPanel';
+import { OriginalityPanel } from './OriginalityPanel';
+import { DesignStudioPanel } from './DesignStudioPanel';
+import { VersionHistoryPanel } from './VersionHistoryPanel';
+import { MediaTranscribePanel } from './MediaTranscribePanel';
+
+// Tab order matches Mayobe Bros' WritingToolkit (with AdSense appended).
+const TOP_TABS = [
+  { id: 'AI',        label: 'AI',        icon: Sparkles,     color: '#7c3aed' },
+  { id: 'Headlines', label: 'Headlines', icon: Newspaper,    color: '#10b981' },
+  { id: 'Links',     label: 'Links',     icon: Link2,        color: '#3b82f6' },
+  { id: 'Proof',     label: 'Proof',     icon: CheckCircle2, color: '#16a34a' },
+  { id: 'SEO',       label: 'SEO',       icon: TrendingUp,   color: '#2563eb' },
+  { id: 'Orig',      label: 'Orig.',     icon: Search,       color: '#ea580c' },
+  { id: 'Design',    label: 'Design',    icon: Palette,      color: '#ec4899' },
+  { id: 'Media',     label: 'Media',     icon: Film,         color: '#0891b2' },
+  { id: 'History',   label: 'History',   icon: Clock,        color: '#d97706' },
+  { id: 'AIMedia',   label: 'AI Media',  icon: Clapperboard, color: '#f43f5e' },
+  { id: 'AdSense',   label: 'AdSense',   icon: ShieldCheck,  color: '#d4af37' },
+];
 
 const PURPLE = '#7c3aed';
 const PURPLE_LIGHT = 'rgba(124,58,237,0.1)';
@@ -154,6 +177,11 @@ export function AIWritingToolkit({
   metaKeywords = '',
   category = '',
   excerpt = '',
+  cover = null,
+  palette = { from: '#0c4a1a', via: '#3aa15a', to: '#d4af37' },
+  onPaletteChange = () => {},
+  postId = null,
+  onRestoreVersion = null,
 }) {
   const store = useAIStore();
   const [topTab, setTopTab] = useState('AI');
@@ -247,16 +275,39 @@ export function AIWritingToolkit({
         }}>2026</span>
       </div>
 
-      {/* ── Top tabs (AI / Headlines / Links / Proof / SEO) ─── */}
-      <div style={{ display: 'flex', borderBottom: '1px solid var(--adm-border)', marginBottom: 12 }}>
-        {['AI', 'Headlines', 'Links', 'Proof', 'SEO', 'Media', 'AdSense'].map(t => (
-          <button key={t} onClick={() => setTopTab(t)} style={{
-            flex: 1, padding: '7px 4px', fontSize: 11, fontWeight: 600, border: 'none', background: 'transparent',
-            color: topTab === t ? PURPLE : 'var(--adm-text-subtle)',
-            borderBottom: topTab === t ? `2px solid ${PURPLE}` : '2px solid transparent',
-            cursor: 'pointer', whiteSpace: 'nowrap', transition: 'color 0.12s', textAlign: 'center',
-          }}>{t}</button>
-        ))}
+      {/* ── Top tabs (color-coded, horizontally scrollable) ─── */}
+      <div className="ai-wt-toptabs" style={{
+        display: 'flex', gap: 0,
+        borderBottom: '1px solid var(--adm-border)',
+        marginBottom: 12,
+        overflowX: 'auto',
+        scrollbarWidth: 'none', msOverflowStyle: 'none',
+      }}>
+        {TOP_TABS.map((t) => {
+          const active = topTab === t.id;
+          const Icon = t.icon;
+          return (
+            <button
+              key={t.id}
+              onClick={() => setTopTab(t.id)}
+              title={t.label}
+              style={{
+                flexShrink: 0,
+                padding: '7px 9px',
+                fontSize: 10, fontWeight: 700,
+                border: 'none', background: 'transparent',
+                color: active ? t.color : 'var(--adm-text-subtle)',
+                borderBottom: active ? `2px solid ${t.color}` : '2px solid transparent',
+                cursor: 'pointer', whiteSpace: 'nowrap',
+                transition: 'color 0.12s, border-color 0.12s',
+                display: 'flex', alignItems: 'center', gap: 4,
+              }}
+            >
+              <Icon size={11} />
+              {t.label}
+            </button>
+          );
+        })}
       </div>
 
       {topTab === 'AI' && (
@@ -464,7 +515,32 @@ export function AIWritingToolkit({
         />
       )}
 
+      {topTab === 'Orig' && (
+        <OriginalityPanel editor={editor} />
+      )}
+
+      {topTab === 'Design' && (
+        <DesignStudioPanel
+          cover={cover}
+          palette={palette}
+          onPaletteChange={onPaletteChange}
+        />
+      )}
+
       {topTab === 'Media' && (
+        <MediaTranscribePanel editor={editor} />
+      )}
+
+      {topTab === 'History' && (
+        <VersionHistoryPanel
+          editor={editor}
+          title={title}
+          postId={postId}
+          onRestore={onRestoreVersion}
+        />
+      )}
+
+      {topTab === 'AIMedia' && (
         <AIMediaPanel
           editor={editor}
           title={title}

@@ -25,7 +25,7 @@ import {
   Maximize2, Minimize2,
   Sparkles, Star, Folder, Tag, Calendar, User,
   ChevronDown, Save, Send, Quote,
-  FileText, Clock, Check, TrendingUp, Wand2,
+  FileText, Clock, Check, TrendingUp, Wand2, Crown,
 } from 'lucide-react';
 
 import { categories } from '@/lib/mock/categories';
@@ -35,6 +35,50 @@ import { AIWritingToolkit } from './editor/AIWritingToolkit';
 import { AISEOAssistant } from './editor/AISEOAssistant';
 import { AIImageGenerator } from './editor/AIImageGenerator';
 import { AIRewriteFloater } from './editor/AIRewriteFloater';
+import { useAuth } from '@/lib/auth/AuthContext';
+import { isCEO } from '@/lib/auth/ceo';
+
+// Plain always-visible card used in the editor right rail.
+// Mirrors the flat-card pattern from Mayobe Bros (no accordion wrapper).
+function FlatCard({ title, icon, accent = '#7c3aed', badge, children }) {
+  const Icon = icon;
+  return (
+    <div
+      style={{
+        background: 'var(--adm-surface)',
+        border: '1px solid var(--adm-border)',
+        borderRadius: 12,
+        padding: 16,
+        boxShadow: 'var(--adm-shadow)',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+        {Icon && (
+          <span style={{
+            width: 26, height: 26, borderRadius: 7,
+            background: `${accent}1a`,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            color: accent, flexShrink: 0,
+          }}>
+            <Icon size={14} />
+          </span>
+        )}
+        <h3 style={{
+          flex: 1, margin: 0, fontSize: 13, fontWeight: 700,
+          color: 'var(--adm-text)',
+        }}>{title}</h3>
+        {badge && (
+          <span style={{
+            fontSize: 10, fontWeight: 800,
+            padding: '2px 7px', borderRadius: 5,
+            background: 'var(--adm-hover-bg)', color: 'var(--adm-text-subtle)',
+          }}>{badge}</span>
+        )}
+      </div>
+      {children}
+    </div>
+  );
+}
 
 function toSlug(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -234,6 +278,8 @@ export function PostEditor({ initial, onSave, onCancel }) {
   const draftKey = `cms-draft-${initial?.id || 'new'}`;
   const autosaveRef = useRef(null);
   const HEADER_H = 68;
+  const { user } = useAuth();
+  const userIsCEO = isCEO(user);
 
   const [slugEdited, setSlugEdited] = useState(!!initial?.slug);
   const [sidebarOpen, setSidebarOpen] = useState(true);
@@ -829,17 +875,18 @@ export function PostEditor({ initial, onSave, onCancel }) {
             </div>
           </div>
 
-          {/* ── SIDEBAR ── */}
+          {/* ── SIDEBAR (Mayobe-style flat cards in a sticky scroll rail) ── */}
           {sidebarOpen && (
             <div style={{
-              width: 320, flexShrink: 0,
-              display: 'flex', flexDirection: 'column', gap: 12,
+              width: 340, flexShrink: 0,
+              display: 'flex', flexDirection: 'column', gap: 14,
               position: 'sticky', top: HEADER_H, alignSelf: 'flex-start',
-              height: '120vh', overflowY: 'auto', paddingRight: 4,
+              maxHeight: `calc(100vh - ${HEADER_H + 16}px)`,
+              overflowY: 'auto', paddingRight: 4,
             }}>
 
-              {/* Publishing */}
-              <SideCard title="Publishing" icon={<Calendar size={14} />} open={openPanel === 'publishing'} onToggle={() => togglePanel('publishing')}>
+              {/* 1. Publishing */}
+              <FlatCard title="Publishing" icon={Calendar} accent="#7c3aed">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, cursor: 'pointer', color: 'var(--adm-text)' }}>
                     <input type="checkbox" checked={published} onChange={e => setPublished(e.target.checked)}
@@ -867,7 +914,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
                       <User size={12} style={{ color: 'var(--adm-text-muted)', flexShrink: 0 }} />
                       <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--adm-text-muted)' }}>Author</span>
                     </div>
-                    <input value="Admin" readOnly
+                    <input value={user?.name || user?.email || 'Admin'} readOnly
                       style={{ ...fieldStyle, background: 'var(--adm-hover-bg)', cursor: 'default', color: 'var(--adm-text-muted)' }} />
                   </div>
 
@@ -889,10 +936,10 @@ export function PostEditor({ initial, onSave, onCancel }) {
                     </button>
                   </div>
                 </div>
-              </SideCard>
+              </FlatCard>
 
-              {/* Organization */}
-              <SideCard title="Organization" icon={<Folder size={14} />} open={openPanel === 'organization'} onToggle={() => togglePanel('organization')}>
+              {/* 2. Organization */}
+              <FlatCard title="Organization" icon={Folder} accent="#16a34a">
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                   <div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
@@ -922,34 +969,16 @@ export function PostEditor({ initial, onSave, onCancel }) {
                       <ChevronDown size={12} style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--adm-text-muted)', pointerEvents: 'none' }} />
                     </div>
                   </div>
-
                 </div>
-              </SideCard>
+              </FlatCard>
 
-              {/* Featured Image */}
-              <SideCard title="Featured Image" icon={<ImageIcon size={14} />} open={openPanel === 'featured'} onToggle={() => togglePanel('featured')}>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                  <MediaUpload value={cover} onChange={v => setCover(v)} label="" />
-                  <div>
-                    <span style={{ display: 'block', fontSize: 11, fontWeight: 600, color: 'var(--adm-text-muted)', marginBottom: 6 }}>
-                      Gradient Palette
-                    </span>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 6 }}>
-                      {['from', 'via', 'to'].map(k => (
-                        <label key={k} style={{ display: 'flex', flexDirection: 'column', gap: 2, alignItems: 'center' }}>
-                          <span style={{ fontSize: 9, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em' }}>{k}</span>
-                          <input type="color" value={palette[k]} onChange={e => setPalette(p => ({ ...p, [k]: e.target.value }))}
-                            style={{ width: '100%', height: 28, borderRadius: 5, border: '1px solid var(--adm-border)', cursor: 'pointer', padding: 1 }} />
-                        </label>
-                      ))}
-                    </div>
-                    <div style={{ height: 36, borderRadius: 7, marginTop: 8, overflow: 'hidden', background: `linear-gradient(135deg, ${palette.from}, ${palette.via}, ${palette.to})` }} />
-                  </div>
-                </div>
-              </SideCard>
+              {/* 3. Featured Image */}
+              <FlatCard title="Featured Image" icon={ImageIcon} accent="#0891b2">
+                <MediaUpload value={cover} onChange={v => setCover(v)} label="" />
+              </FlatCard>
 
-              {/* Writing Toolkit */}
-              <SideCard title="Writing Toolkit" accentBg="#7c3aed" icon={<Sparkles size={14} />} badge="2026" open={openPanel === 'writing'} onToggle={() => togglePanel('writing')}>
+              {/* 4. Writing Toolkit (Mayobe's mega-component, 11 tabs) */}
+              <FlatCard title="Writing Toolkit" icon={Sparkles} accent="#7c3aed" badge="2026">
                 <AIWritingToolkit
                   editor={editor}
                   title={title}
@@ -959,19 +988,52 @@ export function PostEditor({ initial, onSave, onCancel }) {
                   metaKeywords={metaKw}
                   category={currentCat?.name || ''}
                   excerpt={excerpt}
+                  cover={cover}
+                  palette={palette}
+                  onPaletteChange={setPalette}
+                  postId={initial?.id || null}
+                  onRestoreVersion={(v) => {
+                    if (v?.title) setTitle(v.title);
+                    if (v?.body && editor) editor.commands.setContent(v.body);
+                  }}
                   onUseHeadline={(text) => setTitle(text)}
                 />
-              </SideCard>
+              </FlatCard>
 
-              {/* AI SEO Assistant */}
-              <SideCard title="AI SEO Assistant" icon={<TrendingUp size={14} />} open={openPanel === 'seo'} onToggle={() => togglePanel('seo')}>
+              {/* 5. AI SEO Assistant */}
+              <FlatCard title="AI SEO Assistant" icon={TrendingUp} accent="#2563eb">
                 <AISEOAssistant title={title} editor={editor} slug={slug} onFieldsInserted={handleSEOInserted} />
-              </SideCard>
+              </FlatCard>
 
-              {/* AI Image Generator */}
-              <SideCard title="AI Image Generator" icon={<Wand2 size={14} />} open={openPanel === 'image'} onToggle={() => togglePanel('image')}>
+              {/* 6. AI Image Generator */}
+              <FlatCard title="AI Image Generator" icon={Wand2} accent="#d4af37">
                 <AIImageGenerator editor={editor} onCoverChange={url => setCover(url)} />
-              </SideCard>
+              </FlatCard>
+
+              {/* 7. CEO Tools (role-gated, informational) */}
+              {userIsCEO && (
+                <div
+                  style={{
+                    background: 'linear-gradient(135deg, rgba(212,175,55,0.10), rgba(245,158,11,0.10))',
+                    border: '1px solid rgba(212,175,55,0.35)',
+                    borderRadius: 12,
+                    padding: 14,
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 6 }}>
+                    <Crown size={13} style={{ color: '#d4af37' }} />
+                    <span style={{
+                      fontSize: 10, fontWeight: 800, color: '#a16207',
+                      textTransform: 'uppercase', letterSpacing: '0.12em',
+                    }}>CEO Tools</span>
+                  </div>
+                  <p style={{ margin: 0, fontSize: 11, lineHeight: 1.55, color: 'var(--adm-text-muted)' }}>
+                    Editorial Review, Discover Score, AdSense Readiness, Translate, and the full AI suite are available from the
+                    <strong style={{ color: '#a16207' }}> AI TOOLS </strong>
+                    section in the admin sidebar.
+                  </p>
+                </div>
+              )}
             </div>
           )}
         </div>
