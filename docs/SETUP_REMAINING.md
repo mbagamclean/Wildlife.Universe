@@ -2,7 +2,7 @@
 
 This file tracks the **manual** configuration left after the Mayobe Bros → Wildlife Universe feature port. Code-side everything is in place; these steps are environment / Supabase / external-service work that the assistant cannot do for you.
 
-## 1. Run Supabase migration `004_seo_extensions.sql`
+## 1. Run Supabase migrations `004_seo_extensions.sql` AND `005_post_editor_fields.sql`
 
 Adds:
 - `posts.updated_at` column + auto-update trigger (sitemap/RSS lastModified accuracy)
@@ -11,10 +11,12 @@ Adds:
 
 **How:**
 1. Supabase Dashboard → SQL Editor → New query
-2. Paste the contents of `supabase/migrations/004_seo_extensions.sql`
-3. Run
+2. Paste the contents of `supabase/migrations/004_seo_extensions.sql`, run
+3. New query, paste `supabase/migrations/005_post_editor_fields.sql`, run
 
-Idempotent — safe to re-run if you've partially applied it.
+Both are idempotent — safe to re-run if you've partially applied them.
+
+**005** adds the columns the PostEditor sidebar sends with every save (excerpt, meta_title, meta_description, meta_keywords, publish_date). The app is self-healing — even without 005 the post still saves, the SEO/scheduling fields just don't persist. With 005, everything persists.
 
 After running, refresh the Traffic Growth dashboard — the chart title will switch from "Views attributed to creation date" to "Real page views per day" and the disclaimer banner will turn green.
 

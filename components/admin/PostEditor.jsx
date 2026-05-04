@@ -289,6 +289,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
   const [fullscreen, setFullscreen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [savedAt, setSavedAt] = useState(null);
+  const [saveError, setSaveError] = useState(null);
 
   const [title, setTitle] = useState(initial?.title || '');
   const [slug, setSlug] = useState(initial?.slug || '');
@@ -426,7 +427,16 @@ export function PostEditor({ initial, onSave, onCancel }) {
   const isActive = useCallback((name, attrs) => editor?.isActive(name, attrs) ?? false, [editor]);
 
   const handleSave = async (status) => {
+    if (saving) return; // hard-block double-click
     setSaving(true);
+    setSaveError(null);
+
+    if (!title.trim()) {
+      setSaveError('Title is required.');
+      setSaving(false);
+      return;
+    }
+
     const body = editor?.getHTML() || '';
     const coverUrl = typeof cover === 'string' ? cover : cover?.sources?.[0]?.src || '';
     const payload = {
@@ -444,6 +454,11 @@ export function PostEditor({ initial, onSave, onCancel }) {
     try {
       await onSave(payload);
       localStorage.removeItem(draftKey);
+      setSavedAt(new Date());
+    } catch (err) {
+      // Surface a real error so the user doesn't keep hitting Publish into the void.
+      console.error('[PostEditor] save failed:', err);
+      setSaveError(err?.message || 'Save failed. Check your connection and try again.');
     } finally {
       setSaving(false);
     }
@@ -925,16 +940,35 @@ export function PostEditor({ initial, onSave, onCancel }) {
                         border: '1px solid var(--adm-border)', background: 'transparent',
                         color: 'var(--adm-text)', cursor: saving ? 'wait' : 'pointer',
                       }}>
-                      Save Draft
+                      {saving ? 'Saving…' : 'Save Draft'}
                     </button>
                     <button onClick={() => handleSave('published')} disabled={saving}
                       style={{
                         flex: 1, padding: '8px', borderRadius: 8, fontSize: 12, fontWeight: 700,
                         border: 'none', background: '#d4af37', color: '#000', cursor: saving ? 'wait' : 'pointer',
                       }}>
-                      Publish
+                      {saving ? 'Publishing…' : 'Publish'}
                     </button>
                   </div>
+
+                  {saveError && (
+                    <div style={{
+                      marginTop: 8, padding: '9px 11px', borderRadius: 8, fontSize: 11,
+                      background: 'rgba(239,68,68,0.08)', color: '#dc2626',
+                      border: '1px solid rgba(239,68,68,0.25)', lineHeight: 1.5,
+                    }}>
+                      <strong>Save failed:</strong> {saveError}
+                    </div>
+                  )}
+                  {!saveError && savedAt && (
+                    <div style={{
+                      marginTop: 8, padding: '8px 11px', borderRadius: 8, fontSize: 11,
+                      background: 'rgba(22,163,74,0.08)', color: '#16a34a',
+                      border: '1px solid rgba(22,163,74,0.20)',
+                    }}>
+                      Saved at {savedAt.toLocaleTimeString()}.
+                    </div>
+                  )}
                 </div>
               </FlatCard>
 
