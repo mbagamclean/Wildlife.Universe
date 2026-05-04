@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAIStore } from '@/lib/stores/aiStore';
+import { SITE_URL } from '@/lib/seo';
 
 const GREEN = '#059669';
 const GREEN_LIGHT = 'rgba(5,150,105,0.08)';
@@ -81,8 +82,11 @@ function FieldCard({ fieldKey, label, icon, dot, hint, value, loading, onEdit })
 }
 
 function SerpPreview({ seoTitle, metaDescription, slug }) {
-  const domain = 'wildlife.universe';
-  const url = `${domain}/${slug || 'article-slug'}`;
+  // Pull the canonical host from SITE_URL so this matches the live site.
+  let host;
+  try { host = new URL(SITE_URL).host; }
+  catch { host = 'www.wildlifeuniverse.org'; }
+  const url = `${host} › posts › ${slug || 'article-slug'}`;
   return (
     <div style={{ padding: '11px 13px', borderRadius: 9, background: 'var(--adm-surface)', border: '1px solid var(--adm-border)' }}>
       <div style={{ fontSize: 10, fontWeight: 700, color: 'var(--adm-text-subtle)', textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 8 }}>

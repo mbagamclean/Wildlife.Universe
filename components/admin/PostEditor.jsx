@@ -37,6 +37,14 @@ import { AIImageGenerator } from './editor/AIImageGenerator';
 import { AIRewriteFloater } from './editor/AIRewriteFloater';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { isCEO } from '@/lib/auth/ceo';
+import { SITE_URL } from '@/lib/seo';
+
+// Display-only domain (host + path prefix) for the slug field, derived
+// from SITE_URL so it always matches the canonical domain.
+const SLUG_PREFIX = (() => {
+  try { return new URL(SITE_URL).host + '/posts/'; }
+  catch { return 'wildlifeuniverse.org/posts/'; }
+})();
 
 // Plain always-visible card used in the editor right rail.
 // Mirrors the flat-card pattern from Mayobe Bros (no accordion wrapper).
@@ -619,7 +627,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
                   padding: '4px 9px', fontSize: 11, color: 'var(--adm-text-subtle)',
                   borderRight: '1px solid var(--adm-border)', background: 'var(--adm-hover-bg)', whiteSpace: 'nowrap',
                 }}>
-                  wildlife.universe/
+                  {SLUG_PREFIX}
                 </span>
                 <input
                   value={slug}
