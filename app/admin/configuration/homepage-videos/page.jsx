@@ -8,6 +8,7 @@ import {
 import { AIPageHeader } from '@/components/admin/configuration/AIPageHeader';
 import { detectVideoProvider, PROVIDER_LABELS, PROVIDER_COLORS } from '@/lib/video/detect';
 import { VideoPlayer } from '@/components/ui/VideoPlayer';
+import { uploadMedia } from '@/lib/upload/client';
 
 const SECTIONS = [
   { id: 'featured',       label: 'Featured (top of homepage)' },
@@ -179,13 +180,11 @@ export default function HomepageVideosPage() {
     if (!file) return;
     setUploading(true); setError(null);
     try {
-      const fd = new FormData();
-      fd.append('file', file);
-      const res = await fetch('/api/upload', { method: 'POST', body: fd });
-      const json = await res.json();
-      if (!res.ok || !json.success) throw new Error(json.error || 'Upload failed');
+      const result = await uploadMedia(file, {
+        onProgress: (pct) => setSaved(`Uploading… ${pct}%`),
+      });
       // Prefer WebM if produced (smaller, modern), otherwise the original source.
-      const sources = json.result?.sources || [];
+      const sources = result?.sources || [];
       const url = sources.find((s) => s.type === 'video/webm')?.src
         || sources.find((s) => s.type?.startsWith('video/'))?.src
         || sources[0]?.src;
