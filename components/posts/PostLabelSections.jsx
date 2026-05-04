@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 import { ShareButton } from '@/components/ui/ShareButton';
+import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 import { db } from '@/lib/storage/db';
 import { categories, labelSlug } from '@/lib/mock/categories';
 
@@ -26,15 +27,12 @@ function LabelPostCard({ post }) {
         }}
       >
         {post.cover && (
-          typeof post.cover === 'string' ? (
-            <img src={post.cover} alt="" className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105" />
-          ) : (
-            <img
-              src={post.cover.sources?.[Math.max(0, (post.cover.sources?.length || 1) - 1)]?.src || ''}
-              alt=""
-              className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
-            />
-          )
+          <ResponsiveImage
+            media={post.cover}
+            alt=""
+            sizes="(max-width: 768px) 100vw, 33vw"
+            className="h-full w-full object-cover transition-transform duration-500 group-hover:scale-105"
+          />
         )}
         {/* Label chip over image */}
         {post.label && (

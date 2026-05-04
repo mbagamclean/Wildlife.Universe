@@ -4,6 +4,7 @@ import { useEffect, useState, useRef, useCallback } from 'react';
 import Link from 'next/link';
 import { ArrowRight, ChevronLeft, ChevronRight, MousePointerClick, HelpCircle } from 'lucide-react';
 import { db } from '@/lib/storage/db';
+import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 import { Container } from '@/components/ui/Container';
 
 function resolveCoverSrc(cover) {
@@ -182,10 +183,10 @@ export function WhyHowSection() {
                       {/* Image Block */}
                       <div className="relative w-full overflow-hidden" style={{ aspectRatio: '16/10' }}>
                         {coverSrc ? (
-                          <img
-                            src={coverSrc}
-                            alt={post.title}
-                            loading="lazy"
+                          <ResponsiveImage
+                            media={post.cover}
+                            alt={post.title || ''}
+                            sizes="(max-width: 768px) 60vw, 320px"
                             className="h-full w-full object-cover transition-transform duration-[800ms] ease-[cubic-bezier(0.2,1,0.2,1)] group-hover/card:scale-110"
                           />
                         ) : (

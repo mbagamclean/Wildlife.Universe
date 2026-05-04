@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, BookOpen, ShoppingBag, BookMarked } from 'lucide-react';
 import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
+import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 
 function resolveCoverSrc(cover) {
   if (!cover) return null;
@@ -163,7 +164,12 @@ export function BooksSection() {
                   <div className="relative h-full w-full">
                     {/* Media Cover */}
                     {coverSrc ? (
-                      <img src={coverSrc} alt={item.title} className="h-full w-full object-cover" />
+                      <ResponsiveImage
+                        media={item.cover}
+                        alt={item.title || ''}
+                        sizes="(max-width: 768px) 80vw, 320px"
+                        className="h-full w-full object-cover"
+                      />
                     ) : (
                       <div className="h-full w-full" style={{ background: `linear-gradient(135deg, ${palette.from} 0%, ${palette.to} 100%)` }} />
                     )}

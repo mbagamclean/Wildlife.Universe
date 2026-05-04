@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight, TrendingUp, Play, Flame, User } from 'lucide-react';
+import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 import { ShareButton } from '@/components/ui/ShareButton';
 import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
@@ -44,11 +45,17 @@ function BgLayer({ post, active }) {
     >
       {src ? (
         isVideo(post.cover) ? (
-          <video className="h-full w-full object-cover" autoPlay muted loop playsInline>
+          <video className="h-full w-full object-cover" autoPlay muted loop playsInline poster={post.cover.poster || undefined}>
             {post.cover.sources?.map((s, i) => <source key={i} src={s.src} type={s.type} />)}
           </video>
         ) : (
-          <img src={src} alt={post.title} loading="lazy" className="h-full w-full object-cover" />
+          <ResponsiveImage
+            media={post.cover}
+            alt={post.title || ''}
+            sizes="(max-width: 1024px) 100vw, 60vw"
+            className="h-full w-full object-cover"
+            loading="eager"
+          />
         )
       ) : (
         <div className="h-full w-full"
@@ -112,7 +119,10 @@ function TrendingCard({ post, rank, onActivate }) {
     >
       <div className="relative shrink-0 overflow-hidden rounded-lg" style={{ width: 80, height: 60 }}>
         {src ? (
-          <img src={src} alt={post.title} loading="lazy"
+          <ResponsiveImage
+            media={post.cover}
+            alt={post.title || ''}
+            sizes="80px"
             className="h-full w-full object-cover transition-transform duration-500 group-hover/card:scale-105"
           />
         ) : (
