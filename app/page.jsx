@@ -11,6 +11,7 @@ import { WhyHowSection } from '@/components/posts/WhyHowSection';
 import { BooksSection } from '@/components/posts/BooksSection';
 import { ShortsSection } from '@/components/posts/ShortsSection';
 import { DocumentariesSection } from '@/components/posts/DocumentariesSection';
+import { HomepageVideosSection } from '@/components/posts/HomepageVideosSection';
 import { categories } from '@/lib/mock/categories';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
@@ -186,17 +187,46 @@ export default function HomePage() {
         <WhyHowSection />
       </ScrollReveal>
 
+      {/* ── Featured Videos (curated via /admin/configuration/homepage-videos) ── */}
+      <ScrollReveal effect="fadeUp">
+        <HomepageVideosSection
+          section="featured"
+          heading="Featured Videos"
+          subheading="Hand-picked stories from across YouTube, Vimeo, TikTok, Instagram and more"
+          accent="#dc2626"
+          maxItems={6}
+        />
+      </ScrollReveal>
+
       {/* ── Books — rise with scale ────────────────────────── */}
       <ScrollReveal effect="riseScale">
         <BooksSection />
       </ScrollReveal>
 
-      {/* ── Shorts — bounce up ────────────────────────────── */}
+      {/* ── Shorts — curated when set, falls back to post-derived ── */}
+      <ScrollReveal effect="bounceUp">
+        <HomepageVideosSection
+          section="shorts"
+          heading="Shorts"
+          subheading="Vertical wildlife moments from creators around the world"
+          accent="#7c3aed"
+          maxItems={8}
+        />
+      </ScrollReveal>
       <ScrollReveal effect="bounceUp">
         <ShortsSection />
       </ScrollReveal>
 
-      {/* ── Documentaries — cinematic fade up ─────────────── */}
+      {/* ── Documentaries — curated when set, plus auto-derived ── */}
+      <ScrollReveal effect="fadeUp">
+        <HomepageVideosSection
+          section="documentaries"
+          heading="Documentaries"
+          subheading="Long-form features and feature-length films"
+          accent="#2563eb"
+          maxItems={4}
+        />
+      </ScrollReveal>
       <ScrollReveal effect="fadeUp" delay={80}>
         <DocumentariesSection />
       </ScrollReveal>

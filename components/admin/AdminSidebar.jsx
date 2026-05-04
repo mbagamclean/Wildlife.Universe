@@ -15,6 +15,7 @@ import {
   ClipboardCheck, Sparkles, ShieldCheck, Compass, Search, Target, Rss,
   Languages, Send, CalendarDays,
   Camera, TrendingUp,
+  Clapperboard, Video,
 } from 'lucide-react';
 
 const NAV = [
@@ -40,6 +41,13 @@ const NAV = [
     section: 'TEAM',
     items: [
       { href: '/admin/team', label: 'Team Members', icon: Users },
+    ],
+  },
+  {
+    section: 'HOMEPAGE',
+    items: [
+      { href: '/admin/heroes',                        label: 'Hero Management', icon: Clapperboard },
+      { href: '/admin/configuration/homepage-videos', label: 'Homepage Videos', icon: Video },
     ],
   },
   {
