@@ -34,6 +34,7 @@ import { TiptapEditor } from './editor/TiptapEditor';
 import { AIWritingToolkit } from './editor/AIWritingToolkit';
 import { AISEOAssistant } from './editor/AISEOAssistant';
 import { AIImageGenerator } from './editor/AIImageGenerator';
+import { AIRewriteFloater } from './editor/AIRewriteFloater';
 
 function toSlug(str) {
   return str.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
@@ -716,7 +717,10 @@ export function PostEditor({ initial, onSave, onCancel }) {
             </div>
 
             {/* Tiptap editor */}
-            <TiptapEditor editor={editor} />
+            <div style={{ position: 'relative' }}>
+              <TiptapEditor editor={editor} />
+              <AIRewriteFloater editor={editor} />
+            </div>
 
             {/* Status bar */}
             <div style={{
@@ -946,7 +950,16 @@ export function PostEditor({ initial, onSave, onCancel }) {
 
               {/* Writing Toolkit */}
               <SideCard title="Writing Toolkit" accentBg="#7c3aed" icon={<Sparkles size={14} />} badge="2026" open={openPanel === 'writing'} onToggle={() => togglePanel('writing')}>
-                <AIWritingToolkit editor={editor} title={title} wordCount={wordCount} />
+                <AIWritingToolkit
+                  editor={editor}
+                  title={title}
+                  wordCount={wordCount}
+                  metaTitle={metaTitle}
+                  metaDescription={metaDesc}
+                  metaKeywords={metaKw}
+                  category={currentCat?.name || ''}
+                  onUseHeadline={(text) => setTitle(text)}
+                />
               </SideCard>
 
               {/* AI SEO Assistant */}

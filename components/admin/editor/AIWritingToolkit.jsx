@@ -2,6 +2,9 @@
 import { useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAIStore } from '@/lib/stores/aiStore';
+import { HeadlinePanel } from './HeadlinePanel';
+import { ProofingPanel } from './ProofingPanel';
+import { SEOScorePanel } from './SEOScorePanel';
 
 const PURPLE = '#7c3aed';
 const PURPLE_LIGHT = 'rgba(124,58,237,0.1)';
@@ -138,7 +141,16 @@ function InsertBar({ content, onInsertAppend, onInsertReplace, onInsertBelow, on
   );
 }
 
-export function AIWritingToolkit({ editor, title, wordCount }) {
+export function AIWritingToolkit({
+  editor,
+  title,
+  wordCount,
+  onUseHeadline,
+  metaTitle = '',
+  metaDescription = '',
+  metaKeywords = '',
+  category = '',
+}) {
   const store = useAIStore();
   const [topTab, setTopTab] = useState('AI');
   const [customPrompt, setCustomPrompt] = useState('');
@@ -422,10 +434,34 @@ export function AIWritingToolkit({ editor, title, wordCount }) {
         </div>
       )}
 
-      {topTab !== 'AI' && (
-        <div style={{ fontSize: 12, color: 'var(--adm-text-subtle)', textAlign: 'center', padding: '20px 0' }}>
-          {topTab} analysis available in the full SEO panel below.
+      {topTab === 'Headlines' && (
+        <HeadlinePanel
+          initialTopic={title}
+          initialCategory={category}
+          onUseHeadline={onUseHeadline}
+        />
+      )}
+
+      {topTab === 'Links' && (
+        <div style={{ fontSize: 12, color: 'var(--adm-text-subtle)', textAlign: 'center', padding: '20px 0', lineHeight: 1.6 }}>
+          Internal-link suggestions are wired to the editor body. Run them from the
+          <strong style={{ color: 'var(--adm-text)' }}> AI SEO Assistant </strong>
+          panel below.
         </div>
+      )}
+
+      {topTab === 'Proof' && (
+        <ProofingPanel editor={editor} />
+      )}
+
+      {topTab === 'SEO' && (
+        <SEOScorePanel
+          title={title}
+          body={editor?.getHTML() || ''}
+          metaTitle={metaTitle}
+          metaDescription={metaDescription}
+          metaKeywords={metaKeywords}
+        />
       )}
     </div>
   );
