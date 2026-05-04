@@ -117,7 +117,7 @@ export default function TrafficGrowthPage() {
             <Card title="Posts created per day">
               <MiniChart data={postCounts} labels={labels} color="#7c3aed" height={140} showAxis />
             </Card>
-            <Card title="Views attributed to creation date">
+            <Card title={data.source === 'post_views_events' ? 'Real page views per day' : 'Views attributed to creation date'}>
               <MiniChart data={viewCounts} labels={labels} color="#16a34a" height={140} showAxis />
             </Card>
           </div>
@@ -125,7 +125,11 @@ export default function TrafficGrowthPage() {
           {data.note && (
             <div
               className="mt-4 flex items-start gap-2 rounded-xl px-4 py-3 text-[12px]"
-              style={{ background: 'rgba(26,110,181,0.08)', border: '1px solid rgba(26,110,181,0.2)', color: '#1a6eb5' }}
+              style={{
+                background: data.source === 'post_views_events' ? 'rgba(22,163,74,0.08)' : 'rgba(26,110,181,0.08)',
+                border: `1px solid ${data.source === 'post_views_events' ? 'rgba(22,163,74,0.2)' : 'rgba(26,110,181,0.2)'}`,
+                color: data.source === 'post_views_events' ? '#16a34a' : '#1a6eb5',
+              }}
             >
               <Info size={14} className="mt-0.5 flex-shrink-0" />
               <span>

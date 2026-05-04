@@ -105,15 +105,49 @@ export default function TranslatePage() {
   };
 
   // TODO: full multilingual posts schema is out of scope for this tier.
-  // For now, copy the translation to the clipboard and surface a confirmation.
+  // Saves into post_translations table when source is an existing post.
+  // Falls back to clipboard copy for paste-mode (no post to attach to).
   const saveAsTranslation = async () => {
     if (!result?.translation) return;
+
+    if (mode !== 'post' || !post?.id) {
+      try {
+        await navigator.clipboard.writeText(result.translation);
+        setSavedNote('Copied to clipboard. To save into the database, switch to "Existing post" mode and pick a post.');
+        setTimeout(() => setSavedNote(''), 5000);
+      } catch {
+        setSavedNote('Could not access clipboard.');
+        setTimeout(() => setSavedNote(''), 4000);
+      }
+      return;
+    }
+
     try {
-      await navigator.clipboard.writeText(result.translation);
-      setSavedNote('Translation copied to clipboard. Multilingual post storage not yet implemented.');
-      setTimeout(() => setSavedNote(''), 4000);
-    } catch {
-      setSavedNote('Could not access clipboard.');
+      const res = await fetch('/api/admin/translations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          postId: post.id,
+          targetLanguage: target,
+          translatedTitle: post.title || null,
+          translatedBody: result.translation,
+          notes: result.notes || null,
+          provider,
+          preserveTone,
+          sourceLanguage: 'English',
+        }),
+      });
+      const json = await res.json();
+      if (json.success) {
+        setSavedNote(`Saved as ${target} translation for "${post.title}".`);
+      } else if (json.error === 'translations_table_missing') {
+        setSavedNote('Run migration 004_seo_extensions.sql to enable translation saving.');
+      } else {
+        setSavedNote(`Save failed: ${json.error || 'unknown error'}`);
+      }
+      setTimeout(() => setSavedNote(''), 5000);
+    } catch (e) {
+      setSavedNote(`Save failed: ${e.message}`);
       setTimeout(() => setSavedNote(''), 4000);
     }
   };

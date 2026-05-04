@@ -17,11 +17,10 @@ function dayKey(d) {
   return new Date(d).toISOString().slice(0, 10);
 }
 
-// TODO: True per-day traffic requires an event-level `post_views` table
-// (e.g. (id, post_id, viewed_at, ip_hash)). Until that exists, the
-// "views per day" series is computed from each post's cumulative `views`
-// integer attributed to the post's creation date — useful as a proxy
-// for "how much traffic has each cohort accumulated", not real daily traffic.
+// True per-day traffic comes from the `post_views` event table (migration
+// 004_seo_extensions.sql). When present, daily view counts reflect real
+// page-view events. When missing, falls back to attributing each post's
+// cumulative `views` integer to its creation date.
 export async function GET(req) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -66,22 +65,70 @@ export async function GET(req) {
     buckets.set(dayKey(d), { date: dayKey(d), postsCreated: 0, viewsAttributed: 0 });
   }
 
-  let bestDay = null;
+  // Posts-created bucket fill (always works)
   for (const p of windowPosts || []) {
     const k = dayKey(p.created_at);
     const b = buckets.get(k);
-    if (!b) continue;
-    b.postsCreated += 1;
-    b.viewsAttributed += p.views || 0;
+    if (b) b.postsCreated += 1;
+  }
+
+  // Try the real event-level post_views table first
+  let usingEventTable = false;
+  let eventViewsTotal = 0;
+  let prevEventViewsTotal = 0;
+  try {
+    const { data: events, error: evErr } = await supabase
+      .from('post_views')
+      .select('viewed_at')
+      .gte('viewed_at', sinceISO);
+
+    if (!evErr) {
+      usingEventTable = true;
+      for (const ev of events || []) {
+        const k = dayKey(ev.viewed_at);
+        const b = buckets.get(k);
+        if (b) {
+          b.viewsAttributed += 1;
+          eventViewsTotal += 1;
+        }
+      }
+      // Previous-period event count for trend %
+      const { count: prevCount } = await supabase
+        .from('post_views')
+        .select('*', { count: 'exact', head: true })
+        .gte('viewed_at', new Date(prevSinceMs).toISOString())
+        .lt('viewed_at', sinceISO);
+      prevEventViewsTotal = prevCount || 0;
+    }
+  } catch {
+    // post_views table missing — fall back below
+  }
+
+  // Fallback: attribute cumulative posts.views to creation date
+  if (!usingEventTable) {
+    for (const p of windowPosts || []) {
+      const k = dayKey(p.created_at);
+      const b = buckets.get(k);
+      if (b) b.viewsAttributed += p.views || 0;
+    }
+  }
+
+  // Best day: highest viewsAttributed
+  let bestDay = null;
+  for (const b of buckets.values()) {
     if (!bestDay || b.viewsAttributed > bestDay.viewsAttributed) {
-      bestDay = { ...b };
+      bestDay = { date: b.date, viewsAttributed: b.viewsAttributed };
     }
   }
 
   const series = Array.from(buckets.values());
 
-  const currentViews = (windowPosts || []).reduce((s, p) => s + (p.views || 0), 0);
-  const prevViews = (prevPosts || []).reduce((s, p) => s + (p.views || 0), 0);
+  const currentViews = usingEventTable
+    ? eventViewsTotal
+    : (windowPosts || []).reduce((s, p) => s + (p.views || 0), 0);
+  const prevViews = usingEventTable
+    ? prevEventViewsTotal
+    : (prevPosts || []).reduce((s, p) => s + (p.views || 0), 0);
   const trendPct = prevViews > 0
     ? Math.round(((currentViews - prevViews) / prevViews) * 1000) / 10
     : (currentViews > 0 ? 100 : 0);
@@ -97,12 +144,15 @@ export async function GET(req) {
       series,
       stats: {
         avgPostsPerDay,
-        bestDay: bestDay ? { date: bestDay.date, viewsAttributed: bestDay.viewsAttributed } : null,
+        bestDay,
         trendPct,
         totalPostsInWindow: (windowPosts || []).length,
         totalViewsInWindow: currentViews,
       },
-      note: 'Views are attributed to post creation date (cumulative integer). True per-day traffic requires an event-level post_views table.',
+      source: usingEventTable ? 'post_views_events' : 'posts_views_cumulative',
+      note: usingEventTable
+        ? 'Real per-day page views from the post_views event table.'
+        : 'Views are attributed to post creation date (cumulative integer). Run migration 004_seo_extensions.sql to enable real per-day traffic.',
     },
   });
 }

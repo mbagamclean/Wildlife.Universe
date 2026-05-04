@@ -396,6 +396,34 @@ export function PostView({ slug }) {
     return () => { cancelled = true; };
   }, [slug]);
 
+  /* view ping — fire once per (slug × session) after a 5s dwell, so accidental
+     clicks don't inflate counts. Persists in sessionStorage so a refresh
+     within the same tab session doesn't double-count. */
+  useEffect(() => {
+    if (!post?.id && !slug) return undefined;
+    const key = `wu_viewed:${slug}`;
+    if (typeof window === 'undefined') return undefined;
+    if (sessionStorage.getItem(key)) return undefined;
+
+    let sessionId = sessionStorage.getItem('wu_session_id');
+    if (!sessionId) {
+      sessionId = (crypto.randomUUID?.() || `s_${Date.now()}_${Math.random().toString(36).slice(2)}`);
+      sessionStorage.setItem('wu_session_id', sessionId);
+    }
+
+    const t = setTimeout(() => {
+      sessionStorage.setItem(key, '1');
+      fetch('/api/posts/view', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ slug, postId: post?.id || null, sessionId }),
+        keepalive: true,
+      }).catch(() => { /* swallow */ });
+    }, 5000);
+
+    return () => clearTimeout(t);
+  }, [slug, post?.id]);
+
   /* scroll progress — measured against the article body only, not the whole page */
   useEffect(() => {
     const fn = () => {
