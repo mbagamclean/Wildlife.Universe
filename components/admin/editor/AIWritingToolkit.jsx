@@ -5,6 +5,9 @@ import { useAIStore } from '@/lib/stores/aiStore';
 import { HeadlinePanel } from './HeadlinePanel';
 import { ProofingPanel } from './ProofingPanel';
 import { SEOScorePanel } from './SEOScorePanel';
+import { AIMediaPanel } from './AIMediaPanel';
+import { InternalLinksPanel } from './InternalLinksPanel';
+import { AdSenseCheckPanel } from './AdSenseCheckPanel';
 
 const PURPLE = '#7c3aed';
 const PURPLE_LIGHT = 'rgba(124,58,237,0.1)';
@@ -150,6 +153,7 @@ export function AIWritingToolkit({
   metaDescription = '',
   metaKeywords = '',
   category = '',
+  excerpt = '',
 }) {
   const store = useAIStore();
   const [topTab, setTopTab] = useState('AI');
@@ -245,7 +249,7 @@ export function AIWritingToolkit({
 
       {/* ── Top tabs (AI / Headlines / Links / Proof / SEO) ─── */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--adm-border)', marginBottom: 12 }}>
-        {['AI', 'Headlines', 'Links', 'Proof', 'SEO'].map(t => (
+        {['AI', 'Headlines', 'Links', 'Proof', 'SEO', 'Media', 'AdSense'].map(t => (
           <button key={t} onClick={() => setTopTab(t)} style={{
             flex: 1, padding: '7px 4px', fontSize: 11, fontWeight: 600, border: 'none', background: 'transparent',
             color: topTab === t ? PURPLE : 'var(--adm-text-subtle)',
@@ -443,11 +447,7 @@ export function AIWritingToolkit({
       )}
 
       {topTab === 'Links' && (
-        <div style={{ fontSize: 12, color: 'var(--adm-text-subtle)', textAlign: 'center', padding: '20px 0', lineHeight: 1.6 }}>
-          Internal-link suggestions are wired to the editor body. Run them from the
-          <strong style={{ color: 'var(--adm-text)' }}> AI SEO Assistant </strong>
-          panel below.
-        </div>
+        <InternalLinksPanel editor={editor} />
       )}
 
       {topTab === 'Proof' && (
@@ -461,6 +461,22 @@ export function AIWritingToolkit({
           metaTitle={metaTitle}
           metaDescription={metaDescription}
           metaKeywords={metaKeywords}
+        />
+      )}
+
+      {topTab === 'Media' && (
+        <AIMediaPanel
+          editor={editor}
+          title={title}
+          body={editor?.getHTML() || ''}
+        />
+      )}
+
+      {topTab === 'AdSense' && (
+        <AdSenseCheckPanel
+          editor={editor}
+          title={title}
+          excerpt={excerpt}
         />
       )}
     </div>

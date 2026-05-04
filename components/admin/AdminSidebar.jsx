@@ -12,6 +12,7 @@ import {
   Activity, Share2, CheckCircle2, Inbox,
   Shield, UserCircle,
   Home, LogOut,
+  ClipboardCheck, Sparkles, ShieldCheck, Compass, Search, Target, Rss,
 } from 'lucide-react';
 
 const NAV = [
@@ -48,6 +49,18 @@ const NAV = [
     ],
   },
   {
+    section: 'AI TOOLS',
+    items: [
+      { href: '/admin/configuration/editorial-review',     label: 'Editorial Review',     icon: ClipboardCheck },
+      { href: '/admin/configuration/ai-humanizer',         label: 'AI Humanizer',         icon: Sparkles },
+      { href: '/admin/configuration/content-quality',      label: 'Content Quality',      icon: CheckCircle2 },
+      { href: '/admin/configuration/adsense-readiness',    label: 'AdSense Readiness',    icon: ShieldCheck },
+      { href: '/admin/configuration/discover-score',       label: 'Discover Score',       icon: Compass },
+      { href: '/admin/configuration/keyword-research',     label: 'Keyword Research',     icon: Search },
+      { href: '/admin/configuration/competitor-analysis',  label: 'Competitor Analysis',  icon: Target },
+    ],
+  },
+  {
     section: 'CONFIGURATION',
     items: [
       { href: '/admin/configuration/user-dashboard',    label: 'User Dashboard Mgmt',    icon: LayoutGrid },
@@ -58,9 +71,9 @@ const NAV = [
       { href: '/admin/configuration/ad-management',     label: 'Ad Management',          icon: Megaphone },
       { href: '/admin/configuration/live-activity',     label: 'Live Activity',          icon: Activity },
       { href: '/admin/configuration/social-media',      label: 'Social Media Auto.',     icon: Share2 },
-      { href: '/admin/configuration/content-quality',   label: 'Content Quality',        icon: CheckCircle2 },
       { href: '/admin/configuration/messages',          label: 'Messages',               icon: Inbox },
       { href: '/admin/settings/ai-providers',           label: 'AI Providers',           icon: Megaphone },
+      { href: '/rss',                                   label: 'RSS Feed',               icon: Rss },
     ],
   },
   {

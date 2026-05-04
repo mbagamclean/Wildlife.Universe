@@ -958,6 +958,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
                   metaDescription={metaDesc}
                   metaKeywords={metaKw}
                   category={currentCat?.name || ''}
+                  excerpt={excerpt}
                   onUseHeadline={(text) => setTitle(text)}
                 />
               </SideCard>
