@@ -27,7 +27,11 @@ const legalLinks = [
   { name: 'Wildlife Universe Team', href: '/legal/team' },
 ];
 
-const categoryLinks = categories.map((c) => ({ name: c.name, href: `/${c.slug}` }));
+// Show only the wildlife taxonomy categories — exclude the meta `posts`
+// category (its slug overlaps the "All Posts" link in the Quick Links column).
+const categoryLinks = categories
+  .filter((c) => c.slug !== 'posts')
+  .map((c) => ({ name: c.name, href: `/${c.slug}` }));
 
 /* ── social links (manageable by CMS) ───────────────────────── */
 const socialLinks = [
