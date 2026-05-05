@@ -184,7 +184,9 @@ function buildPrompt(task, context) {
   const bodyText = body?.replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2000);
 
   const prompts = {
-    full_article: `Write a ${wordTarget || '4,000-5,000'} word comprehensive article titled "${title}".
+    full_article: `Write a ${wordTarget || '4,000-5,000'} word comprehensive wildlife article${title?.trim() ? ` titled "${title}"` : ''}.
+
+${title?.trim() ? '' : 'No title was provided — first invent a strong, specific wildlife article title (a real species, behaviour, or ecosystem story) and use it as the <h1>. Avoid generic titles.'}
 
 Writing tone: ${toneStr}
 Audience: Wildlife enthusiasts, nature lovers, safari travelers, conservationists

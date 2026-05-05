@@ -45,7 +45,7 @@ const TONES = [
 const WRITING_TABS = ['Generate', 'Enhance', 'Structure', 'Snippets', 'Research', 'EEAT', 'AdSense'];
 
 const GENERATE_ACTIONS = [
-  { id: 'full_article', icon: '✦', label: 'Generate Full Article (4,000–5,000 words)', hint: 'Add a title first', needsTitle: true },
+  { id: 'full_article', icon: '✦', label: 'Generate Full Article (4,000–5,000 words)', hint: 'Uses your title if set — otherwise the AI picks one' },
   { id: 'introduction', icon: '≡', label: 'Write Introduction', hint: '250–350 word hook-driven opening' },
   { id: 'conclusion', icon: '→', label: 'Write Conclusion + CTA', hint: 'Memorable closing with call-to-action' },
   { id: 'faq', icon: '?', label: 'Write FAQ Section', hint: '8–10 questions matching Google searches' },
