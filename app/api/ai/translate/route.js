@@ -8,22 +8,42 @@ export const maxDuration = 90;
 
 const SYSTEM = `You are a native-quality multilingual translator who specialises in editorial wildlife and nature content. You translate with a literary translator's ear: preserve the author's voice, register, and rhythm. You never paraphrase loosely — you render meaning faithfully. You leave proper nouns and Latin scientific binomials untranslated. You preserve any HTML tags exactly as they appear, translating only the text between tags. Return ONLY a single valid JSON object — no markdown fences, no preamble.`;
 
+/* Every language the audio player offers as a listening voice has a
+   matching translate target here, so the Translate chip works for the
+   whole picker (African, European, Asian) — not just the original 15. */
 const SUPPORTED_LANGUAGES = {
-  English:               'en',
-  Spanish:               'es',
-  French:                'fr',
-  German:                'de',
-  Portuguese:            'pt',
-  Italian:               'it',
-  Dutch:                 'nl',
-  Swahili:               'sw',
-  Arabic:                'ar',
-  'Chinese (Simplified)':'zh-CN',
-  Japanese:              'ja',
-  Korean:                'ko',
-  Hindi:                 'hi',
-  Russian:               'ru',
-  Turkish:               'tr',
+  // European / Latin-script
+  English:                 'en',
+  Spanish:                 'es',
+  French:                  'fr',
+  German:                  'de',
+  Portuguese:              'pt',
+  Italian:                 'it',
+  Dutch:                   'nl',
+  Polish:                  'pl',
+  Russian:                 'ru',
+  Turkish:                 'tr',
+  // African
+  Swahili:                 'sw',
+  Hausa:                   'ha',
+  Yoruba:                  'yo',
+  Amharic:                 'am',
+  Zulu:                    'zu',
+  Igbo:                    'ig',
+  Somali:                  'so',
+  // Asian
+  Arabic:                  'ar',
+  Hindi:                   'hi',
+  'Chinese (Simplified)':  'zh-CN',
+  'Chinese (Traditional)': 'zh-TW',
+  Japanese:                'ja',
+  Korean:                  'ko',
+  Indonesian:              'id',
+  Malay:                   'ms',
+  Vietnamese:              'vi',
+  Thai:                    'th',
+  Bengali:                 'bn',
+  Urdu:                    'ur',
 };
 
 function extractJson(raw) {
