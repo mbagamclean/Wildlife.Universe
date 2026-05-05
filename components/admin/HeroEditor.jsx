@@ -22,12 +22,14 @@ export function HeroEditor({ initial, onSave, onCancel }) {
     accent: initial?.accent || '#d4af37',
   }));
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState(null);
 
   const set = (k, v) => setForm((f) => ({ ...f, [k]: v }));
 
   const submit = async (e) => {
     e.preventDefault();
     setSaving(true);
+    setError(null);
     const payload = {
       type: form.type,
       src: form.src,
@@ -41,6 +43,8 @@ export function HeroEditor({ initial, onSave, onCancel }) {
     };
     try {
       await onSave(payload);
+    } catch (err) {
+      setError(err?.message || 'Failed to save hero. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -48,6 +52,11 @@ export function HeroEditor({ initial, onSave, onCancel }) {
 
   return (
     <form onSubmit={submit} className="glass flex flex-col gap-5 rounded-2xl p-6">
+      {error && (
+        <div role="alert" className="rounded-xl border border-red-500/40 bg-red-500/10 px-4 py-3 text-sm text-red-700 dark:text-red-300">
+          {error}
+        </div>
+      )}
       <div className="grid gap-4 sm:grid-cols-2">
         <label className="flex flex-col gap-1.5 text-sm">
           <span className="font-medium">Type</span>
@@ -77,7 +86,7 @@ export function HeroEditor({ initial, onSave, onCancel }) {
       <MediaUpload
         value={form.src}
         onChange={(v) => set('src', v)}
-        label={form.type === 'video' ? 'Video file (optional, will fall back to placeholder)' : 'Hero image'}
+        label={form.type === 'video' ? 'Video file (optional — falls back to placeholder)' : 'Hero image (optional — falls back to gradient)'}
         accept={form.type === 'video' ? 'video/*' : 'image/*'}
       />
 
