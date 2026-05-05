@@ -253,7 +253,7 @@ function VideoLayer({ slide, onPlay, onPause, onEnded }) {
         muted
         playsInline
         preload="auto"
-        loop={false}
+        loop
         className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 data-[loaded=true]:opacity-100"
         onLoadedData={(e) => {
           if (e.currentTarget.videoWidth > 0) e.currentTarget.dataset.loaded = 'true';
