@@ -33,6 +33,7 @@ const categoryLinks = categories.map((c) => ({ name: c.name, href: `/${c.slug}` 
 const socialLinks = [
   {
     name: 'WhatsApp',
+    // TODO: replace with wa.me/<phone> or whatsapp.com/channel/<id> once provided
     href: '#',
     bg: '#25D366',
     icon: (
@@ -43,7 +44,7 @@ const socialLinks = [
   },
   {
     name: 'Facebook',
-    href: '#',
+    href: 'https://facebook.com/wildlifeuniverse',
     bg: '#1877F2',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -53,7 +54,7 @@ const socialLinks = [
   },
   {
     name: 'Instagram',
-    href: '#',
+    href: 'https://instagram.com/wildlifeuniverse',
     bg: '#E4405F',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
@@ -63,6 +64,7 @@ const socialLinks = [
   },
   {
     name: 'TikTok',
+    // TODO: replace with tiktok.com/@<handle> once provided
     href: '#',
     bg: '#000000',
     icon: (
@@ -73,7 +75,7 @@ const socialLinks = [
   },
   {
     name: 'YouTube',
-    href: '#',
+    href: 'https://youtube.com/@wildlifeuniverse',
     bg: '#FF0000',
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
