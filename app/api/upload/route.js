@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { transcodeImage, transcodeVideo } from '@/lib/media/transcode';
+import { registerMedia } from '@/lib/media/library';
+import { createClient as createUserClient } from '@/lib/supabase/server';
 
 export const runtime = 'nodejs';
 // 5 minutes — needed for VP9 video transcoding. Requires Vercel Pro plan.
@@ -33,7 +35,7 @@ async function uploadToBucket(admin, key, buffer, contentType) {
   return `${baseUrl()}/${key}`;
 }
 
-async function processImage(buffer, uid) {
+async function processImage(buffer, uid, originalFilename, uploadedBy) {
   const admin = getAdminClient();
   const t = await transcodeImage(buffer);
 
@@ -59,7 +61,6 @@ async function processImage(buffer, uid) {
   const urls = Object.fromEntries(settled.map(({ key, src }) => [key, src]));
 
   // Build the responsive map for srcset-aware consumers.
-  // Each width entry has the AVIF+WebP source pair for that resolution.
   const responsive = {};
   const bytes = {
     original: t.originalBytes,
@@ -75,76 +76,100 @@ async function processImage(buffer, uid) {
     bytes[`webp${w}`] = v.webpBytes;
   }
 
-  return {
+  const result = {
     type: 'image',
     width: t.width,
     height: t.height,
-    // `sources` keeps original resolution — backward compatible with every
-    // existing consumer (PostEditor cover, HeroEditor, MediaUpload preview).
     sources: [
       { src: urls.origAvif, type: 'image/avif' },
       { src: urls.origWebp, type: 'image/webp' },
     ],
-    // `responsive` is opt-in for code that wants srcset (HomePage feed,
-    // PostCard, search results). Width keys are strings: '1600', etc.
     responsive,
     bytes,
   };
+
+  // Register in media_library — never fail upload on bookkeeping failure
+  await registerMedia({
+    filename: `${uid}.webp`,
+    originalFilename,
+    storagePath: `${uid}.webp`,
+    fileUrl: urls.origWebp,
+    fileType: 'image/webp',
+    mediaKind: 'image',
+    fileSize: t.original.webpBytes,
+    width: t.width,
+    height: t.height,
+    source: 'upload',
+    variants: {
+      sources: result.sources,
+      responsive,
+      bytes,
+      avifPath: `${uid}.avif`,
+      webpPath: `${uid}.webp`,
+      ...Object.fromEntries(Object.entries(t.responsive).flatMap(([w]) => [
+        [`avif${w}Path`, `${uid}-${w}.avif`],
+        [`webp${w}Path`, `${uid}-${w}.webp`],
+      ])),
+    },
+    uploadedBy,
+  });
+
+  return result;
 }
 
-async function processVideo(buffer, uid, originalMime) {
+async function processVideo(buffer, uid, originalMime, originalFilename, uploadedBy) {
   const admin = getAdminClient();
   const t = await transcodeVideo(buffer, originalMime);
 
   const sources = [];
   let posterUrl = null;
+  let webmUrl = null;
+  let posterPath = null;
+  let webmPath = null;
 
   // 1. Upload original (always — Safari fallback / older codecs / edit history)
   const origExt = (originalMime.split('/')[1] || 'mp4').replace(/[^a-z0-9]/g, '');
-  const originalUrl = await uploadToBucket(
-    admin,
-    `videos/${uid}.${origExt}`,
-    buffer,
-    originalMime
-  );
+  const originalPath = `videos/${uid}.${origExt}`;
+  const originalUrl = await uploadToBucket(admin, originalPath, buffer, originalMime);
 
-  // 2. Upload WebM (browser preference if present)
+  // 2. Upload WebM if produced
   if (t.webm) {
-    const webmUrl = await uploadToBucket(
-      admin,
-      `videos/${uid}.webm`,
-      t.webm,
-      'video/webm'
-    );
-    // Most-compatible source first per <video> rules — but the BROWSER picks
-    // the first it can play. WebM-supporting browsers (all modern) will use it.
+    webmPath = `videos/${uid}.webm`;
+    webmUrl = await uploadToBucket(admin, webmPath, t.webm, 'video/webm');
     sources.push({ src: webmUrl, type: 'video/webm' });
   }
-
   sources.push({ src: originalUrl, type: originalMime });
 
   // 3. Upload poster
   if (t.poster) {
-    posterUrl = await uploadToBucket(
-      admin,
-      `videos/${uid}-poster.webp`,
-      t.poster,
-      'image/webp'
-    );
+    posterPath = `videos/${uid}-poster.webp`;
+    posterUrl = await uploadToBucket(admin, posterPath, t.poster, 'image/webp');
   }
 
-  return {
+  const result = {
     type: 'video',
     sources,
     poster: posterUrl,
-    bytes: {
-      original: t.originalBytes,
-      webm: t.webmBytes,
-      poster: t.posterBytes,
-    },
+    bytes: { original: t.originalBytes, webm: t.webmBytes, poster: t.posterBytes },
     transcoded: t.transcoded,
-    transcodeSkipReason: t.reason,  // 'too_large' | 'transcode_failed' | null
+    transcodeSkipReason: t.reason,
   };
+
+  // Register in media_library
+  await registerMedia({
+    filename: `${uid}.${origExt}`,
+    originalFilename,
+    storagePath: originalPath,
+    fileUrl: webmUrl || originalUrl,
+    fileType: webmUrl ? 'video/webm' : originalMime,
+    mediaKind: 'video',
+    fileSize: webmUrl ? t.webmBytes : t.originalBytes,
+    source: 'upload',
+    variants: { sources, poster: posterUrl, originalPath, webmPath, posterPath },
+    uploadedBy,
+  });
+
+  return result;
 }
 
 export async function POST(req) {
@@ -169,9 +194,17 @@ export async function POST(req) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const uid = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
+    // Best-effort capture of who uploaded this for media_library
+    let uploadedBy = null;
+    try {
+      const userClient = await createUserClient();
+      const { data: { user } } = await userClient.auth.getUser();
+      uploadedBy = user?.id || null;
+    } catch { /* anonymous upload still allowed */ }
+
     const result = isImage
-      ? await processImage(buffer, uid)
-      : await processVideo(buffer, uid, file.type || 'video/mp4');
+      ? await processImage(buffer, uid, file.name || `${uid}.bin`, uploadedBy)
+      : await processVideo(buffer, uid, file.type || 'video/mp4', file.name || `${uid}.bin`, uploadedBy);
 
     return NextResponse.json({ success: true, result });
   } catch (err) {

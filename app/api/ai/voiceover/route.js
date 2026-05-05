@@ -140,14 +140,32 @@ export async function POST(req) {
 
         const dur = estimateDurationSec(chunk, speed);
         totalDuration += dur;
+        const url = `${baseUrl}/${path}`;
         results.push({
           index: i + 1,
-          url: `${baseUrl}/${path}`,
+          url,
           path,
           text: chunk,
           durationEstimate: dur,
           bytes: audioBuffer.byteLength,
         });
+
+        // Register each chunk in the media_library so they appear in /admin/organization/media
+        try {
+          const { registerMedia } = await import('@/lib/media/library');
+          await registerMedia({
+            filename: `${sessionId}-${String(i + 1).padStart(3, '0')}.mp3`,
+            originalFilename: `voiceover-${sessionId}-chunk${i + 1}.mp3`,
+            storagePath: path,
+            fileUrl: url,
+            fileType: 'audio/mpeg',
+            mediaKind: 'audio',
+            fileSize: audioBuffer.byteLength,
+            durationSec: Math.round(dur),
+            source: 'voiceover',
+            variants: { sessionId, chunkIndex: i + 1, voice, speed, model },
+          });
+        } catch { /* best-effort */ }
       } catch (chunkErr) {
         console.error('[Voiceover chunk error]', i, chunkErr);
         results.push({

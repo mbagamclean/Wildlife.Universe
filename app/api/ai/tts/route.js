@@ -78,6 +78,24 @@ export async function POST(req) {
     if (upload.error) throw new Error(upload.error.message);
 
     const url = `${publicBaseUrl()}/${path}`;
+
+    // Register in media_library so TTS clips appear in /admin/organization/media
+    try {
+      const { registerMedia } = await import('@/lib/media/library');
+      await registerMedia({
+        filename: `${uid}.mp3`,
+        originalFilename: `tts-${voice}-${uid}.mp3`,
+        storagePath: path,
+        fileUrl: url,
+        fileType: 'audio/mpeg',
+        mediaKind: 'audio',
+        fileSize: audioBuffer.byteLength,
+        durationSec: Math.round(estimateDurationSec(text, speed)),
+        source: 'tts',
+        variants: { voice, speed, model },
+      });
+    } catch { /* best-effort */ }
+
     return NextResponse.json({
       success: true,
       data: {

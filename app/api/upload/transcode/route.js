@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server';
 import { createClient as createServiceClient } from '@supabase/supabase-js';
 import { createClient } from '@/lib/supabase/server';
 import { transcodeVideo } from '@/lib/media/transcode';
+import { updateMediaVariants } from '@/lib/media/library';
 
 export const runtime = 'nodejs';
 // Up to 5 minutes for VP9 encoding. Requires Vercel Pro plan to honour
@@ -153,6 +154,27 @@ export async function POST(req) {
       result.posterUrl = publicUrlFor(posterPath);
       result.posterBytes = t.poster.length;
     }
+  }
+
+  // Sync the media_library row — primary URL → WebM if we got it,
+  // variants get the new poster + WebM paths so the Media admin can
+  // delete them properly.
+  if (result.webmUrl || result.posterUrl) {
+    const webmPath = result.webmUrl ? path.replace(/\.[^.]+$/, '') + '.webm' : null;
+    const posterPath = result.posterUrl ? path.replace(/\.[^.]+$/, '') + '-poster.webp' : null;
+    await updateMediaVariants(path, {
+      fileUrl: result.webmUrl || undefined,
+      source: result.transcoded ? 'transcoded' : undefined,
+      variants: {
+        sources: [
+          ...(result.webmUrl ? [{ src: result.webmUrl, type: 'video/webm' }] : []),
+          // The original source URL is reconstructed by the consumer from storage_path
+        ],
+        poster: result.posterUrl,
+        webmPath,
+        posterPath,
+      },
+    });
   }
 
   return NextResponse.json({ success: true, data: result });

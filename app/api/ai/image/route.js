@@ -31,11 +31,36 @@ async function uploadToSupabase(imageBuffer, name) {
   if (r1.error) throw new Error(r1.error.message);
   if (r2.error) throw new Error(r2.error.message);
   const base = `${process.env.NEXT_PUBLIC_SUPABASE_URL}/storage/v1/object/public/${BUCKET}`;
-  return {
+  const result = {
     avif: `${base}/ai/${name}.avif`,
     webp: `${base}/ai/${name}.webp`,
     primary: `${base}/ai/${name}.webp`,
   };
+
+  // Register in media_library so AI-generated images show up in /admin/organization/media
+  try {
+    const { registerMedia } = await import('@/lib/media/library');
+    await registerMedia({
+      filename: `${name}.webp`,
+      originalFilename: `ai-${name}.webp`,
+      storagePath: `ai/${name}.webp`,
+      fileUrl: result.webp,
+      fileType: 'image/webp',
+      mediaKind: 'image',
+      fileSize: webpBuf.length,
+      source: 'ai-generated',
+      variants: {
+        sources: [
+          { src: result.avif, type: 'image/avif' },
+          { src: result.webp, type: 'image/webp' },
+        ],
+        avifPath: `ai/${name}.avif`,
+        webpPath: `ai/${name}.webp`,
+      },
+    });
+  } catch { /* never break image gen on bookkeeping */ }
+
+  return result;
 }
 
 async function generateWithOpenAI(prompt, apiKey) {
