@@ -179,23 +179,60 @@ export default function HomepageVideosPage() {
   const uploadFile = async (file) => {
     if (!file) return;
     setUploading(true); setError(null);
+
+    // Helper that picks the best video URL out of a result.sources array
+    const pickBestUrl = (r) => {
+      const sources = r?.sources || [];
+      return sources.find((s) => s.type === 'video/webm')?.src
+        || sources.find((s) => s.type?.startsWith('video/'))?.src
+        || sources[0]?.src;
+    };
+
     try {
       const result = await uploadMedia(file, {
         onProgress: (pct) => setSaved(`Uploading… ${pct}%`),
       });
-      // Prefer WebM if produced (smaller, modern), otherwise the original source.
-      const sources = result?.sources || [];
-      const url = sources.find((s) => s.type === 'video/webm')?.src
-        || sources.find((s) => s.type?.startsWith('video/'))?.src
-        || sources[0]?.src;
-      if (url) {
-        updateForm('sourceUrl', url);
+
+      // Phase 1: original-only sources are already in `result`. Set them
+      // on the form NOW so the user can save immediately.
+      const initialUrl = pickBestUrl(result);
+      if (initialUrl) {
+        updateForm('sourceUrl', initialUrl);
         updateForm('sourceType', 'upload');
-        flash('Upload complete. Add a title and save.');
+      }
+      flash('Upload complete. Transcoding to WebM in background — you can save now.');
+      setUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = '';
+
+      // Phase 2: if a transcodePromise was returned (videos only), wait for
+      // it and upgrade the form fields when WebM + poster land. The user can
+      // save during this window — they just won't get the WebM benefit.
+      if (result?.transcodePromise) {
+        const upgraded = await result.transcodePromise;
+        if (upgraded) {
+          const webmUrl = pickBestUrl(upgraded);
+          if (webmUrl && webmUrl !== initialUrl) {
+            updateForm('sourceUrl', webmUrl);
+          }
+          // Auto-fill the thumbnail field with the auto-generated poster
+          // ONLY if the user hasn't typed a custom thumbnail URL.
+          if (upgraded.poster && !form?.thumbnail) {
+            updateForm('thumbnail', upgraded.poster);
+          }
+          if (upgraded.transcoded && upgraded.bytes?.webm) {
+            const orig = upgraded.bytes.original;
+            const webm = upgraded.bytes.webm;
+            const pct = orig > 0 ? Math.round(((orig - webm) / orig) * 100) : 0;
+            flash(`Optimized to WebM — ${(orig/1024/1024).toFixed(1)} MB → ${(webm/1024/1024).toFixed(1)} MB (saved ${pct}%).`);
+          } else if (upgraded.transcodeSkipReason === 'too_large') {
+            flash('File exceeds 120 MB transcode cap. Stored at original size.');
+          } else if (upgraded.transcodeSkipReason === 'transcode_failed') {
+            flash('Transcoding failed. Stored at original quality — playback still works.');
+          }
+        }
       }
     } catch (e) {
       setError(e.message);
-    } finally {
       setUploading(false);
       if (fileInputRef.current) fileInputRef.current.value = '';
     }
