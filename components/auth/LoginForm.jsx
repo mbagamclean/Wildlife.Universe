@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import { useAuth } from '@/lib/auth/AuthContext';
@@ -10,11 +10,15 @@ export function LoginForm() {
   const router = useRouter();
   const params = useSearchParams();
   const next = params.get('next') || '/profile';
+  const urlError = params.get('error');
   const { signIn } = useAuth();
   const [email, setEmail]         = useState('');
   const [password, setPassword]   = useState('');
   const [error, setError]         = useState('');
   const [submitting, setSubmitting] = useState(false);
+
+  // Surface OAuth callback failures (?error=…) once on mount.
+  useEffect(() => { if (urlError) setError(urlError); }, [urlError]);
 
   const submit = async (e) => {
     e.preventDefault();

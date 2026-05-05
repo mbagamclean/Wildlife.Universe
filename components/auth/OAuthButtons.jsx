@@ -7,6 +7,8 @@ import { useAuth } from '@/lib/auth/AuthContext';
 const providers = [
   {
     name: 'Google',
+    id: 'google',
+    enabled: true,
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5">
         <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4" />
@@ -18,6 +20,8 @@ const providers = [
   },
   {
     name: 'Microsoft',
+    id: 'azure',
+    enabled: false,
     icon: (
       <svg viewBox="0 0 21 21" className="h-5 w-5">
         <rect x="1" y="1" width="9" height="9" fill="#F25022" />
@@ -29,10 +33,12 @@ const providers = [
   },
   {
     name: 'Facebook',
+    id: 'facebook',
+    enabled: false,
     icon: (
       <svg viewBox="0 0 24 24" className="h-5 w-5">
         <path d="M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.469h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.469h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z" fill="#1877F2" />
-        <path d="M16.671 15.542l.532-3.469h-3.328v-2.25c0-.949.465-1.874 1.956-1.874h1.514V5.006s-1.374-.235-2.686-.235c-2.741 0-4.533 1.662-4.533 4.669v2.63H7.078v3.469h3.048v8.385a12.09 12.09 0 003.749 0v-8.385h2.796z" fill="#ffffff" />
+        <path d="M16.671 15.542l.532-3.469h-3.328v-2.25c0-.949.465-1.874 1.956-1.874h1.514V5.006s-1.374-.235-2.686-.235c-2.741 0-4.533 1.662-4.533 4.669v2.63H7.078v3.469h3.048v8.385a12.09 12.09 0 003.749 0v-8.385h2.796z" fill="#1877F2" />
       </svg>
     ),
   },
@@ -40,46 +46,67 @@ const providers = [
 
 export function OAuthButtons() {
   const { signInWithOAuth } = useAuth();
-  const router = useRouter();
   const searchParams = useSearchParams();
   const next = searchParams.get('next') || '/profile';
-  
   const [loadingProvider, setLoadingProvider] = useState(null);
+  const [error, setError] = useState(null);
 
-  const handleOAuth = async (name) => {
-    setLoadingProvider(name);
+  const handleOAuth = async (provider) => {
+    setLoadingProvider(provider.id);
+    setError(null);
     try {
-      // Small simulated delay for realistic UX
-      await new Promise(r => setTimeout(r, 700));
-      await signInWithOAuth(name);
-      router.push(next);
+      await signInWithOAuth(provider.id, { next });
+      // signInWithOAuth triggers a full-page redirect, so this code only
+      // runs if the redirect itself failed.
     } catch (err) {
-      console.error(err);
-    } finally {
-      if (document.activeElement) {
-        document.activeElement.blur();
-      }
-      // Only clear loading state if we failed, otherwise let it spin until unmount
+      setError(err?.message || `${provider.name} sign-in failed.`);
+      setLoadingProvider(null);
     }
   };
 
   return (
     <div className="space-y-2.5">
-      {providers.map((p) => (
-        <button
-          key={p.name}
-          type="button"
-          disabled
-          title="Coming soon"
-          className="glass flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium opacity-70"
-        >
-          {p.icon}
-          <span>Continue with {p.name}</span>
-          <span className="ml-1 rounded-full bg-[var(--color-primary)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-primary)]">
-            Soon
-          </span>
-        </button>
-      ))}
+      {error && (
+        <div className="rounded-xl border border-red-500/30 bg-red-500/10 px-4 py-2 text-xs text-red-600 dark:text-red-300">
+          {error}
+        </div>
+      )}
+      {providers.map((p) => {
+        const loading = loadingProvider === p.id;
+        if (!p.enabled) {
+          return (
+            <button
+              key={p.id}
+              type="button"
+              disabled
+              title="Coming soon"
+              className="glass flex w-full cursor-not-allowed items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium opacity-70"
+            >
+              {p.icon}
+              <span>Continue with {p.name}</span>
+              <span className="ml-1 rounded-full bg-[var(--color-primary)]/15 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-[var(--color-primary)]">
+                Soon
+              </span>
+            </button>
+          );
+        }
+        return (
+          <button
+            key={p.id}
+            type="button"
+            onClick={() => handleOAuth(p)}
+            disabled={loading}
+            className="glass flex w-full items-center justify-center gap-2.5 rounded-xl px-4 py-3 text-sm font-medium transition-all hover:scale-[1.01] hover:shadow-md disabled:cursor-wait disabled:opacity-60"
+          >
+            {loading ? (
+              <span className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-[var(--color-primary)]/30 border-t-[var(--color-primary)]" />
+            ) : (
+              p.icon
+            )}
+            <span>{loading ? 'Redirecting…' : `Continue with ${p.name}`}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

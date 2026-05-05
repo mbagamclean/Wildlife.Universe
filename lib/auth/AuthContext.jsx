@@ -98,10 +98,11 @@ export function AuthProvider({ children }) {
       setUser(u);
       return u;
     },
-    signInWithOAuth: async (provider) => {
-      const u = await signInWithOAuth(provider);
-      setUser(u);
-      return u;
+    signInWithOAuth: async (provider, opts) => {
+      // Triggers a full-page redirect; nothing to do with state here.
+      // The /auth/callback route handles the return trip and a fresh
+      // page load picks up the new session via INITIAL_SESSION.
+      await signInWithOAuth(provider, opts);
     },
     signUp: async (payload) => {
       const u = await signUp(payload);
