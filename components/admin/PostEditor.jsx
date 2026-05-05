@@ -43,7 +43,7 @@ import { SITE_URL } from '@/lib/seo';
 // from SITE_URL so it always matches the canonical domain.
 const SLUG_PREFIX = (() => {
   try { return new URL(SITE_URL).host + '/posts/'; }
-  catch { return 'wildlifeuniverse.org/posts/'; }
+  catch { return 'www.wildlifeuniverse.org/posts/'; }
 })();
 
 // Plain always-visible card used in the editor right rail.
