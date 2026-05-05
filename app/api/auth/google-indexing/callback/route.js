@@ -96,20 +96,10 @@ export async function GET(req) {
     return failRedirect('no_refresh_token', next);
   }
 
-  // Best-effort fetch of the granting user's email for display.
-  let grantedEmail = null;
-  if (token.access_token) {
-    try {
-      const ures = await fetch('https://openidconnect.googleapis.com/v1/userinfo', {
-        headers: { Authorization: `Bearer ${token.access_token}` },
-        signal: AbortSignal.timeout(5000),
-      });
-      const u = await ures.json();
-      grantedEmail = u?.email || null;
-    } catch {
-      // ignore
-    }
-  }
+  // We no longer request openid/email scopes (avoids OIDC mixing with the
+  // restricted Indexing scope). The granting user's email is captured from
+  // the Supabase session that started the flow instead.
+  const grantedEmail = user.email || null;
 
   const saved = await saveGoogleRefreshToken({
     refreshToken: token.refresh_token,

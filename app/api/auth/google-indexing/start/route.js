@@ -17,11 +17,10 @@ export const runtime = 'nodejs';
 
 const STAFF_ROLES = new Set(['ceo', 'admin']);
 
-const SCOPES = [
-  'https://www.googleapis.com/auth/indexing',
-  'openid',
-  'email',
-];
+// Single restricted scope — the only one the Indexing API needs.
+// We deliberately omit openid/email so the OAuth consent screen only has
+// to declare this one scope and we avoid OIDC-mixing policy friction.
+const SCOPES = ['https://www.googleapis.com/auth/indexing'];
 
 const REDIRECT_URI =
   process.env.GOOGLE_OAUTH_REDIRECT_URI ||
