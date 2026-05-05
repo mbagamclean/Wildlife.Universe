@@ -1,8 +1,79 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { Play, Pause, Square, Volume2, Languages, ChevronDown } from 'lucide-react';
+import { Play, Pause, Square, Volume2, Languages, ChevronDown, Loader2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+
+/* Audio-voice value → translate-API target language name.
+   Listed only for the pairs where both stacks support the language; for
+   anything else the translate chip stays hidden so we never offer a
+   translation we can't actually deliver. The translate API names come from
+   /app/api/ai/translate/route.js SUPPORTED_LANGUAGES. */
+const TRANSLATE_TARGET_BY_AUDIO_LANG = {
+  'en-US': 'English',
+  'en-GB': 'English',
+  'sw':    'Swahili',
+  'fr-FR': 'French',
+  'es-ES': 'Spanish',
+  'de-DE': 'German',
+  'pt-BR': 'Portuguese',
+  'pt-PT': 'Portuguese',
+  'it-IT': 'Italian',
+  'nl-NL': 'Dutch',
+  'ru-RU': 'Russian',
+  'tr-TR': 'Turkish',
+  'ar':    'Arabic',
+  'hi-IN': 'Hindi',
+  'zh-CN': 'Chinese (Simplified)',
+  'ja-JP': 'Japanese',
+  'ko-KR': 'Korean',
+};
+
+/* Translate API truncates at 16 000 chars per call. We chunk a little
+   under that at sentence boundaries so a longer article gets translated
+   in parallel pieces and rejoined, with no silent truncation. */
+const CHUNK_MAX_CHARS = 9000;
+
+function chunkAtSentenceBoundary(text, max = CHUNK_MAX_CHARS) {
+  if (!text || text.length <= max) return text ? [text] : [];
+  const parts = text.split(/(?<=[.!?])\s+/);
+  const chunks = [];
+  let buf = '';
+  for (const p of parts) {
+    if ((buf ? buf.length + 1 : 0) + p.length > max && buf) {
+      chunks.push(buf);
+      buf = p;
+    } else {
+      buf = buf ? `${buf} ${p}` : p;
+    }
+    // A single sentence longer than the cap — hard-split it.
+    while (buf.length > max) {
+      chunks.push(buf.slice(0, max));
+      buf = buf.slice(max);
+    }
+  }
+  if (buf) chunks.push(buf);
+  return chunks;
+}
+
+async function translateText(text, targetLanguage, signal) {
+  const chunks = chunkAtSentenceBoundary(text);
+  if (chunks.length === 0) return '';
+  const results = await Promise.all(chunks.map(async (chunk) => {
+    const res = await fetch('/api/ai/translate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: chunk, targetLanguage, preserveTone: true }),
+      signal,
+    });
+    const json = await res.json().catch(() => ({}));
+    if (!res.ok || !json.success) {
+      throw new Error(json.error || `Translate failed (${res.status})`);
+    }
+    return (json.data?.translation || '').trim();
+  }));
+  return results.filter(Boolean).join(' ');
+}
 
 const LANG_GROUPS = [
   {
@@ -160,11 +231,25 @@ export function ArticleAudioPlayer({ title, body, onWordChange }) {
   const [status, setStatus]     = useState('idle');
   const [lang, setLang]         = useState('en-US');
   const [progress, setProgress] = useState(0);
-  const uttRef     = useRef(null);
-  const wordsRef   = useRef([]);
-  const wordIdxRef = useRef(0);
+  const [translations, setTranslations]   = useState({});      // { [audioLang]: translatedText }
+  const [translating, setTranslating]     = useState(false);
+  const [translateErr, setTranslateErr]   = useState(null);
+  const uttRef        = useRef(null);
+  const wordsRef      = useRef([]);
+  const wordIdxRef    = useRef(0);
+  const translateAbortRef = useRef(null);
 
-  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
+  useEffect(() => () => {
+    window.speechSynthesis?.cancel();
+    translateAbortRef.current?.abort();
+  }, []);
+
+  // Different post → forget every cached translation.
+  useEffect(() => {
+    setTranslations({});
+    setTranslateErr(null);
+    translateAbortRef.current?.abort();
+  }, [title, body]);
 
   // Defensive strip in case a caller still passes raw HTML — the speech
   // synthesizer should never read tag names like "p" or "h2" out loud.
@@ -181,17 +266,33 @@ export function ArticleAudioPlayer({ title, body, onWordChange }) {
           .replace(/\s+/g, ' ')
           .trim()
     : (body || '');
-  const fullText = [title, cleanBody].filter(Boolean).join('. ');
+  const originalText  = [title, cleanBody].filter(Boolean).join('. ');
+  const cachedForLang = translations[lang] || null;
+  const fullText      = cachedForLang || originalText;
 
-  const startSpeech = () => {
+  const targetLanguageName = TRANSLATE_TARGET_BY_AUDIO_LANG[lang] || null;
+  // Hide chip if there's no translation target OR the current lang is
+  // English-family and the article already looks like English-only ASCII —
+  // translation would be a no-op.
+  const articleLooksAscii = /^[\x00-\x7F\s]*$/.test(originalText.slice(0, 400));
+  const showTranslateChip =
+    !!targetLanguageName &&
+    !!originalText &&
+    !(targetLanguageName === 'English' && articleLooksAscii);
+
+  /* startSpeech can take an explicit text override so the post-translate
+     auto-play doesn't have to wait for setState to flush. */
+  const startSpeech = (overrideText) => {
     if (!window.speechSynthesis) return;
+    const text = overrideText !== undefined ? overrideText : fullText;
+    if (!text) return;
     window.speechSynthesis.cancel();
-    wordsRef.current   = fullText.split(/\s+/).filter(Boolean);
+    wordsRef.current   = text.split(/\s+/).filter(Boolean);
     wordIdxRef.current = 0;
     setProgress(0);
 
     const speak = () => {
-      const utt = new SpeechSynthesisUtterance(fullText);
+      const utt = new SpeechSynthesisUtterance(text);
       utt.lang = lang;
       utt.rate = 0.95;
       utt.onboundary = (e) => {
@@ -244,7 +345,45 @@ export function ArticleAudioPlayer({ title, body, onWordChange }) {
 
   const handleLangChange = (v) => {
     setLang(v);
+    setTranslateErr(null);
     if (status !== 'idle') handleStop();
+  };
+
+  /* Translate the original article into the picked listening language and
+     auto-start playback in that language. Cached per audio-lang so a
+     subsequent toggle back doesn't re-hit the API. */
+  const handleTranslate = async () => {
+    if (!targetLanguageName || translating) return;
+    if (cachedForLang) {
+      // Already translated for this lang — just play.
+      startSpeech(cachedForLang);
+      return;
+    }
+    if (!originalText) return;
+
+    translateAbortRef.current?.abort();
+    translateAbortRef.current = new AbortController();
+
+    setTranslating(true);
+    setTranslateErr(null);
+    try {
+      const translated = await translateText(
+        originalText,
+        targetLanguageName,
+        translateAbortRef.current.signal
+      );
+      if (!translated) throw new Error('Empty translation');
+      setTranslations((prev) => ({ ...prev, [lang]: translated }));
+      // Auto-play in the translated language. Pass the text explicitly so
+      // the speech doesn't wait for the next render to pick up new state.
+      startSpeech(translated);
+    } catch (e) {
+      if (e?.name !== 'AbortError') {
+        setTranslateErr(e.message || 'Translation failed.');
+      }
+    } finally {
+      setTranslating(false);
+    }
   };
 
   const isActive = status !== 'idle';
@@ -265,8 +404,51 @@ export function ArticleAudioPlayer({ title, body, onWordChange }) {
             <p className="truncate text-xs text-[var(--color-fg-soft)]">{title}</p>
           </div>
         </div>
-        <LangDropdown value={lang} onChange={handleLangChange} />
+        <div className="flex items-center gap-2 shrink-0">
+          <LangDropdown value={lang} onChange={handleLangChange} />
+          {showTranslateChip && (
+            <button
+              type="button"
+              onClick={handleTranslate}
+              disabled={translating}
+              title={cachedForLang
+                ? `Article translated to ${targetLanguageName} — click to play it`
+                : `Translate this article to ${targetLanguageName} and read it aloud`}
+              aria-label={cachedForLang
+                ? `Play ${targetLanguageName} translation`
+                : `Translate article to ${targetLanguageName}`}
+              className={`inline-flex shrink-0 items-center gap-1.5 rounded-lg border px-2.5 py-2 text-xs font-semibold transition-colors disabled:opacity-60 ${
+                cachedForLang
+                  ? 'border-[#008000] bg-[#008000]/10 text-[#008000] hover:bg-[#008000]/15'
+                  : 'border-[var(--glass-border)] bg-[var(--color-bg)] text-[var(--color-fg)] hover:border-[#008000] hover:text-[#008000]'
+              }`}
+            >
+              {translating ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <span className="hidden sm:inline">Translating…</span>
+                </>
+              ) : cachedForLang ? (
+                <>
+                  <Check className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">{targetLanguageName}</span>
+                </>
+              ) : (
+                <>
+                  <Languages className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Translate</span>
+                </>
+              )}
+            </button>
+          )}
+        </div>
       </div>
+
+      {translateErr && (
+        <div role="alert" className="mx-4 mb-3 rounded-lg border border-red-500/30 bg-red-500/10 px-3 py-2 text-xs text-red-700 dark:text-red-300 sm:mx-5">
+          {translateErr}
+        </div>
+      )}
 
       {/* ── Progress bar + percentage ── */}
       <div className="px-4 sm:px-5">
@@ -277,8 +459,13 @@ export function ArticleAudioPlayer({ title, body, onWordChange }) {
           />
         </div>
         {isActive && (
-          <div className="mt-1 flex items-center justify-between">
+          <div className="mt-1 flex items-center justify-between gap-2">
             <span className="text-[10px] font-medium text-[#008000]">{progress}%</span>
+            {cachedForLang && (
+              <span className="truncate text-[10px] text-[var(--color-fg-soft)]">
+                Reading {targetLanguageName} translation
+              </span>
+            )}
             <span className="text-[10px] capitalize text-[var(--color-fg-soft)]">{status}</span>
           </div>
         )}
