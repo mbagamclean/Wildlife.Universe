@@ -25,7 +25,6 @@ import {
 import {
   TRANSLATE_TARGET_BY_AUDIO_LANG,
   translateText,
-  translateTocTitles,
 } from '@/lib/posts/translate';
 
 /* ─── helpers ─── */
@@ -360,13 +359,15 @@ export function PostView({ slug }) {
   const [tocExpanded, setTocExpanded]   = useState(false);
   const [tocBarVisible, setTocBarVisible] = useState(false);
   const [audioWordIdx, setAudioWordIdx] = useState(-1);
+  const [audioWord, setAudioWord]       = useState('');
   /* Listening language + translation cache live up here so the audio
-     player AND the table of contents can render in the same translated
-     language. Caches are keyed by audio-lang and reset when the post
-     changes. */
+     player, the table of contents AND the rendered article body can all
+     render in the same translated language. Caches are keyed by audio-lang
+     and reset when the post changes. */
   const [audioLang, setAudioLang] = useState('en-US');
-  const [translatedBodies, setTranslatedBodies] = useState({}); // { lang: text }
+  const [translatedBodies, setTranslatedBodies] = useState({}); // { lang: audio text }
   const [translatedTocs, setTranslatedTocs]     = useState({}); // { lang: ToC[] }
+  const [translatedHtmls, setTranslatedHtmls]   = useState({}); // { lang: rendered HTML }
   const [translating, setTranslating]           = useState(false);
   const [translateErr, setTranslateErr]         = useState(null);
   const translateAbortRef = useRef(null);
@@ -403,6 +404,7 @@ export function PostView({ slug }) {
   useEffect(() => {
     setTranslatedBodies({});
     setTranslatedTocs({});
+    setTranslatedHtmls({});
     setTranslateErr(null);
     translateAbortRef.current?.abort();
     return () => translateAbortRef.current?.abort();
@@ -549,21 +551,28 @@ export function PostView({ slug }) {
   const mins     = readingMins(bodyText);
   const baseToc  = headingToc.length > 0 ? headingToc : buildTocFromText(bodyText);
 
-  /* Translation orchestration. We translate the body AND the TOC titles
-     in parallel so a click on the audio player's Translate chip updates
-     both surfaces in lock-step. Cached per audio-lang. */
+  /* Translation orchestration. The translate-API prompt preserves HTML
+     tags exactly, so we send the sanitized body HTML plus the title in
+     parallel and derive everything else from the result:
+       - body display  ← translated HTML (tags preserved)
+       - TOC titles    ← re-extract from translated HTML (anchors unchanged)
+       - audio text    ← stripped translated HTML, prefixed with translated title
+     Cached per audio-lang so toggling back is instant. */
   const targetLanguageName = TRANSLATE_TARGET_BY_AUDIO_LANG[audioLang] || null;
   const translatedBody     = translatedBodies[audioLang] || null;
   const translatedTocItems = translatedTocs[audioLang] || null;
+  const translatedHtmlOut  = translatedHtmls[audioLang] || null;
+  // The body the reader actually sees: translated HTML when available,
+  // original sanitized HTML otherwise.
+  const displayBodyHtml = translatedHtmlOut || bodyHtml;
   // Show translated TOC titles when available; anchors stay the same so
-  // clicks still scroll to the original-language headings in the article.
+  // clicks still scroll to the headings in the rendered article body.
   const toc = translatedTocItems || baseToc;
 
   const handleTranslate = async () => {
     if (!targetLanguageName || translating) return null;
     if (translatedBody) return translatedBody;
-    const audioSource = [post.title, bodyText].filter(Boolean).join('. ');
-    if (!audioSource) return null;
+    if (!safeHtml) return null;
 
     translateAbortRef.current?.abort();
     translateAbortRef.current = new AbortController();
@@ -572,21 +581,29 @@ export function PostView({ slug }) {
     setTranslating(true);
     setTranslateErr(null);
     try {
-      const baseTitles = baseToc.map((t) => t.title);
-      const [body, tocTitles] = await Promise.all([
-        translateText(audioSource, targetLanguageName, signal),
-        baseTitles.length > 0
-          ? translateTocTitles(baseTitles, targetLanguageName, signal)
-          : Promise.resolve([]),
+      const [translatedHtmlRaw, translatedTitleText] = await Promise.all([
+        translateText(safeHtml, targetLanguageName, signal),
+        post?.title
+          ? translateText(post.title, targetLanguageName, signal)
+          : Promise.resolve(''),
       ]);
-      if (!body) throw new Error('Empty translation');
-      const tocItems = baseToc.map((item, i) => ({
-        ...item,
-        title: tocTitles[i] || item.title,
-      }));
-      setTranslatedBodies((prev) => ({ ...prev, [audioLang]: body }));
+      if (!translatedHtmlRaw) throw new Error('Empty translation');
+
+      // Re-inject heading IDs and pull a TOC out of the translated HTML.
+      // IDs are deterministic (post-h-N) so links from the original-language
+      // TOC still resolve once we swap the body in.
+      const { html: bodyHtmlOut, toc: tocOut } = injectHeadingIdsAndBuildToc(translatedHtmlRaw);
+      const tocItems = tocOut.length > 0 ? tocOut : baseToc;
+
+      const stripped = stripHtml(bodyHtmlOut);
+      const audioFullText = [translatedTitleText || post.title, stripped]
+        .filter(Boolean)
+        .join('. ');
+
+      setTranslatedBodies((prev) => ({ ...prev, [audioLang]: audioFullText }));
       setTranslatedTocs((prev) => ({ ...prev, [audioLang]: tocItems }));
-      return body;
+      setTranslatedHtmls((prev) => ({ ...prev, [audioLang]: bodyHtmlOut }));
+      return audioFullText;
     } catch (e) {
       if (e?.name !== 'AbortError') {
         setTranslateErr(e.message || 'Translation failed.');
@@ -600,6 +617,13 @@ export function PostView({ slug }) {
   const handleAudioLangChange = (next) => {
     setAudioLang(next);
     setTranslateErr(null);
+  };
+
+  /* Audio player tells us which word is being spoken; we render it in a
+     floating chip so readers can follow along regardless of language. */
+  const handleWordChange = (idx, word) => {
+    setAudioWordIdx(idx);
+    setAudioWord(typeof word === 'string' ? word : '');
   };
 
   return (
@@ -751,7 +775,7 @@ export function PostView({ slug }) {
                 translating={translating}
                 translateErr={translateErr}
                 onTranslate={handleTranslate}
-                onWordChange={setAudioWordIdx}
+                onWordChange={handleWordChange}
               />
 
               {/* ── Inline TOC — collapsed by default, expands on tap ── */}
@@ -835,7 +859,7 @@ export function PostView({ slug }) {
                 {bodyText ? (
                   <div
                     className="post-body"
-                    dangerouslySetInnerHTML={{ __html: bodyHtml }}
+                    dangerouslySetInnerHTML={{ __html: displayBodyHtml }}
                   />
                 ) : (
                   <p className="text-base text-[var(--color-fg-soft)]">No body content yet — the CEO can add a body in the admin panel.</p>
@@ -883,6 +907,26 @@ export function PostView({ slug }) {
           <PostLabelSections post={post} />
         </Container>
       </section>
+
+      {/* ── Reading indicator: floats above the back-to-top button while
+              the audio player is speaking and shows the current word being
+              read, in whatever language playback is in. */}
+      {audioWord && (
+        <div
+          aria-live="polite"
+          className="pointer-events-none fixed bottom-20 left-1/2 z-50 -translate-x-1/2 max-w-[90vw] sm:bottom-24"
+        >
+          <div className="flex items-center gap-2.5 rounded-full border border-[#008000]/40 bg-[var(--color-bg-deep)]/95 px-4 py-2 shadow-2xl shadow-black/30 backdrop-blur">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-[#008000] opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-[#008000]" />
+            </span>
+            <span className="truncate text-sm font-semibold text-[#008000]">
+              {audioWord}
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* ── Fixed mobile TOC bar — appears after scrolling into article ── */}
       <MobileTocBar

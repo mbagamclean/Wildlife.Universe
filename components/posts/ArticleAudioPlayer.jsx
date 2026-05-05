@@ -190,8 +190,41 @@ export function ArticleAudioPlayer({
   const uttRef        = useRef(null);
   const wordsRef      = useRef([]);
   const wordIdxRef    = useRef(0);
+  // We use a ref-mirrored status inside the watchdog so the interval can
+  // see the latest status without re-binding every render.
+  const statusRef     = useRef('idle');
+  useEffect(() => { statusRef.current = status; }, [status]);
 
   useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
+
+  /* Watchdog: handles two known issues with window.speechSynthesis on
+     Chrome/Edge:
+       1. After ~15 seconds of continuous speech the engine silently
+          pauses. Calling pause()+resume() on a steady cadence keeps it
+          flowing.
+       2. utt.onend doesn't always fire on long utterances. We poll the
+          .speaking flag and clean up if it's gone false while we still
+          think we're playing — that gives us a reliable auto-stop. */
+  useEffect(() => {
+    if (status !== 'playing') return undefined;
+    const id = window.setInterval(() => {
+      const synth = window.speechSynthesis;
+      if (!synth) return;
+      if (statusRef.current !== 'playing') return;
+      if (!synth.speaking && !synth.paused) {
+        // Speech has actually finished — sync UI back to idle.
+        setStatus('idle');
+        setProgress(0);
+        wordIdxRef.current = 0;
+        onWordChange?.(-1, '');
+        return;
+      }
+      // Keep the engine alive past Chrome's silent 15s cap.
+      synth.pause();
+      synth.resume();
+    }, 8000);
+    return () => window.clearInterval(id);
+  }, [status, onWordChange]);
 
   // Defensive strip in case a caller still passes raw HTML — the speech
   // synthesizer should never read tag names like "p" or "h2" out loud.
@@ -238,13 +271,24 @@ export function ArticleAudioPlayer({
         if (e.name === 'word') {
           const idx = wordIdxRef.current;
           wordIdxRef.current += 1;
-          onWordChange?.(idx);
+          const word = wordsRef.current[idx] || '';
+          onWordChange?.(idx, word);
           const total = wordsRef.current.length;
           setProgress(total > 0 ? Math.round((idx / total) * 100) : 0);
         }
       };
-      utt.onend   = () => { setStatus('idle'); setProgress(0); onWordChange?.(-1); };
-      utt.onerror = () => { setStatus('idle'); setProgress(0); onWordChange?.(-1); };
+      utt.onend = () => {
+        setStatus('idle');
+        setProgress(0);
+        wordIdxRef.current = 0;
+        onWordChange?.(-1, '');
+      };
+      utt.onerror = () => {
+        setStatus('idle');
+        setProgress(0);
+        wordIdxRef.current = 0;
+        onWordChange?.(-1, '');
+      };
       uttRef.current = utt;
       window.speechSynthesis.speak(utt);
       setStatus('playing');
@@ -278,7 +322,7 @@ export function ArticleAudioPlayer({
     window.speechSynthesis?.cancel();
     setStatus('idle');
     setProgress(0);
-    onWordChange?.(-1);
+    onWordChange?.(-1, '');
     wordIdxRef.current = 0;
   };
 
