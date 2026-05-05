@@ -79,7 +79,7 @@ INSERT INTO categories (slug, name, labels) VALUES
   ('plants',  'Plants',  ARRAY['Trees','Shrubs','Herbs','Vines']),
   ('birds',   'Birds',   ARRAY['Basal','Waterfowl','Coastal','Raptors','Land','Song']),
   ('insects', 'Insects', ARRAY['Porifera','Cnidaria','Platyhelminthes','Nematoda','Annelida','Mollusca','Arthropoda','Echinodermata']),
-  ('posts',   'Posts',   ARRAY['How','Why','Tourism','Conservation','Articles'])
+  ('posts',   'Posts',   ARRAY['How Questions','Why Questions','Tourism','Conservation','Articles'])
 ON CONFLICT (slug) DO NOTHING;
 
 -- ============================================================

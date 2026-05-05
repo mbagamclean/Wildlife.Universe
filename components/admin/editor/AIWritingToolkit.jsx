@@ -176,6 +176,7 @@ export function AIWritingToolkit({
   metaDescription = '',
   metaKeywords = '',
   category = '',
+  label = '',
   excerpt = '',
   cover = null,
   palette = { from: '#0c4a1a', via: '#3aa15a', to: '#d4af37' },
@@ -212,6 +213,8 @@ export function AIWritingToolkit({
             toneIntensity: store.toneIntensity,
             customPrompt: extraPrompt || customPrompt,
             wordTarget: '4,000-5,000',
+            category,
+            label,
           },
         }),
       });

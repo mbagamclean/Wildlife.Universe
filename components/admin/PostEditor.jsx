@@ -1029,6 +1029,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
                   metaDescription={metaDesc}
                   metaKeywords={metaKw}
                   category={currentCat?.name || ''}
+                  label={label}
                   excerpt={excerpt}
                   cover={cover}
                   palette={palette}
