@@ -166,7 +166,22 @@ export function ArticleAudioPlayer({ title, body, onWordChange }) {
 
   useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
 
-  const fullText = [title, body].filter(Boolean).join('. ');
+  // Defensive strip in case a caller still passes raw HTML — the speech
+  // synthesizer should never read tag names like "p" or "h2" out loud.
+  const cleanBody = typeof body === 'string' && /<\w+[^>]*>/.test(body)
+    ? body.replace(/<style[\s\S]*?<\/style>/gi, ' ')
+          .replace(/<script[\s\S]*?<\/script>/gi, ' ')
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/&nbsp;/g, ' ')
+          .replace(/&amp;/g, '&')
+          .replace(/&lt;/g, '<')
+          .replace(/&gt;/g, '>')
+          .replace(/&quot;/g, '"')
+          .replace(/&#39;/g, "'")
+          .replace(/\s+/g, ' ')
+          .trim()
+    : (body || '');
+  const fullText = [title, cleanBody].filter(Boolean).join('. ');
 
   const startSpeech = () => {
     if (!window.speechSynthesis) return;

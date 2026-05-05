@@ -16,6 +16,12 @@ import { ArticleAudioPlayer } from './ArticleAudioPlayer';
 import { ArticleReactions } from './ArticleReactions';
 import { PostLabelSections } from './PostLabelSections';
 import { categories, labelSlug } from '@/lib/mock/categories';
+import {
+  bodyToHtml,
+  sanitizeBodyHtml,
+  injectHeadingIdsAndBuildToc,
+  stripHtml,
+} from '@/lib/posts/html';
 
 /* ─── helpers ─── */
 function categoryName(slug) {
@@ -29,33 +35,15 @@ function formatDate(iso) {
 function readingMins(text) {
   return Math.max(1, Math.round(((text || '').trim().split(/\s+/).filter(Boolean).length) / 200));
 }
-/* Split body into sections for TOC + rendering.
-   Priority 1: natural double-newline paragraph breaks.
-   Priority 2: sentence-boundary split (period/!/? + space + capital letter).
-   This ensures even single-paragraph posts with 2+ sentences get sections. */
-function splitIntoSections(body) {
-  if (!body) return [];
-  const byPara = body.split(/\n\s*\n/).map((p) => p.trim()).filter(Boolean);
-  if (byPara.length >= 2) return byPara;
-  // Split at sentence boundaries: end-punctuation + whitespace + capital/digit
-  const sentences = body
-    .replace(/([.!?])\s+([A-Z0-9"'])/g, '$1\n$2')
-    .split('\n')
-    .map((s) => s.trim())
-    .filter(Boolean);
-  if (sentences.length < 2) return [body.trim()];
-  // Group into at most 6 sections (1-2 sentences each)
-  const perSection = Math.max(1, Math.ceil(sentences.length / 6));
-  const sections = [];
-  for (let i = 0; i < sentences.length; i += perSection) {
-    sections.push(sentences.slice(i, i + perSection).join(' '));
-  }
-  return sections;
-}
-
-/* Build TOC from sections. Uses the first complete sentence of each section
-   as the heading title — much more readable than arbitrary word snippets. */
-function buildToc(paragraphs) {
+/* TOC from a plain-text body — used as a fallback when an HTML body has
+   no h1/h2/h3 headings. Splits by paragraph, then sentence boundary,
+   then takes up to 7 evenly-spaced anchors. */
+function buildTocFromText(text) {
+  if (!text) return [];
+  const paragraphs = text
+    .split(/(?:\n\s*\n|\.\s+(?=[A-Z0-9"']))/)
+    .map((p) => p.trim())
+    .filter((p) => p.length > 0);
   if (paragraphs.length < 2) return [];
   const step = Math.max(1, Math.floor(paragraphs.length / 7));
   const items = [];
@@ -64,7 +52,7 @@ function buildToc(paragraphs) {
     const dot = raw.search(/[.!?]/);
     const full = dot > 8 ? raw.slice(0, dot + 1) : raw;
     const title = full.length > 72 ? `${full.slice(0, 69)}…` : full;
-    items.push({ id: `para-${i}`, title, paraIndex: i });
+    items.push({ id: `post-text-anchor-${i}`, title, level: 2 });
   }
   return items;
 }
@@ -462,22 +450,27 @@ export function PostView({ slug }) {
     return () => observer.disconnect();
   }, [loaded]);
 
-  /* active TOC */
+  /* active TOC — finds the heading nearest the viewport center using the
+     injected IDs on h1/h2/h3 inside the rendered article body. */
   useEffect(() => {
-    if (!paraRefs.current.length) return;
+    if (!loaded || !post) return undefined;
     const fn = () => {
+      const root = articleBodyRef.current;
+      if (!root) return;
+      const headings = root.querySelectorAll('h1[id], h2[id], h3[id]');
+      if (headings.length === 0) return;
       const mid = window.innerHeight / 2;
       let best = 0, bestDist = Infinity;
-      paraRefs.current.forEach((el, i) => {
-        if (!el) return;
+      headings.forEach((el, i) => {
         const d = Math.abs(el.getBoundingClientRect().top - mid);
         if (d < bestDist) { bestDist = d; best = i; }
       });
       setActiveToc(best);
     };
+    fn();
     window.addEventListener('scroll', fn, { passive: true });
     return () => window.removeEventListener('scroll', fn);
-  }, [loaded]);
+  }, [loaded, post]);
 
   /* auto-scroll to keep highlighted word in view */
   useEffect(() => {
@@ -522,20 +515,15 @@ export function PostView({ slug }) {
   }
 
   const palette    = post.coverPalette || { from: '#0c4a1a', via: '#3aa15a', to: '#d4af37' };
-  const paragraphs = splitIntoSections(post.body || '');
-  const mins       = readingMins(post.body);
-  const toc        = buildToc(paragraphs);
-  const firstPart  = paragraphs.slice(0, 3);
-
-  /* word offsets: fullText = title + '. ' + body, so body starts after title words */
-  const titleWordCount = (post.title || '').split(/\s+/).filter(Boolean).length;
-  let _wOff = titleWordCount;
-  const paraWordStarts = paragraphs.map((para) => {
-    const start = _wOff;
-    _wOff += para.split(/\s+/).filter(Boolean).length;
-    return start;
-  });
-  const restPart   = paragraphs.slice(3);
+  /* HTML pipeline: editor saves Tiptap HTML; we sanitize + inject heading
+     IDs (for the TOC) and render with dangerouslySetInnerHTML. The flat
+     text we strip from the HTML is what feeds the audio player and the
+     reading-time / word-count math. */
+  const safeHtml = sanitizeBodyHtml(bodyToHtml(post.body));
+  const { html: bodyHtml, toc: headingToc } = injectHeadingIdsAndBuildToc(safeHtml);
+  const bodyText = stripHtml(safeHtml);
+  const mins     = readingMins(bodyText);
+  const toc      = headingToc.length > 0 ? headingToc : buildTocFromText(bodyText);
 
   return (
     <article>
@@ -672,8 +660,10 @@ export function PostView({ slug }) {
             {/* ── Main content column ── */}
             <div className="flex min-w-0 flex-col gap-6">
 
-              {/* Audio player — has its own card already */}
-              <ArticleAudioPlayer title={post.title} body={post.body} onWordChange={setAudioWordIdx} />
+              {/* Audio player — has its own card already.
+                  Pass the stripped plain-text so the synthesizer doesn't
+                  read tag names aloud. */}
+              <ArticleAudioPlayer title={post.title} body={bodyText} onWordChange={setAudioWordIdx} />
 
               {/* ── Inline TOC — collapsed by default, expands on tap ── */}
               {toc.length >= 2 && (
@@ -746,41 +736,21 @@ export function PostView({ slug }) {
                 </div>
               )}
 
-              {/* Article body — its own card */}
+              {/* Article body — its own card.
+                  Renders the editor's Tiptap HTML directly so paragraphs,
+                  headings, lists, links, embeds, and inline formatting
+                  display correctly instead of as literal "<p>" text. The
+                  HTML has already been sanitized (XSS-safe) and had stable
+                  IDs injected onto headings to power the TOC. */}
               <div ref={articleBodyRef} className="rounded-2xl border border-[var(--glass-border)] bg-[var(--color-bg-deep)] p-5 transition-all duration-500 hover:border-[#d4af37]/25 hover:shadow-[0_20px_56px_rgba(0,0,0,0.08),0_4px_20px_rgba(212,175,55,0.10),0_2px_8px_rgba(0,128,0,0.05)] sm:p-8">
-                <div className="flex flex-col gap-5 text-base leading-relaxed text-[var(--color-fg)] sm:gap-6 sm:text-lg">
-                  {firstPart.map((para, i) => {
-                    const tocIdx = toc.findIndex((t) => t.paraIndex === i);
-                    return (
-                      <p key={i} id={`para-${i}`}
-                        ref={(el) => { if (tocIdx !== -1) paraRefs.current[tocIdx] = el; }}
-                        className="scroll-mt-28"
-                      >{renderWords(para, paraWordStarts[i], audioWordIdx)}</p>
-                    );
-                  })}
-
-                  {post.cover && restPart.length > 0 && (
-                    <figure className="my-2 overflow-hidden rounded-xl sm:rounded-2xl">
-                      <CoverMedia cover={post.cover} title={post.title} className="max-h-[280px] rounded-xl sm:max-h-[480px] sm:rounded-2xl" />
-                      <figcaption className="mt-2 text-center text-xs text-[var(--color-fg-soft)] sm:text-sm">{post.title}</figcaption>
-                    </figure>
-                  )}
-
-                  {restPart.map((para, i) => {
-                    const realIdx = i + 3;
-                    const tocIdx  = toc.findIndex((t) => t.paraIndex === realIdx);
-                    return (
-                      <p key={realIdx} id={`para-${realIdx}`}
-                        ref={(el) => { if (tocIdx !== -1) paraRefs.current[tocIdx] = el; }}
-                        className="scroll-mt-28"
-                      >{renderWords(para, paraWordStarts[realIdx], audioWordIdx)}</p>
-                    );
-                  })}
-
-                  {paragraphs.length === 0 && (
-                    <p className="text-base text-[var(--color-fg-soft)]">No body content yet — the CEO can add a body in the admin panel.</p>
-                  )}
-                </div>
+                {bodyText ? (
+                  <div
+                    className="post-body"
+                    dangerouslySetInnerHTML={{ __html: bodyHtml }}
+                  />
+                ) : (
+                  <p className="text-base text-[var(--color-fg-soft)]">No body content yet — the CEO can add a body in the admin panel.</p>
+                )}
               </div>
 
               {/* Tags — its own card */}
