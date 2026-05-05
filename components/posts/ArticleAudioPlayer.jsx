@@ -3,77 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Play, Pause, Square, Volume2, Languages, ChevronDown, Loader2, Check } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
-
-/* Audio-voice value → translate-API target language name.
-   Listed only for the pairs where both stacks support the language; for
-   anything else the translate chip stays hidden so we never offer a
-   translation we can't actually deliver. The translate API names come from
-   /app/api/ai/translate/route.js SUPPORTED_LANGUAGES. */
-const TRANSLATE_TARGET_BY_AUDIO_LANG = {
-  'en-US': 'English',
-  'en-GB': 'English',
-  'sw':    'Swahili',
-  'fr-FR': 'French',
-  'es-ES': 'Spanish',
-  'de-DE': 'German',
-  'pt-BR': 'Portuguese',
-  'pt-PT': 'Portuguese',
-  'it-IT': 'Italian',
-  'nl-NL': 'Dutch',
-  'ru-RU': 'Russian',
-  'tr-TR': 'Turkish',
-  'ar':    'Arabic',
-  'hi-IN': 'Hindi',
-  'zh-CN': 'Chinese (Simplified)',
-  'ja-JP': 'Japanese',
-  'ko-KR': 'Korean',
-};
-
-/* Translate API truncates at 16 000 chars per call. We chunk a little
-   under that at sentence boundaries so a longer article gets translated
-   in parallel pieces and rejoined, with no silent truncation. */
-const CHUNK_MAX_CHARS = 9000;
-
-function chunkAtSentenceBoundary(text, max = CHUNK_MAX_CHARS) {
-  if (!text || text.length <= max) return text ? [text] : [];
-  const parts = text.split(/(?<=[.!?])\s+/);
-  const chunks = [];
-  let buf = '';
-  for (const p of parts) {
-    if ((buf ? buf.length + 1 : 0) + p.length > max && buf) {
-      chunks.push(buf);
-      buf = p;
-    } else {
-      buf = buf ? `${buf} ${p}` : p;
-    }
-    // A single sentence longer than the cap — hard-split it.
-    while (buf.length > max) {
-      chunks.push(buf.slice(0, max));
-      buf = buf.slice(max);
-    }
-  }
-  if (buf) chunks.push(buf);
-  return chunks;
-}
-
-async function translateText(text, targetLanguage, signal) {
-  const chunks = chunkAtSentenceBoundary(text);
-  if (chunks.length === 0) return '';
-  const results = await Promise.all(chunks.map(async (chunk) => {
-    const res = await fetch('/api/ai/translate', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ text: chunk, targetLanguage, preserveTone: true }),
-      signal,
-    });
-    const json = await res.json().catch(() => ({}));
-    if (!res.ok || !json.success) {
-      throw new Error(json.error || `Translate failed (${res.status})`);
-    }
-    return (json.data?.translation || '').trim();
-  }));
-  return results.filter(Boolean).join(' ');
-}
+import { TRANSLATE_TARGET_BY_AUDIO_LANG } from '@/lib/posts/translate';
 
 const LANG_GROUPS = [
   {
@@ -227,29 +157,41 @@ function LangDropdown({ value, onChange }) {
   );
 }
 
-export function ArticleAudioPlayer({ title, body, onWordChange }) {
+/**
+ * Controlled audio player. Listening language and translation state
+ * (cached body, translating, error) live in PostView so the table of
+ * contents can render in the same translated language as the audio.
+ *
+ * Props:
+ *   - title, body                  — article inputs
+ *   - lang, onLangChange           — controlled listening language
+ *   - translatedText               — translated full text for the current
+ *                                    lang, or null when none is cached
+ *   - translating, translateErr    — UI state for the translate chip
+ *   - onTranslate                  — async; returns the translated text or
+ *                                    null on failure (so the player can
+ *                                    auto-start playback without waiting
+ *                                    on a setState round-trip)
+ *   - onWordChange                 — fires for every spoken word (legacy)
+ */
+export function ArticleAudioPlayer({
+  title,
+  body,
+  lang,
+  onLangChange,
+  translatedText = null,
+  translating = false,
+  translateErr = null,
+  onTranslate,
+  onWordChange,
+}) {
   const [status, setStatus]     = useState('idle');
-  const [lang, setLang]         = useState('en-US');
   const [progress, setProgress] = useState(0);
-  const [translations, setTranslations]   = useState({});      // { [audioLang]: translatedText }
-  const [translating, setTranslating]     = useState(false);
-  const [translateErr, setTranslateErr]   = useState(null);
   const uttRef        = useRef(null);
   const wordsRef      = useRef([]);
   const wordIdxRef    = useRef(0);
-  const translateAbortRef = useRef(null);
 
-  useEffect(() => () => {
-    window.speechSynthesis?.cancel();
-    translateAbortRef.current?.abort();
-  }, []);
-
-  // Different post → forget every cached translation.
-  useEffect(() => {
-    setTranslations({});
-    setTranslateErr(null);
-    translateAbortRef.current?.abort();
-  }, [title, body]);
+  useEffect(() => () => { window.speechSynthesis?.cancel(); }, []);
 
   // Defensive strip in case a caller still passes raw HTML — the speech
   // synthesizer should never read tag names like "p" or "h2" out loud.
@@ -267,14 +209,11 @@ export function ArticleAudioPlayer({ title, body, onWordChange }) {
           .trim()
     : (body || '');
   const originalText  = [title, cleanBody].filter(Boolean).join('. ');
-  const cachedForLang = translations[lang] || null;
+  const cachedForLang = translatedText || null;
   const fullText      = cachedForLang || originalText;
 
   const targetLanguageName = TRANSLATE_TARGET_BY_AUDIO_LANG[lang] || null;
-  // Hide chip if there's no translation target OR the current lang is
-  // English-family and the article already looks like English-only ASCII —
-  // translation would be a no-op.
-  const articleLooksAscii = /^[\x00-\x7F\s]*$/.test(originalText.slice(0, 400));
+  const articleLooksAscii  = /^[\x00-\x7F\s]*$/.test(originalText.slice(0, 400));
   const showTranslateChip =
     !!targetLanguageName &&
     !!originalText &&
@@ -344,45 +283,21 @@ export function ArticleAudioPlayer({ title, body, onWordChange }) {
   };
 
   const handleLangChange = (v) => {
-    setLang(v);
-    setTranslateErr(null);
+    onLangChange?.(v);
     if (status !== 'idle') handleStop();
   };
 
-  /* Translate the original article into the picked listening language and
-     auto-start playback in that language. Cached per audio-lang so a
-     subsequent toggle back doesn't re-hit the API. */
+  /* Translate-or-play. PostView owns the translation cache so the TOC can
+     also render in the same translated language. The promise resolves to
+     the translated text so we can speak immediately, without waiting for
+     a setState round-trip in the parent. */
   const handleTranslate = async () => {
     if (!targetLanguageName || translating) return;
-    if (cachedForLang) {
-      // Already translated for this lang — just play.
-      startSpeech(cachedForLang);
-      return;
-    }
-    if (!originalText) return;
-
-    translateAbortRef.current?.abort();
-    translateAbortRef.current = new AbortController();
-
-    setTranslating(true);
-    setTranslateErr(null);
-    try {
-      const translated = await translateText(
-        originalText,
-        targetLanguageName,
-        translateAbortRef.current.signal
-      );
-      if (!translated) throw new Error('Empty translation');
-      setTranslations((prev) => ({ ...prev, [lang]: translated }));
-      // Auto-play in the translated language. Pass the text explicitly so
-      // the speech doesn't wait for the next render to pick up new state.
+    if (cachedForLang) { startSpeech(cachedForLang); return; }
+    if (!originalText || !onTranslate) return;
+    const translated = await onTranslate();
+    if (typeof translated === 'string' && translated) {
       startSpeech(translated);
-    } catch (e) {
-      if (e?.name !== 'AbortError') {
-        setTranslateErr(e.message || 'Translation failed.');
-      }
-    } finally {
-      setTranslating(false);
     }
   };
 

@@ -38,7 +38,9 @@ export async function POST(req) {
       text,
       targetLanguage = 'English',
       preserveTone = true,
-      provider = 'claude',
+      // Default to OpenAI for translation — uses the OPENAI_API_KEY that's
+      // already provisioned in Vercel. Callers may override via the body.
+      provider = 'openai',
       model = null,
     } = await req.json();
 

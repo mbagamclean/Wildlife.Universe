@@ -22,6 +22,11 @@ import {
   injectHeadingIdsAndBuildToc,
   stripHtml,
 } from '@/lib/posts/html';
+import {
+  TRANSLATE_TARGET_BY_AUDIO_LANG,
+  translateText,
+  translateTocTitles,
+} from '@/lib/posts/translate';
 
 /* ─── helpers ─── */
 function categoryName(slug) {
@@ -355,6 +360,16 @@ export function PostView({ slug }) {
   const [tocExpanded, setTocExpanded]   = useState(false);
   const [tocBarVisible, setTocBarVisible] = useState(false);
   const [audioWordIdx, setAudioWordIdx] = useState(-1);
+  /* Listening language + translation cache live up here so the audio
+     player AND the table of contents can render in the same translated
+     language. Caches are keyed by audio-lang and reset when the post
+     changes. */
+  const [audioLang, setAudioLang] = useState('en-US');
+  const [translatedBodies, setTranslatedBodies] = useState({}); // { lang: text }
+  const [translatedTocs, setTranslatedTocs]     = useState({}); // { lang: ToC[] }
+  const [translating, setTranslating]           = useState(false);
+  const [translateErr, setTranslateErr]         = useState(null);
+  const translateAbortRef = useRef(null);
   const paraRefs      = useRef([]);
   const tocCardRef    = useRef(null);
   const articleBodyRef = useRef(null);
@@ -383,6 +398,15 @@ export function PostView({ slug }) {
       });
     return () => { cancelled = true; };
   }, [slug]);
+
+  /* Reset the translation caches whenever the post changes. */
+  useEffect(() => {
+    setTranslatedBodies({});
+    setTranslatedTocs({});
+    setTranslateErr(null);
+    translateAbortRef.current?.abort();
+    return () => translateAbortRef.current?.abort();
+  }, [post?.id]);
 
   /* view ping — fire once per (slug × session) after a 5s dwell, so accidental
      clicks don't inflate counts. Persists in sessionStorage so a refresh
@@ -523,7 +547,60 @@ export function PostView({ slug }) {
   const { html: bodyHtml, toc: headingToc } = injectHeadingIdsAndBuildToc(safeHtml);
   const bodyText = stripHtml(safeHtml);
   const mins     = readingMins(bodyText);
-  const toc      = headingToc.length > 0 ? headingToc : buildTocFromText(bodyText);
+  const baseToc  = headingToc.length > 0 ? headingToc : buildTocFromText(bodyText);
+
+  /* Translation orchestration. We translate the body AND the TOC titles
+     in parallel so a click on the audio player's Translate chip updates
+     both surfaces in lock-step. Cached per audio-lang. */
+  const targetLanguageName = TRANSLATE_TARGET_BY_AUDIO_LANG[audioLang] || null;
+  const translatedBody     = translatedBodies[audioLang] || null;
+  const translatedTocItems = translatedTocs[audioLang] || null;
+  // Show translated TOC titles when available; anchors stay the same so
+  // clicks still scroll to the original-language headings in the article.
+  const toc = translatedTocItems || baseToc;
+
+  const handleTranslate = async () => {
+    if (!targetLanguageName || translating) return null;
+    if (translatedBody) return translatedBody;
+    const audioSource = [post.title, bodyText].filter(Boolean).join('. ');
+    if (!audioSource) return null;
+
+    translateAbortRef.current?.abort();
+    translateAbortRef.current = new AbortController();
+    const { signal } = translateAbortRef.current;
+
+    setTranslating(true);
+    setTranslateErr(null);
+    try {
+      const baseTitles = baseToc.map((t) => t.title);
+      const [body, tocTitles] = await Promise.all([
+        translateText(audioSource, targetLanguageName, signal),
+        baseTitles.length > 0
+          ? translateTocTitles(baseTitles, targetLanguageName, signal)
+          : Promise.resolve([]),
+      ]);
+      if (!body) throw new Error('Empty translation');
+      const tocItems = baseToc.map((item, i) => ({
+        ...item,
+        title: tocTitles[i] || item.title,
+      }));
+      setTranslatedBodies((prev) => ({ ...prev, [audioLang]: body }));
+      setTranslatedTocs((prev) => ({ ...prev, [audioLang]: tocItems }));
+      return body;
+    } catch (e) {
+      if (e?.name !== 'AbortError') {
+        setTranslateErr(e.message || 'Translation failed.');
+      }
+      return null;
+    } finally {
+      setTranslating(false);
+    }
+  };
+
+  const handleAudioLangChange = (next) => {
+    setAudioLang(next);
+    setTranslateErr(null);
+  };
 
   return (
     <article>
@@ -662,8 +739,20 @@ export function PostView({ slug }) {
 
               {/* Audio player — has its own card already.
                   Pass the stripped plain-text so the synthesizer doesn't
-                  read tag names aloud. */}
-              <ArticleAudioPlayer title={post.title} body={bodyText} onWordChange={setAudioWordIdx} />
+                  read tag names aloud. The audio player is controlled by
+                  PostView so the TOC can render in the same translated
+                  language as the audio. */}
+              <ArticleAudioPlayer
+                title={post.title}
+                body={bodyText}
+                lang={audioLang}
+                onLangChange={handleAudioLangChange}
+                translatedText={translatedBody}
+                translating={translating}
+                translateErr={translateErr}
+                onTranslate={handleTranslate}
+                onWordChange={setAudioWordIdx}
+              />
 
               {/* ── Inline TOC — collapsed by default, expands on tap ── */}
               {toc.length >= 2 && (
