@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { registerMedia, publicUrl } from '@/lib/media/library';
-import { notifySearchEnginesAsync } from '@/lib/seo/searchPing';
 
 export const runtime = 'nodejs';
 
@@ -67,15 +66,11 @@ export async function POST(req) {
     uploadedBy: user.id,
   });
 
-  // Hint IndexNow that a new asset is live so Bing image / video search
-  // can discover it without waiting for the next sitemap crawl. Pings the
-  // raw asset URL (Bing accepts media URLs in IndexNow submissions).
-  if (row?.file_url) {
-    notifySearchEnginesAsync(row.file_url, {
-      eventType: 'media_ping',
-      supabase,
-    });
-  }
+  // Note: we deliberately don't ping IndexNow with the raw asset URL here.
+  // Media is hosted on Supabase storage (different host) and IndexNow
+  // rejects cross-origin URLs (422). The post that *uses* this media gets
+  // pinged when it's saved, which is when image/video sitemaps get
+  // re-crawled — and that's the path the asset is discovered through.
 
   return NextResponse.json({ success: !!row, item: row });
 }
