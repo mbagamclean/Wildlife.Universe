@@ -349,6 +349,21 @@ export function PostEditor({ initial, onSave, onCancel }) {
     if (!labelOptions.includes(label)) setLabel(labelOptions[0] || '');
   }, [category]); // eslint-disable-line
 
+  // Auto-assign label from the title prefix on the Posts category.
+  // "How …" → "How Questions", "Why …" → "Why Questions". Only fires on prefix
+  // transitions so manual label overrides aren't clobbered on every keystroke.
+  const autoLabelPrefixRef = useRef(undefined);
+  useEffect(() => {
+    if (category !== 'posts') return;
+    const t = title.trim();
+    const prefix = /^how\b/i.test(t) ? 'how' : /^why\b/i.test(t) ? 'why' : '';
+    if (autoLabelPrefixRef.current === undefined) { autoLabelPrefixRef.current = prefix; return; }
+    if (prefix === autoLabelPrefixRef.current) return;
+    autoLabelPrefixRef.current = prefix;
+    if (prefix === 'how' && labelOptions.includes('How Questions')) setLabel('How Questions');
+    else if (prefix === 'why' && labelOptions.includes('Why Questions')) setLabel('Why Questions');
+  }, [title, category, labelOptions]);
+
   useEffect(() => {
     if (!editor) return;
     try {

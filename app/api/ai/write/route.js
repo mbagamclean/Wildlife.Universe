@@ -141,6 +141,74 @@ function isWhyQuestionsPost(category, label) {
   return cat === 'posts' && (lbl === 'why' || lbl === 'why questions');
 }
 
+function isConservationPost(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+  return cat === 'posts' && lbl === 'conservation';
+}
+
+// Auto-derive label from title prefix for the Posts category.
+// "How …" → "How Questions", "Why …" → "Why Questions", otherwise keep provided label.
+function deriveLabelFromTitle(category, label, title) {
+  if ((category || '').trim().toLowerCase() !== 'posts') return label || '';
+  const t = (title || '').trim();
+  if (/^how\b/i.test(t)) return 'How Questions';
+  if (/^why\b/i.test(t)) return 'Why Questions';
+  return label || '';
+}
+
+const CONSERVATION_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You specialise in deep, powerful, high-impact wildlife conservation articles written in a documentary storyteller's voice.
+
+POST REQUIREMENTS
+- Word count: 2500–3000 words
+- Topic: a wildlife conservation issue
+- Tone: Professional, emotional, documentary-style storytelling
+- Goal: Educate deeply, create awareness, and inspire real action
+
+EVERGREEN TITLE
+- The article title must be evergreen: timeless, no dates or trends, SEO-friendly, emotionally engaging, and clearly reflect the topic.
+- If the supplied title is already evergreen, keep it. If no title is supplied, invent an evergreen one and use it as the <h1>.
+
+CORE WRITING PRINCIPLE
+This article must feel simultaneously like a documentary story, a scientific explanation, and a real-world conservation case.
+
+MANDATORY STRUCTURE (never skip a section, keep this exact order)
+1. Introduction (Powerful Hook) — emotional storytelling, strong opening scene, introduce the conservation issue.
+2. The Problem — clearly explain the issue.
+3. Root Causes — deep cause-and-effect explanation.
+4. The Impact — effects on wildlife, ecosystems, and humans (use sub-points).
+5. Scientific & Ecological Insight — explain nature's systems clearly.
+6. A Real-World Case Study — vivid, realistic scenario tied to a real species and place.
+7. Current Conservation Efforts — governments, NGOs, communities.
+8. Challenges — what limits success.
+9. Solutions & Future Outlook — practical and long-term solutions.
+10. Call to Action — concrete things readers can do.
+11. Conclusion — strong, emotional ending.
+
+WRITING TECHNIQUES
+- Emotional storytelling
+- Cause-and-effect reasoning
+- Deep analysis
+- Real-life examples
+
+STYLE RULES
+- Clear English, professional tone, smooth transitions
+- No robotic or generic writing
+- Zero AI-sounding clichés ("delve", "nuanced", "comprehensive", "robust", "in today's world", etc.)
+
+QUALITY CONTROL
+- Title evergreen, depth of explanation, emotional engagement, logical flow
+- Do NOT skip any section
+- Do NOT create shallow content
+
+FORMAT
+- Output clean HTML only — never markdown
+- Open with an <h1> for the evergreen title
+- Use <h2> for each of the eleven main sections; <h3> where helpful (e.g. sub-points inside The Impact)
+- Use <p> for paragraphs, <ul>/<li> for lists where appropriate
+- Do not include <html>, <head>, or <body> wrappers — output the article body fragment only
+- Ready to publish, no commentary outside the article`;
+
 function buildHowQuestionsPrompt(title) {
   const t = title?.trim();
   return `Write a complete ~1500 word wildlife "How" question blog post${t ? ` titled "${t}"` : ''}.
@@ -157,6 +225,28 @@ Follow the mandatory 7-section structure exactly:
 7. <h2>Conclusion</h2>
 
 Output clean HTML only. Begin immediately with the article — no preamble.`;
+}
+
+function buildConservationPrompt(title) {
+  const t = title?.trim();
+  return `Write a complete 2500–3000 word wildlife conservation article${t ? ` titled "${t}"` : ''}.
+
+${t ? 'If the supplied title is not evergreen (e.g. contains a year or trend), gently rephrase it into an evergreen version and use that as the <h1> instead.' : 'No title was provided — invent an evergreen, SEO-friendly, emotionally engaging title for a real wildlife conservation issue and use it as the <h1>.'}
+
+Follow the mandatory 11-section structure exactly:
+1. <h2>Introduction</h2>
+2. <h2>The Problem</h2>
+3. <h2>Root Causes</h2>
+4. <h2>The Impact</h2> (with <h3>On Wildlife</h3>, <h3>On Ecosystems</h3>, <h3>On Humans</h3>)
+5. <h2>The Science Behind It</h2>
+6. <h2>A Real-World Case Study</h2>
+7. <h2>Current Conservation Efforts</h2>
+8. <h2>The Challenges</h2>
+9. <h2>Solutions and the Future Outlook</h2>
+10. <h2>What You Can Do — A Call to Action</h2>
+11. <h2>Conclusion</h2>
+
+Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
 function buildWhyQuestionsPrompt(title) {
@@ -267,8 +357,12 @@ export async function POST(req) {
         ? openai(process.env.OPENAI_MODEL || 'gpt-4o')
         : anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
 
-    const useHowTemplate = task === 'full_article' && isHowQuestionsPost(context.category, context.label);
-    const useWhyTemplate = task === 'full_article' && isWhyQuestionsPost(context.category, context.label);
+    // Auto-derive label from title prefix when category is Posts.
+    const effectiveLabel = deriveLabelFromTitle(context.category, context.label, context.title);
+
+    const useHowTemplate = task === 'full_article' && isHowQuestionsPost(context.category, effectiveLabel);
+    const useWhyTemplate = task === 'full_article' && isWhyQuestionsPost(context.category, effectiveLabel);
+    const useConservationTemplate = task === 'full_article' && isConservationPost(context.category, effectiveLabel);
 
     let systemPrompt = WILDLIFE_SYSTEM;
     let userPrompt = buildPrompt(task, context);
@@ -282,6 +376,10 @@ export async function POST(req) {
       systemPrompt = WHY_QUESTIONS_SYSTEM;
       userPrompt = buildWhyQuestionsPrompt(context.title);
       maxTokens = 5000;
+    } else if (useConservationTemplate) {
+      systemPrompt = CONSERVATION_SYSTEM;
+      userPrompt = buildConservationPrompt(context.title);
+      maxTokens = 7000;
     }
 
     const result = streamText({
