@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
 import { registerMedia, publicUrl } from '@/lib/media/library';
+import { notifySearchEnginesAsync } from '@/lib/seo/searchPing';
 
 export const runtime = 'nodejs';
 
@@ -65,6 +66,16 @@ export async function POST(req) {
     variants,
     uploadedBy: user.id,
   });
+
+  // Hint IndexNow that a new asset is live so Bing image / video search
+  // can discover it without waiting for the next sitemap crawl. Pings the
+  // raw asset URL (Bing accepts media URLs in IndexNow submissions).
+  if (row?.file_url) {
+    notifySearchEnginesAsync(row.file_url, {
+      eventType: 'media_ping',
+      supabase,
+    });
+  }
 
   return NextResponse.json({ success: !!row, item: row });
 }
