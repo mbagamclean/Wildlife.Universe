@@ -147,6 +147,12 @@ function isConservationPost(category, label) {
   return cat === 'posts' && lbl === 'conservation';
 }
 
+function isTourismPost(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+  return cat === 'posts' && (lbl === 'tourism' || lbl === 'tourism safaris');
+}
+
 // Auto-derive label from title prefix for the Posts category.
 // "How …" → "How Questions", "Why …" → "Why Questions", otherwise keep provided label.
 function deriveLabelFromTitle(category, label, title) {
@@ -225,6 +231,80 @@ Follow the mandatory 7-section structure exactly:
 7. <h2>Conclusion</h2>
 
 Output clean HTML only. Begin immediately with the article — no preamble.`;
+}
+
+const TOURISM_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You specialise in immersive, inspiring, highly engaging wildlife tourism articles written in the voice of a world-class travel documentary narrator.
+
+POST REQUIREMENTS
+- Word count: 1500–2500 words
+- Topic: a wildlife tourism destination, safari, or experience
+- Tone: Inspiring, descriptive, storytelling + professional
+- Goal: make the reader feel like they are experiencing the place
+
+EVERGREEN TITLE
+- The article title must be evergreen: timeless, no dates or trends, SEO-friendly, emotionally attractive.
+- Examples: "A Journey Through the Serengeti Wilderness", "Exploring the Hidden Beauty of African Safaris", "The Ultimate Wildlife Safari Experience".
+- If the supplied title is already evergreen, keep it. If non-evergreen (year, "in 2026", trends), gently rephrase. If no title is supplied, invent an evergreen one and use it as the <h1>.
+
+CORE WRITING PRINCIPLE
+This is NOT a dry informational guide. It must feel like a travel experience, a visual journey, a real safari story.
+
+MANDATORY STRUCTURE (never skip a section, keep this exact order)
+1. Introduction (Immersive Hook) — vivid opening scene, place the reader inside the environment.
+2. Destination Overview — location description, geography, environment.
+3. The Wildlife Experience — animals found there, unique behaviours, what makes it special.
+4. Activities & Experiences — game drives, walking safaris, bird watching, cultural experiences.
+5. Best Time to Visit — seasons, migration patterns, weather.
+6. Travel Tips — what to bring, safety tips, preparation advice.
+7. The Conservation Connection — how tourism supports wildlife and the ethics of responsible tourism.
+8. Why Visit — what makes the destination unique and why it stands out globally.
+9. Conclusion — emotional closing that inspires the reader to visit and explore.
+
+WRITING TECHNIQUES
+- Descriptive storytelling
+- Sensory language (sight, sound, smell, feel)
+- Real-life scenarios
+- Smooth, cinematic flow
+
+STYLE RULES
+- Clear English, engaging and vivid, professional but emotional
+- No robotic tone, no boring guidebook language
+- Zero AI-sounding clichés ("delve", "nuanced", "comprehensive", "robust", "in today's world", etc.)
+
+QUALITY CONTROL
+- Reader feels the experience
+- Strong visual imagination
+- Logical flow, high engagement
+- Do NOT write like a guide only
+- Do NOT skip storytelling
+- Must feel like a real safari experience
+
+FORMAT
+- Output clean HTML only — never markdown
+- Open with an <h1> for the evergreen title
+- Use <h2> for each of the nine main sections; <h3> where helpful (e.g. activities or wildlife sub-points)
+- Use <p> for paragraphs, <ul>/<li> for lists where appropriate
+- Do not include <html>, <head>, or <body> wrappers — output the article body fragment only
+- Ready to publish, no commentary outside the article`;
+
+function buildTourismPrompt(title) {
+  const t = title?.trim();
+  return `Write a complete 1500–2500 word wildlife tourism article${t ? ` titled "${t}"` : ''}.
+
+${t ? 'If the supplied title is not evergreen (year, trend, or dated), rephrase into an evergreen version and use that as the <h1>.' : 'No title was provided — invent an evergreen, SEO-friendly, emotionally attractive title for a real wildlife destination, safari, or experience and use it as the <h1>.'}
+
+Follow the mandatory 9-section structure exactly:
+1. <h2>An Immersive Welcome</h2>
+2. <h2>The Destination at a Glance</h2>
+3. <h2>The Wildlife Experience</h2>
+4. <h2>Activities and Experiences</h2>
+5. <h2>The Best Time to Visit</h2>
+6. <h2>Travel Tips and Preparation</h2>
+7. <h2>The Conservation Connection</h2>
+8. <h2>Why This Place Stands Out</h2>
+9. <h2>Conclusion</h2>
+
+Write cinematically — open with a sensory scene, not a definition. Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
 function buildConservationPrompt(title) {
@@ -363,6 +443,7 @@ export async function POST(req) {
     const useHowTemplate = task === 'full_article' && isHowQuestionsPost(context.category, effectiveLabel);
     const useWhyTemplate = task === 'full_article' && isWhyQuestionsPost(context.category, effectiveLabel);
     const useConservationTemplate = task === 'full_article' && isConservationPost(context.category, effectiveLabel);
+    const useTourismTemplate = task === 'full_article' && isTourismPost(context.category, effectiveLabel);
 
     let systemPrompt = WILDLIFE_SYSTEM;
     let userPrompt = buildPrompt(task, context);
@@ -380,6 +461,10 @@ export async function POST(req) {
       systemPrompt = CONSERVATION_SYSTEM;
       userPrompt = buildConservationPrompt(context.title);
       maxTokens = 7000;
+    } else if (useTourismTemplate) {
+      systemPrompt = TOURISM_SYSTEM;
+      userPrompt = buildTourismPrompt(context.title);
+      maxTokens = 6000;
     }
 
     const result = streamText({
