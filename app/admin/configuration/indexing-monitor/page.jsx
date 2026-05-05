@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
-import { Search, Loader2, AlertCircle, ExternalLink, CheckCircle2, XCircle, HelpCircle, Clock, RefreshCw } from 'lucide-react';
+import { Search, Loader2, AlertCircle, ExternalLink, CheckCircle2, XCircle, HelpCircle, Clock, RefreshCw, Link2, Unlink } from 'lucide-react';
 import { AIPageHeader } from '@/components/admin/configuration/AIPageHeader';
 
 const STORAGE_KEY = 'wu-indexing-checks';
@@ -27,8 +27,32 @@ export default function IndexingMonitorPage() {
   const [checkingAll, setCheckingAll] = useState(false);
   const [batchProgress, setBatchProgress] = useState({ done: 0, total: 0 });
   const [perRowChecking, setPerRowChecking] = useState(new Set());
+  const [googleStatus, setGoogleStatus] = useState({ loading: true, connected: false });
 
   useEffect(() => { setCache(loadCache()); }, []);
+
+  const refreshGoogleStatus = useCallback(async () => {
+    try {
+      const res = await fetch('/api/auth/google-indexing/status');
+      const json = await res.json();
+      setGoogleStatus({
+        loading: false,
+        connected: !!json.connected,
+        grantedEmail: json.grantedEmail || null,
+        grantedAt: json.grantedAt || null,
+      });
+    } catch {
+      setGoogleStatus({ loading: false, connected: false });
+    }
+  }, []);
+
+  useEffect(() => { refreshGoogleStatus(); }, [refreshGoogleStatus]);
+
+  const disconnectGoogle = useCallback(async () => {
+    if (!confirm('Disconnect Google Indexing? Future post saves will only ping IndexNow until you reconnect.')) return;
+    await fetch('/api/auth/google-indexing/disconnect', { method: 'POST' });
+    refreshGoogleStatus();
+  }, [refreshGoogleStatus]);
 
   const fetchPosts = useCallback(async () => {
     setLoadingPosts(true); setPostsError(null);
@@ -94,6 +118,12 @@ export default function IndexingMonitorPage() {
         description="Best-effort Google indexing check for each published post. Heavily rate-limited — manual checks recommended."
         icon={Search}
         accent="#1a6eb5"
+      />
+
+      <GoogleIndexingPanel
+        status={googleStatus}
+        onDisconnect={disconnectGoogle}
+        onRefresh={refreshGoogleStatus}
       />
 
       <div
@@ -213,6 +243,99 @@ export default function IndexingMonitorPage() {
           </table>
         </div>
       )}
+    </div>
+  );
+}
+
+function GoogleIndexingPanel({ status, onDisconnect, onRefresh }) {
+  // Read URL flash messages from the OAuth callback (e.g. ?google_indexing=connected&as=email)
+  const [flash, setFlash] = useState(null);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const state = params.get('google_indexing');
+    if (!state) return;
+    if (state === 'connected') {
+      setFlash({ kind: 'ok', text: `Connected as ${params.get('as') || 'Google'}.` });
+    } else if (state === 'error') {
+      setFlash({ kind: 'err', text: `Connection failed: ${params.get('reason') || 'unknown error'}` });
+    }
+    // Clean the query string so reloads don't re-flash
+    const cleanUrl = window.location.pathname;
+    window.history.replaceState({}, '', cleanUrl);
+    onRefresh?.();
+  }, [onRefresh]);
+
+  const startUrl = '/api/auth/google-indexing/start?next=/admin/configuration/indexing-monitor';
+
+  if (status.loading) {
+    return (
+      <div
+        className="mb-4 flex items-center gap-2 rounded-2xl px-4 py-3 text-sm"
+        style={{ background: 'var(--adm-surface)', border: '1px solid var(--adm-border)' }}
+      >
+        <Loader2 size={14} className="animate-spin" /> Checking Google connection…
+      </div>
+    );
+  }
+
+  if (status.connected) {
+    return (
+      <div
+        className="mb-4 rounded-2xl p-4 text-sm"
+        style={{ background: 'rgba(22,163,74,0.08)', border: '1px solid rgba(22,163,74,0.25)', color: '#15803d' }}
+      >
+        {flash?.kind === 'ok' && (
+          <div className="mb-2 text-xs font-bold uppercase tracking-wider">{flash.text}</div>
+        )}
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <div className="flex items-center gap-2">
+            <CheckCircle2 size={16} />
+            <span>
+              <strong>Google Indexing API connected</strong>
+              {status.grantedEmail ? <> as <code>{status.grantedEmail}</code></> : null}.
+              New posts and updates are submitted to Google automatically.
+            </span>
+          </div>
+          <button
+            onClick={onDisconnect}
+            className="inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-xs font-bold transition-colors"
+            style={{ borderColor: 'rgba(22,163,74,0.4)', color: '#15803d', background: 'rgba(255,255,255,0.5)' }}
+          >
+            <Unlink size={12} /> Disconnect
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div
+      className="mb-4 rounded-2xl p-4 text-sm"
+      style={{ background: 'rgba(26,110,181,0.08)', border: '1px solid rgba(26,110,181,0.25)', color: '#1e40af' }}
+    >
+      {flash?.kind === 'err' && (
+        <div className="mb-2 rounded-lg px-3 py-2 text-xs font-bold" style={{ background: 'rgba(220,38,38,0.1)', color: '#b91c1c' }}>
+          {flash.text}
+        </div>
+      )}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex items-start gap-2">
+          <Link2 size={16} className="mt-0.5" />
+          <span>
+            <strong>Connect Google Indexing API</strong> to auto-submit every new post directly to Google
+            on top of IndexNow. CEO/admin role required. You&rsquo;ll be sent to Google&rsquo;s consent
+            screen and returned here when you&rsquo;re done.
+          </span>
+        </div>
+        <a
+          href={startUrl}
+          className="inline-flex items-center gap-1.5 rounded-lg px-4 py-2 text-xs font-bold text-white transition-colors"
+          style={{ background: '#1a6eb5' }}
+        >
+          <Link2 size={12} /> Connect Google
+        </a>
+      </div>
     </div>
   );
 }
