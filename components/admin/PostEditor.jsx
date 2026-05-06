@@ -1100,6 +1100,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
                     if (v?.body && editor) editor.commands.setContent(v.body);
                   }}
                   onUseHeadline={(text) => setTitle(text)}
+                  onIUCNChange={onIUCNChange}
                 />
               </FlatCard>
 

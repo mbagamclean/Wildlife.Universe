@@ -183,6 +183,7 @@ export function AIWritingToolkit({
   onPaletteChange = () => {},
   postId = null,
   onRestoreVersion = null,
+  onIUCNChange = null,
 }) {
   const store = useAIStore();
   const [topTab, setTopTab] = useState('AI');
@@ -228,6 +229,42 @@ export function AIWritingToolkit({
         store.appendStream(decoder.decode(value, { stream: true }));
       }
       store.finishStream();
+
+      // Bundle: when a full Animals/Birds/Insects article finishes
+      // generating, fire-and-forget an iucn_detect to autofill the sidebar
+      // panel. Silent — failures are non-fatal.
+      if (
+        task === 'full_article' &&
+        typeof onIUCNChange === 'function' &&
+        ['animals', 'birds', 'insects'].includes((category || '').toLowerCase())
+      ) {
+        fetch('/api/ai/write', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            task: 'iucn_detect',
+            provider: store.provider,
+            model: store.getCurrentTextModel(),
+            context: {
+              title,
+              body: editor?.getHTML() || '',
+              category,
+              label,
+            },
+          }),
+        })
+          .then((r) => (r.ok ? r.json() : null))
+          .then((data) => {
+            if (!data) return;
+            onIUCNChange({
+              iucnStatus: data.iucnStatus || null,
+              scientificName: data.scientificName || null,
+              iucnVerified: false,
+              iucnVerifiedAt: null,
+            });
+          })
+          .catch((err) => console.warn('[Write] post-gen iucn detect failed', err));
+      }
     } catch (err) {
       if (err.name !== 'AbortError') {
         store.finishStream();
