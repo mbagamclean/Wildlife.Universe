@@ -163,10 +163,9 @@ function isArticlesPost(category, label) {
 function isAnimalsPost(category, label) {
   const cat = (category || '').trim().toLowerCase();
   const lbl = (label || '').trim().toLowerCase();
-  // ANIMALS_SYSTEM is for single-species articles only.
-  // The "IUCN Redlist" label is reserved for curated/topical posts and falls
-  // through to WILDLIFE_SYSTEM. A dedicated topical-list system can be added
-  // later without touching this gate.
+  // ANIMALS_SYSTEM is for single-species natural-history articles.
+  // The "IUCN Redlist" label is handled by IUCN_REDLIST_SYSTEM via
+  // isIucnRedlistAnimalPost (defined below) — a conservation-engineering frame.
   return cat === 'animals' && [
     'mammals', 'reptiles', 'amphibians', 'fish',
   ].includes(lbl);
