@@ -20,7 +20,7 @@ import {
   Subscript, Superscript,
   AlignLeft, AlignCenter, AlignRight, AlignJustify,
   List, ListOrdered,
-  Link2, ImageIcon, Video, Code, Code2,
+  Link2, Lock, ImageIcon, Video, Code, Code2,
   Minus, Info, Printer, Type,
   Maximize2, Minimize2,
   Sparkles, Star, Folder, Tag, Calendar, User,
@@ -284,7 +284,7 @@ const fieldStyle = {
 };
 
 // ── Main ──────────────────────────────────────────────────────
-export function PostEditor({ initial, onSave, onCancel }) {
+export function PostEditor({ initial, lockedCategory = null, onSave, onCancel }) {
   const draftKey = `cms-draft-${initial?.id || 'new'}`;
   const autosaveRef = useRef(null);
   const HEADER_H = 68;
@@ -303,7 +303,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
 
   const [title, setTitle] = useState(initial?.title || '');
   const [slug, setSlug] = useState(initial?.slug || '');
-  const [category, setCategory] = useState(initial?.category || 'animals');
+  const [category, setCategory] = useState(initial?.category || lockedCategory || 'animals');
   const [label, setLabel] = useState(initial?.label || '');
   const [description, setDescription] = useState(initial?.description || '');
   const [excerpt, setExcerpt] = useState('');
@@ -378,7 +378,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
       const d = JSON.parse(raw);
       if (d.title !== undefined) setTitle(d.title);
       if (d.slug !== undefined) { setSlug(d.slug); setSlugEdited(true); }
-      if (d.category !== undefined) setCategory(d.category);
+      if (d.category !== undefined && !lockedCategory) setCategory(d.category);
       if (d.label !== undefined) setLabel(d.label);
       if (d.description !== undefined) setDescription(d.description);
       if (d.excerpt !== undefined) setExcerpt(d.excerpt);
@@ -1048,13 +1048,32 @@ export function PostEditor({ initial, onSave, onCancel }) {
                       <Folder size={12} style={{ color: 'var(--adm-text-muted)' }} />
                       <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--adm-text-muted)' }}>Category *</span>
                     </div>
-                    <div style={{ position: 'relative' }}>
-                      <select value={category} onChange={e => setCategory(e.target.value)}
-                        style={{ ...fieldStyle, appearance: 'none', WebkitAppearance: 'none', paddingRight: 28, cursor: 'pointer' }}>
-                        {categories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
-                      </select>
-                      <ChevronDown size={12} style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--adm-text-muted)', pointerEvents: 'none' }} />
-                    </div>
+                    {lockedCategory ? (
+                      <div
+                        style={{
+                          display: 'flex', alignItems: 'center', gap: 8,
+                          width: '100%', padding: '9px 11px', borderRadius: 9, fontSize: 13,
+                          background: 'var(--adm-hover-bg)', color: 'var(--adm-text)',
+                          border: '1px solid var(--adm-border)',
+                          boxSizing: 'border-box', userSelect: 'none',
+                        }}
+                        title="Category is locked because you entered from this category's admin menu"
+                      >
+                        <Lock size={12} style={{ color: 'var(--adm-text-subtle)', flexShrink: 0 }} />
+                        <span style={{ fontWeight: 600 }}>{currentCat?.name || lockedCategory}</span>
+                        <span style={{ fontSize: 10, color: 'var(--adm-text-subtle)', marginLeft: 'auto' }}>
+                          Locked
+                        </span>
+                      </div>
+                    ) : (
+                      <div style={{ position: 'relative' }}>
+                        <select value={category} onChange={e => setCategory(e.target.value)}
+                          style={{ ...fieldStyle, appearance: 'none', WebkitAppearance: 'none', paddingRight: 28, cursor: 'pointer' }}>
+                          {categories.map(c => <option key={c.slug} value={c.slug}>{c.name}</option>)}
+                        </select>
+                        <ChevronDown size={12} style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--adm-text-muted)', pointerEvents: 'none' }} />
+                      </div>
+                    )}
                   </div>
 
                   <div>
@@ -1088,7 +1107,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
                   metaTitle={metaTitle}
                   metaDescription={metaDesc}
                   metaKeywords={metaKw}
-                  category={currentCat?.name || ''}
+                  category={category}
                   label={label}
                   excerpt={excerpt}
                   cover={cover}

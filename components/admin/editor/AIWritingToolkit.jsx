@@ -44,8 +44,28 @@ const TONES = [
 
 const WRITING_TABS = ['Generate', 'Enhance', 'Structure', 'Snippets', 'Research', 'EEAT', 'AdSense'];
 
+function getWordTarget(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+
+  if (cat === 'animals')  return { min: 6500, max: 7500, display: '6,500+' };
+  if (cat === 'birds')    return { min: 5500, max: 7000, display: '5,500–7,000' };
+  if (cat === 'insects')  return { min: 5500, max: 7000, display: '5,500–7,000' };
+  if (cat === 'plants')   return { min: 5500, max: 7000, display: '5,500–7,000' };
+
+  if (cat === 'posts') {
+    if (lbl === 'how questions') return { min: 1500, max: 2000, display: '1,500–2,000' };
+    if (lbl === 'why questions') return { min: 1500, max: 2000, display: '1,500–2,000' };
+    if (lbl === 'tourism')       return { min: 1500, max: 2500, display: '1,500–2,500' };
+    if (lbl === 'conservation')  return { min: 2500, max: 3000, display: '2,500–3,000' };
+    if (lbl === 'articles')      return { min: 3500, max: 4000, display: '3,500–4,000' };
+  }
+
+  return { min: 4000, max: 5000, display: '4,000–5,000' };
+}
+
 const GENERATE_ACTIONS = [
-  { id: 'full_article', icon: '✦', label: 'Generate Full Article (4,000–5,000 words)', hint: 'Uses your title if set — otherwise the AI picks one' },
+  { id: 'full_article', icon: '✦', label: 'Generate Full Article', hint: 'Word count and structure are set by the chosen category & label' },
   { id: 'introduction', icon: '≡', label: 'Write Introduction', hint: '250–350 word hook-driven opening' },
   { id: 'conclusion', icon: '→', label: 'Write Conclusion + CTA', hint: 'Memorable closing with call-to-action' },
   { id: 'faq', icon: '?', label: 'Write FAQ Section', hint: '8–10 questions matching Google searches' },
@@ -189,6 +209,7 @@ export function AIWritingToolkit({
   const [topTab, setTopTab] = useState('AI');
   const [customPrompt, setCustomPrompt] = useState('');
   const [showStreaming, setShowStreaming] = useState(false);
+  const wordTarget = getWordTarget(category, label);
 
   const runGeneration = useCallback(async (task, extraPrompt) => {
     if (store.isStreaming) return;
@@ -213,7 +234,7 @@ export function AIWritingToolkit({
             tones: store.selectedTones,
             toneIntensity: store.toneIntensity,
             customPrompt: extraPrompt || customPrompt,
-            wordTarget: '4,000-5,000',
+            wordTarget: wordTarget.display,
             category,
             label,
           },
@@ -361,14 +382,14 @@ export function AIWritingToolkit({
               ◉ AdSense-Ready • EEAT Compliant • SEO Optimized
             </div>
             <div style={{ fontSize: 10, color: '#f59e0b', fontWeight: 600 }}>
-              Target: 4,000–5,000 words ({wordCount} / 4,000)
+              Target: {wordTarget.display} words ({wordCount} / {wordTarget.min.toLocaleString()})
             </div>
             {/* word progress bar */}
             <div style={{ height: 3, background: 'var(--adm-border)', borderRadius: 2, marginTop: 5, overflow: 'hidden' }}>
               <div style={{
                 height: '100%', borderRadius: 2, transition: 'width 0.4s ease',
-                width: `${Math.min((wordCount / 4000) * 100, 100)}%`,
-                background: wordCount >= 4000 ? '#22c55e' : PURPLE,
+                width: `${Math.min((wordCount / wordTarget.min) * 100, 100)}%`,
+                background: wordCount >= wordTarget.min ? '#22c55e' : PURPLE,
               }} />
             </div>
           </div>
@@ -409,13 +430,23 @@ export function AIWritingToolkit({
           </div>
 
           {/* Info box (Generate tab only) */}
-          {store.activeWritingTab === 'Generate' && (
+          {customPrompt.trim() && store.activeWritingTab === 'Generate' && (
+            <div style={{
+              padding: '10px 12px', borderRadius: 8,
+              background: 'rgba(124,58,237,0.07)', border: '1px solid rgba(124,58,237,0.25)',
+              fontSize: 11, color: PURPLE, lineHeight: 1.55,
+            }}>
+              <strong>Custom prompt active:</strong> The actions above are disabled. Your custom prompt below will be the primary directive — click <strong>Generate {wordTarget.display}-Word Article</strong> to use it.
+            </div>
+          )}
+
+          {store.activeWritingTab === 'Generate' && !customPrompt.trim() && (
             <div style={{
               padding: '10px 12px', borderRadius: 8,
               background: 'rgba(59,130,246,0.07)', border: '1px solid rgba(59,130,246,0.2)',
               fontSize: 11, color: '#2563eb', lineHeight: 1.55,
             }}>
-              <strong>Full Article Mode:</strong> Generates a 4,000–5,000 word comprehensive article with EEAT signals, AdSense compliance, 10–14 sections, FAQ, statistics, and internal link placeholders.
+              <strong>Full Article Mode:</strong> Generates a {wordTarget.display}-word article using the {category && label ? `${category} / ${label}` : 'default'} prompt — section count, focus, and word target are determined by the category and label.
             </div>
           )}
 
@@ -425,7 +456,7 @@ export function AIWritingToolkit({
               <ActionItem
                 key={action.id + action.label}
                 action={action}
-                disabled={store.isStreaming || (action.needsTitle && !title)}
+                disabled={store.isStreaming || (action.needsTitle && !title) || !!customPrompt.trim()}
                 onClick={(a) => {
                   const promptMap = {
                     'Improve Writing Quality': `Rewrite the following article with significantly improved writing quality. Maintain all facts but elevate vocabulary, sentence variety, and narrative engagement: ${editor?.getHTML()?.replace(/<[^>]*>/g, ' ').slice(0, 1500)}`,
@@ -523,7 +554,7 @@ export function AIWritingToolkit({
               }}
             >
               <span>✦</span>
-              {store.isStreaming ? 'Generating…' : 'Generate 4,000+ Word Article'}
+              {store.isStreaming ? 'Generating…' : `Generate ${wordTarget.display}-Word Article`}
             </button>
           </div>
         </div>

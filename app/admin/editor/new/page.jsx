@@ -18,6 +18,7 @@ function NewEditorInner() {
   return (
     <PostEditor
       initial={initial}
+      lockedCategory={category || null}
       onSave={async (payload) => {
         await db.posts.create(payload);
         router.push(listPath);
