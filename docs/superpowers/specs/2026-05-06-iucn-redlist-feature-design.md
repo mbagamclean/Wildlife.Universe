@@ -437,7 +437,7 @@ No changes. Keeps using `db.posts.listAllWithIUCN()`, which only requires `iucn_
 ## Open Items / Out of Scope
 
 - IUCN Red List API v4 token application (user action — apply at iucnredlist.org/resources/api).
-- Birds/Insects-specific prompt guides (deferred until user provides them).
+- `INSECTS_SYSTEM` prompt guide (deferred until user provides it).
 - Multi-language IUCN status labels.
 - Scheduled re-verification of stale `iucn_verified_at` rows.
 
@@ -453,6 +453,26 @@ Both share the title rule (`Common Name (Scientific name)`), 6500+ word target, 
 `isIucnRedlistAnimalPost(category, label)` returns true when `cat === 'animals' && lbl === 'iucn redlist'`. The dispatch branch sits alongside `useAnimalsTemplate` in `app/api/ai/write/route.js`.
 
 Implementation is tracked as Task 13 in the plan.
+
+## Update — 2026-05-06: BIRDS_SYSTEM scope addition
+
+The user provided a dedicated prompt guide for `category=Birds`. This adds `BIRDS_SYSTEM` — a 19-section ornithological deep-dive emphasising flight mechanics, migration, and vocalization, with label-specific focus rules per Birds label.
+
+- **`BIRDS_SYSTEM`** (category = "Birds", any label) — ornithology profile: scientific classification → physical characteristics → flight mechanics → migration → vocalization → behavior → diet → ecological role → reproduction → adaptations → ecological importance → threats/IUCN → human relationship → unique facts → FAQ → conclusion. 19 sections, 5500–7000 words.
+
+Label-specific focus rules (applied inside the system prompt based on the label string):
+- `Basal` / `Basal / Primitive` — ancient evolution, dinosaur ancestry
+- `Waterfowl` — aquatic adaptation, wetlands, migration
+- `Coastal` — shoreline ecosystems, tidal feeding, salt adaptation
+- `Raptors` — predatory dominance, hunting, eyesight
+- `Land` / `Land Birds` — ground adaptation, nesting, camouflage
+- `Song` / `Song Birds` — vocal learning, mating songs
+
+`isBirdsPost(category, label)` returns true when `cat === 'birds'` and the label is one of the six DB-stored short forms. The dispatch branch sits in `app/api/ai/write/route.js`. The IUCN sidebar autodetect feature already covers `birds` (per Task 9), so the bird prompt receives `iucnStatus` from context when set.
+
+Note: `lib/mock/categories.js` stores Birds labels as short forms (`Basal`, `Land`, `Song`). The user's guide names them in long form (`Basal / Primitive`, `Land Birds`, `Song Birds`). The prompt's IF rules accept both forms; no migration is required. If long-form labels are desired in admin/UI, that becomes a separate `categories.js` rename + slug-migration task.
+
+Implementation is tracked as Task 14 in the plan.
 
 ## Acceptance Criteria
 

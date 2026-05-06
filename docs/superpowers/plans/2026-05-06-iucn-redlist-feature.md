@@ -21,7 +21,7 @@
 | `supabase/migrations/010_iucn_redlist.sql` | Create | Add `scientific_name`, `iucn_verified`, `iucn_verified_at`; add partial index on `iucn_status`. |
 | `lib/storage/db.js` | Modify | Add new columns to `POST_COLUMNS`, extend `postToDb` / `mapPostFromDb`, add `posts.listAllForRedlist()`. |
 | `components/iucn/iucnConfig.js` | Modify | Add `NE` (Not Evaluated) entry; append `'NE'` to `IUCN_ORDER`. |
-| `app/api/ai/write/route.js` | Modify | Add `IUCN_DETECT_SYSTEM`, `IUCN_SCHEMA`, `iucn_detect` task short-circuit, `ANIMALS_SYSTEM`, `buildAnimalsPrompt`, `isAnimalsPost`, `IUCN_REDLIST_SYSTEM`, `buildIucnRedlistPrompt`, `isIucnRedlistAnimalPost`, two dispatch branches. |
+| `app/api/ai/write/route.js` | Modify | Add `IUCN_DETECT_SYSTEM`, `IUCN_SCHEMA`, `iucn_detect` task short-circuit, `ANIMALS_SYSTEM`, `buildAnimalsPrompt`, `isAnimalsPost`, `IUCN_REDLIST_SYSTEM`, `buildIucnRedlistPrompt`, `isIucnRedlistAnimalPost`, `BIRDS_SYSTEM`, `buildBirdsPrompt`, `isBirdsPost`, three dispatch branches. |
 | `app/api/iucn/verify/route.js` | Create | POST endpoint that calls IUCN Red List API v4 when `IUCN_API_TOKEN` is set; silent fallback otherwise. |
 | `lib/stores/aiStore.js` | Modify | Add `autoDetectIUCNOnTitleBlur` flag + `setAutoDetectIUCN`; persist via `partialize`. |
 | `components/admin/settings/AIProviderSettings.jsx` | Modify | Add a toggle for `autoDetectIUCNOnTitleBlur`. |
@@ -2011,9 +2011,217 @@ git commit -m "feat(ai): IUCN_REDLIST_SYSTEM prompt for Animals + IUCN Redlist l
 
 ---
 
+## Task 14: BIRDS_SYSTEM prompt for category=Birds
+
+A 19-section ornithological deep-dive prompt with label-specific focus rules for the six Birds labels (Basal / Waterfowl / Coastal / Raptors / Land / Song). Same pattern as Tasks 4 and 13.
+
+**Files:**
+- Modify: `app/api/ai/write/route.js`
+
+- [ ] **Step 1: Add `isBirdsPost` helper**
+
+In `app/api/ai/write/route.js`, find `isIucnRedlistAnimalPost` (added in Task 13). Add the new helper immediately after it:
+
+```js
+function isBirdsPost(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+  // Matches the six DB-stored Birds labels in lib/mock/categories.js.
+  return cat === 'birds' && [
+    'basal', 'waterfowl', 'coastal', 'raptors', 'land', 'song',
+  ].includes(lbl);
+}
+```
+
+- [ ] **Step 2: Add `BIRDS_SYSTEM` constant**
+
+Find `IUCN_REDLIST_SYSTEM` (added in Task 13). Add `BIRDS_SYSTEM` immediately after it:
+
+```js
+const BIRDS_SYSTEM = `You are an advanced AI wildlife content generation engine integrated inside a CMS. You write as a world-class ornithologist, wildlife ecologist, avian behavioural analyst, SEO strategist, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level bird species articles.
+
+POST REQUIREMENTS
+- Word count: 5500–7000 words
+- Topic: a single bird species
+- Tone: scientific, documentary storytelling, ecological analysis, immersive narration
+- Goal: deeply educate readers, build authority-level avian content, explain realistic bird behaviour, create visual and emotional immersion
+
+TITLE RULE (HARD CONSTRAINT)
+The H1 must be exactly the format "Common Name (Scientific name)" — for example "Bald Eagle (Haliaeetus leucocephalus)", "Ostrich (Struthio camelus)", "Scarlet Macaw (Ara macao)", "Great White Pelican (Pelecanus onocrotalus)". No emotional headlines, no clickbait, no extra phrases. Encyclopedia / documentary style only. If the supplied title contains marketing language, rewrite it to the canonical form.
+
+SEO OPTIMISATION (mandatory)
+- Identify a primary keyword from the species, plus 3–5 secondary keywords and 5–8 semantic ornithology keywords. Distribute naturally across introduction, several H2 sections, and conclusion. Never keyword-stuff.
+- Use SEO-friendly heading hierarchy (<h1>, <h2>, <h3>), short readable paragraphs, natural search-intent phrasing.
+
+CORE WRITING PRINCIPLE
+This article must read simultaneously like a wildlife documentary, an ornithological field study, an ecological exploration, and a cinematic storytelling experience. Deeply explore: bird behaviour, environmental adaptation, flight mechanics, migration systems, vocal communication, ecosystem interaction, survival intelligence.
+
+LABEL-SPECIFIC FOCUS (apply based on the supplied label)
+- IF LABEL = "Basal" or "Basal / Primitive" or "Primitive"
+  → Focus on: ancient evolution, primitive anatomy, dinosaur ancestry, evolutionary significance.
+- IF LABEL = "Waterfowl"
+  → Focus on: aquatic adaptation, wetland ecosystems, floating/swimming mechanics, seasonal migration.
+- IF LABEL = "Coastal"
+  → Focus on: shoreline ecosystems, tidal feeding systems, marine interaction, salt adaptation.
+- IF LABEL = "Raptors"
+  → Focus on: predatory dominance, hunting strategies, eyesight precision, food chain control.
+- IF LABEL = "Land" or "Land Birds"
+  → Focus on: ground adaptation, nesting systems, camouflage, forest/grassland ecology.
+- IF LABEL = "Song" or "Song Birds"
+  → Focus on: vocal learning, communication systems, mating songs, intelligence and social interaction.
+
+The label-specific focus must be woven throughout the relevant H2 sections (especially Flight Mechanics, Migration, Vocalization, Behaviour, Habitat) — not isolated to a single paragraph.
+
+MANDATORY 19-SECTION STRUCTURE (never skip a section, keep this exact order)
+1.  Introduction — cinematic wildlife scene, immersion, introduce the bird naturally.
+2.  Scientific Classification — scientific name + Kingdom / Phylum / Class / Order / Family / Genus / Species (use a <ul> of <li> rows with <strong> labels).
+3.  Physical Characteristics — feather coloration, wingspan, size & weight, beak structure, sensory adaptations.
+4.  Habitat & Distribution — geographic range, ecosystems, climate preferences, habitat specialisation.
+5.  Flight Mechanics & Movement — wing structure, aerodynamics, energy conservation, soaring/gliding techniques, speed and manoeuvrability. Deep technical analysis required (this is a critical section for bird articles).
+6.  Migration & Navigation Systems — migration routes, seasonal movement, magnetic navigation, environmental cues, survival during migration. Deep analysis required.
+7.  Vocalisation & Communication — bird songs, calls, territorial sounds, warning systems, mating communication, vocal learning. Deep analysis required.
+8.  Behaviour & Social Structure — territorial behaviour, group dynamics, intelligence, emotional behaviour, daily routines.
+9.  Diet & Feeding Ecology — feeding techniques, hunting methods, ecological food role, competition.
+10. Interaction with Other Species — predator/prey systems, symbiotic relationships, competition, ecological influence.
+11. Environmental Interaction — ecosystem dependency, vegetation interaction, wetland/forest/marine relationships, climate adaptation.
+12. Reproduction & Nesting — courtship, nest building, egg laying, parenting behaviour, chick survival.
+13. Evolutionary Adaptations — feather specialisation, camouflage, water resistance, vision adaptation, survival traits.
+14. Ecological Importance — pollination, seed dispersal, pest control, food chain balance, ecosystem stability.
+15. Threats & Conservation — habitat destruction, climate change, hunting, pollution, human disturbance. Include the official IUCN status, population trend, and current conservation efforts.
+16. Human Relationship — cultural significance, bird tourism, human interaction, conservation awareness.
+17. Unique & Rare Facts — rare behaviour, scientific discoveries, extraordinary abilities (5–10 items, can use <ul>).
+18. Frequently Asked Questions — 6–12 real search-intent questions as <h3> headings with short 1–3 paragraph answers each. Schema-friendly, conversational phrasing, primary keyword naturally placed.
+19. Conclusion — powerful emotional closing, reinforce ecological importance, leave a memorable impression.
+
+WRITING TECHNIQUES
+- Documentary storytelling, ecological analysis, scientific realism, sensory description, cause-and-effect explanation, behavioural interpretation.
+
+STYLE RULES
+- Clear but advanced English, professional ornithology tone, cinematic descriptions, smooth transitions.
+- No robotic writing. No AI-sounding clichés ("delve", "nuanced", "comprehensive", "robust", "in today's world", "as we explore", etc.).
+
+QUALITY CONTROL
+- Scientific realism, ecological depth, SEO optimisation, storytelling quality, readability.
+- Do NOT create shallow explanations. Do NOT skip migration analysis. Do NOT skip vocalisation analysis. Do NOT oversimplify ecological systems. Each bird article must feel unique.
+
+FORMAT
+- Output clean HTML only — never markdown.
+- Open with <h1> in the exact "Common Name (Scientific name)" form.
+- Use <h2> for each of the 19 main sections; <h3> for sub-sections (especially in Scientific Classification list, FAQ).
+- Use <p> for paragraphs, <ul>/<li> for lists where appropriate.
+- Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
+- Ready to publish, no commentary outside the article.`;
+```
+
+- [ ] **Step 3: Add `buildBirdsPrompt` helper**
+
+Find `buildIucnRedlistPrompt` (added in Task 13). Add `buildBirdsPrompt` immediately after it:
+
+```js
+function buildBirdsPrompt(title, context) {
+  const t = title?.trim();
+  const lbl = context?.label?.trim() || '';
+  const sci = context?.scientificName?.trim();
+  const status = context?.iucnStatus;
+
+  const labelHint = lbl
+    ? `\n\nThe supplied Birds label is "${lbl}". Apply the matching label-specific focus from the system prompt — weave that frame throughout the Flight Mechanics, Migration, Vocalisation, Behaviour, and Habitat sections. Do not isolate it to a single paragraph.`
+    : '';
+
+  const iucnHint = status
+    ? `\n\nThe species' IUCN Red List category is **${status}**. Use this exact status in section 15 — do not invent a different status.${sci ? ` Scientific name: ${sci}.` : ''}`
+    : '\n\nIf the species has an official IUCN Red List status, identify it from your knowledge and use it accurately in section 15. If the species has not been assessed, mark as NE (Not Evaluated).';
+
+  return `Write a complete 5500–7000 word authority-level ornithological article${t ? ` titled "${t}"` : ''}.
+
+TITLE RULE (HARD): The H1 must be exactly the format "Common Name (Scientific name)" — for example "Bald Eagle (Haliaeetus leucocephalus)". No SEO clickbait, no emotional headlines, no extra phrases. If the supplied title is not in the canonical form, rewrite it to that form before using it as the <h1>.
+
+Follow the mandatory 19-section structure exactly:
+1.  <h2>Introduction</h2>
+2.  <h2>Scientific Classification</h2>
+3.  <h2>Physical Characteristics</h2>
+4.  <h2>Habitat & Distribution</h2>
+5.  <h2>Flight Mechanics & Movement</h2>
+6.  <h2>Migration & Navigation Systems</h2>
+7.  <h2>Vocalisation & Communication</h2>
+8.  <h2>Behaviour & Social Structure</h2>
+9.  <h2>Diet & Feeding Ecology</h2>
+10. <h2>Interaction with Other Species</h2>
+11. <h2>Environmental Interaction</h2>
+12. <h2>Reproduction & Nesting</h2>
+13. <h2>Evolutionary Adaptations</h2>
+14. <h2>Ecological Importance</h2>
+15. <h2>Threats & Conservation</h2> (include IUCN status, population trend, conservation efforts)
+16. <h2>Human Relationship</h2>
+17. <h2>Unique & Rare Facts</h2>
+18. <h2>Frequently Asked Questions</h2> (6–12 questions, each as <h3>, with 1–3 paragraph short answers; FAQ-schema-friendly; conversational phrasing; primary keyword naturally placed)
+19. <h2>Conclusion</h2>
+
+Sections 5 (Flight Mechanics), 6 (Migration), and 7 (Vocalisation) require the deepest technical and behavioural analysis — these are the signature sections of a bird article.${labelHint}${iucnHint}
+
+Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
+}
+```
+
+- [ ] **Step 4: Wire into the POST handler dispatch**
+
+In the POST handler, find the template-flag block. Add the new flag, then add the dispatch branch immediately after `useIucnRedlistTemplate` (added in Task 13):
+
+```js
+    const useAnimalsTemplate = task === 'full_article' && isAnimalsPost(context.category, effectiveLabel);
+    const useIucnRedlistTemplate = task === 'full_article' && isIucnRedlistAnimalPost(context.category, effectiveLabel);
+    const useBirdsTemplate = task === 'full_article' && isBirdsPost(context.category, effectiveLabel);
+
+    // existing branches (HOW, WHY, CONSERVATION, TOURISM, ARTICLES, ANIMALS, IUCN_REDLIST) above this block...
+
+    } else if (useBirdsTemplate) {
+      systemPrompt = BIRDS_SYSTEM;
+      userPrompt = buildBirdsPrompt(context.title, { ...context, label: effectiveLabel });
+      maxTokens = 12000; // 7000 words ≈ 9300 tokens + headroom
+    }
+```
+
+The new branch sits at the end of the if/else chain. Pass `effectiveLabel` (post-`deriveLabelFromTitle`) into the builder so the label-specific focus rule fires correctly.
+
+- [ ] **Step 5: Verify**
+
+```bash
+npm run lint
+```
+Expected: zero new errors related to `route.js`.
+
+Quick integration check via curl. Start `npm run dev` and:
+
+```bash
+curl -X POST http://localhost:3001/api/ai/write \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "full_article",
+    "provider": "claude",
+    "model": "claude-opus-4-7",
+    "context": {
+      "title": "Bald Eagle (Haliaeetus leucocephalus)",
+      "body": "",
+      "category": "birds",
+      "label": "Raptors"
+    }
+  }' | head -c 3000
+```
+
+Expected: a streamed article opening with `<h1>Bald Eagle (Haliaeetus leucocephalus)</h1>` followed by `<h2>Introduction</h2>` and (eventually within the first ~3000 chars) the cinematic ornithological frame and Raptors-specific emphasis on hunting / eyesight / food chain control.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app/api/ai/write/route.js
+git commit -m "feat(ai): BIRDS_SYSTEM prompt with label-specific ornithology focus"
+```
+
+---
+
 ## Wrap-up
 
-After all 13 tasks are committed:
+After all 14 tasks are committed:
 
 - [ ] **Final lint**
 
@@ -2035,6 +2243,7 @@ Expected: zero new errors.
 9. Click "Detect from species" on the topical post — confirm the panel returns `NE` with low confidence and a reasoning line explaining it's a topical article.
 10. Toggle off `autoDetectIUCNOnTitleBlur` in settings. Confirm title-blur no longer fires.
 11. Create a second post: `category=Animals, label=IUCN Redlist`, title `Black Rhinoceros (Diceros bicornis)`. Click Generate. Confirm the article uses the conservation-engineering 14-section structure (Population Dynamics → Conservation Policy → IUCN Red List Analysis → Conclusion → FAQ), NOT the 18-section species-profile structure used by Mammals/Reptiles/Amphibians/Fish. Confirm it appears under CR on `/redlist`.
+12. Create a third post: `category=Birds, label=Raptors`, title `Bald Eagle (Haliaeetus leucocephalus)`. Click Generate. Confirm the article uses the 19-section ornithological structure with deep Flight Mechanics + Migration + Vocalisation sections, and that the Raptors-specific focus (predatory dominance, hunting strategies, eyesight) is woven throughout. Confirm IUCN sidebar autodetect populates the panel for the Birds category.
 
 - [ ] **Final commit (if any cleanup needed)**
 
@@ -2047,7 +2256,8 @@ git add <any leftover> && git commit -m "chore: post-implementation cleanup"
 
 ## Out of Scope (future plans)
 
-- `BIRDS_SYSTEM` and `INSECTS_SYSTEM` — user will provide guides separately.
+- `INSECTS_SYSTEM` — user will provide the guide separately.
 - Topical/curated multi-species list prompts (e.g. "Top 10 Endangered Mammals"). The current `IUCN_REDLIST_SYSTEM` is for single-species conservation deep-dives, not lists.
+- Renaming Birds labels in `lib/mock/categories.js` from short forms (`Basal`, `Land`, `Song`) to long forms (`Basal / Primitive`, `Land Birds`, `Song Birds`) — would require a separate categories migration + URL slug handling.
 - Scheduled re-verification of stale `iucn_verified_at` rows.
 - Multi-language IUCN status labels.
