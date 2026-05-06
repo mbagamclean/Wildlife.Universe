@@ -6,6 +6,68 @@ import { openai } from '@ai-sdk/openai';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
+// ────────────────────────────────────────────────────────────────────────────
+// RICH_FORMATTING_TOOLKIT — appended to every full_article system prompt so
+// AI-generated articles include comparison tables, fun-fact callouts,
+// inspiration quotes, and short wildlife stories. CSS in app/globals.css
+// styles each pattern in both light and dark mode. These elements DO NOT
+// count toward the article's word target.
+// ────────────────────────────────────────────────────────────────────────────
+const RICH_FORMATTING_TOOLKIT = `
+
+RICH FORMATTING TOOLKIT (use throughout the article — these elements DO NOT count toward the word-count target)
+
+The following structural elements are styled and supported in the editor + reader. Use them naturally to make the article visually rich. Each element below MUST be emitted with the exact tag and class shown — class names are required for styling.
+
+1. COMPARISON TABLES (class="wu-comparison")
+   Use a real <table> with <thead>/<tbody>/<th>/<td> for any comparison: species vs species, region vs region, before vs after, etc. The first column becomes a labelled row header.
+   <table class="wu-comparison">
+     <thead><tr><th>Trait</th><th>African Elephant</th><th>Asian Elephant</th></tr></thead>
+     <tbody>
+       <tr><td>Average weight</td><td>5,500 kg</td><td>4,000 kg</td></tr>
+       <tr><td>Habitat</td><td>Savanna & forest</td><td>Tropical forest</td></tr>
+     </tbody>
+   </table>
+
+2. DATA TABLES (plain <table>)
+   For numeric / population / habitat data without a strict comparison frame. Same shape as above, no class needed.
+
+3. FUN FACT CALLOUTS (class="wu-funfact")
+   2–3 per article, sprinkled where appropriate. The first <strong> inside is treated as the eyebrow label.
+   <blockquote class="wu-funfact">
+     <p><strong>Fun Fact</strong>An elephant's trunk contains over 40,000 muscles — more than the entire human body.</p>
+   </blockquote>
+
+4. INSPIRATION / WILDLIFE QUOTATIONS (class="wu-inspiration")
+   1–2 per article. Real quotes from biologists/conservationists, attributed via <cite>. Or short reflective wildlife-life-lessons.
+   <blockquote class="wu-inspiration">
+     <p>"In every walk with nature, one receives far more than he seeks."</p>
+     <cite>— John Muir</cite>
+   </blockquote>
+
+5. WILDLIFE STORY VIGNETTE (class="wu-story")
+   1 per article. A 2–4 paragraph short narrative anecdote — a vivid scene from the species' life, a documented field observation, or a brief naturalist memory. The reader styling adds a "Wildlife Story" eyebrow automatically.
+   <blockquote class="wu-story">
+     <p>At dawn in the Maasai Mara, a single elephant matriarch...</p>
+     <p>(continue 2-4 short paragraphs)</p>
+   </blockquote>
+
+PLACEMENT GUIDELINES
+- Comparison tables: in sections discussing diet, habitat, physical traits, threats, or species variants. 1–2 per article.
+- Fun fact callouts: between H2 sections to provide a visual breather. 2–3 per article.
+- Inspiration quotes: near the introduction or conclusion. 1–2 per article.
+- Wildlife story: between the middle sections (e.g., between Behaviour and Diet). 1 per article.
+
+HEADING & PARAGRAPH RHYTHM
+- Always use <h2> for major sections, <h3> for sub-sections, <h4> sparingly for sub-sub points.
+- Keep paragraphs to 2–5 sentences for readability.
+- Insert callouts BETWEEN paragraphs or BETWEEN sections, never inside another paragraph.
+- Do not nest <blockquote> inside <blockquote>.
+- Tables, callouts, quotes, and stories are styled with proper margins automatically — do not add inline styles.
+
+CRITICAL: Only the elements listed above are styled. Do not invent classes. Do not output <aside>, <div>, <section>, or <figure> tags — they will be stripped by the editor. Stick to: h1-h4, p, ul/ol/li, blockquote (with the listed class names or no class), table/thead/tbody/tr/th/td, strong, em, a, cite, br.
+`;
+
 const WILDLIFE_SYSTEM = `You are an elite wildlife documentary writer and nature journalist with 25 years of experience writing for National Geographic, BBC Earth, and the world's leading nature publications. Your prose combines the scientific precision of a naturalist with the narrative warmth of David Attenborough.
 
 Your writing always includes:
@@ -1223,9 +1285,18 @@ export async function POST(req) {
       maxTokens = 12000; // 7000 words ≈ 9300 tokens + headroom
     }
 
+    // Append the rich-formatting toolkit (tables, fun-fact / inspiration /
+    // story callouts, heading rhythm) to every full_article generation so
+    // every species/post prompt automatically uses the supported HTML
+    // patterns. Toolkit elements do NOT count toward the word target.
+    const finalSystemPrompt =
+      task === 'full_article'
+        ? systemPrompt + '\n' + RICH_FORMATTING_TOOLKIT
+        : systemPrompt;
+
     const result = streamText({
       model,
-      system: systemPrompt,
+      system: finalSystemPrompt,
       prompt: userPrompt,
       temperature: 0.7,
       maxTokens,

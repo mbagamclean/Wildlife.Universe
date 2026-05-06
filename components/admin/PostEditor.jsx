@@ -13,6 +13,27 @@ import ImageExt from '@tiptap/extension-image';
 import Placeholder from '@tiptap/extension-placeholder';
 import CharacterCount from '@tiptap/extension-character-count';
 import Youtube from '@tiptap/extension-youtube';
+import Blockquote from '@tiptap/extension-blockquote';
+import Table from '@tiptap/extension-table';
+import TableRow from '@tiptap/extension-table-row';
+import TableHeader from '@tiptap/extension-table-header';
+import TableCell from '@tiptap/extension-table-cell';
+
+// Class-preserving blockquote so AI-generated callouts (wu-funfact,
+// wu-inspiration, wu-story) survive the TipTap parse/serialize round-trip.
+// StarterKit's default blockquote strips class attributes, breaking the
+// styled callouts the AI emits.
+const RichBlockquote = Blockquote.extend({
+  addAttributes() {
+    return {
+      class: {
+        default: null,
+        parseHTML: (el) => el.getAttribute('class'),
+        renderHTML: (attrs) => (attrs.class ? { class: attrs.class } : {}),
+      },
+    };
+  },
+});
 
 import {
   ArrowLeft, Undo2, Redo2,
@@ -331,7 +352,16 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
 
   const editor = useEditor({
     extensions: [
-      StarterKit.configure({ heading: { levels: [1, 2, 3] }, codeBlock: { languageClassPrefix: 'language-' } }),
+      StarterKit.configure({
+        heading: { levels: [1, 2, 3] },
+        codeBlock: { languageClassPrefix: 'language-' },
+        blockquote: false, // disabled — replaced by class-preserving RichBlockquote below
+      }),
+      RichBlockquote,
+      Table.configure({ resizable: false, HTMLAttributes: { class: 'wu-table' } }),
+      TableRow,
+      TableHeader,
+      TableCell,
       TextAlign.configure({ types: ['heading', 'paragraph'] }),
       UnderlineExt,
       SubscriptExt,

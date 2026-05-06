@@ -523,6 +523,205 @@ button {
   margin: 1em 0;
 }
 .post-body pre code { background: transparent; border: 0; padding: 0; }
+
+/* ── Improved vertical rhythm — clearer separation between sections ───────── */
+.post-body p + h2,
+.post-body ul + h2,
+.post-body ol + h2,
+.post-body blockquote + h2,
+.post-body table + h2,
+.post-body figure + h2 { margin-top: 2.2em; }
+
+.post-body p + h3,
+.post-body ul + h3,
+.post-body ol + h3,
+.post-body blockquote + h3,
+.post-body table + h3 { margin-top: 1.6em; }
+
+.post-body h2 + p,
+.post-body h2 + ul,
+.post-body h2 + ol { margin-top: 0.7em; }
+.post-body h3 + p,
+.post-body h3 + ul,
+.post-body h3 + ol { margin-top: 0.55em; }
+.post-body h4 + p { margin-top: 0.45em; }
+
+/* H2 separator line for clearer section breaks (subtle, theme-aware) */
+.post-body h2 {
+  padding-bottom: 0.35em;
+  border-bottom: 1px solid var(--glass-border);
+}
+
+/* ── Tables — comparison & data ──────────────────────────────────────────── */
+.post-body table,
+.post-body .wu-table {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  margin: 1.6em 0;
+  font-size: 0.96em;
+  background: var(--color-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 10px;
+}
+.post-body table th,
+.post-body .wu-table th {
+  background: rgba(0, 128, 0, 0.08);
+  color: var(--color-fg);
+  font-weight: 700;
+  text-align: left;
+  padding: 11px 16px;
+  border-bottom: 2px solid rgba(0, 128, 0, 0.22);
+  font-size: 0.9em;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.post-body table td,
+.post-body .wu-table td {
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--glass-border);
+  vertical-align: top;
+  color: var(--color-fg);
+}
+.post-body table tr:last-child td,
+.post-body .wu-table tr:last-child td { border-bottom: 0; }
+.post-body table tbody tr:nth-child(even) td,
+.post-body .wu-table tbody tr:nth-child(even) td {
+  background: rgba(0, 0, 0, 0.025);
+}
+[data-theme="dark"] .post-body table th,
+[data-theme="dark"] .post-body .wu-table th {
+  background: rgba(0, 128, 0, 0.16);
+  border-bottom-color: rgba(0, 128, 0, 0.32);
+}
+[data-theme="dark"] .post-body table tbody tr:nth-child(even) td,
+[data-theme="dark"] .post-body .wu-table tbody tr:nth-child(even) td {
+  background: rgba(255, 255, 255, 0.025);
+}
+
+/* ── Generic blockquote (no class) — kept simple ─────────────────────────── */
+.post-body blockquote:not(.wu-funfact):not(.wu-inspiration):not(.wu-story) {
+  border-left: 3px solid var(--color-primary);
+  padding: 0.4em 0 0.4em 1.2em;
+  margin: 1.2em 0;
+  font-style: italic;
+  color: var(--color-fg-soft);
+}
+
+/* ── Fun Fact callout — yellow/amber accent with sparkle marker ──────────── */
+.post-body blockquote.wu-funfact {
+  margin: 1.7em 0;
+  padding: 18px 22px 18px 60px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.10);
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  position: relative;
+  font-style: normal;
+  color: var(--color-fg);
+}
+.post-body blockquote.wu-funfact::before {
+  content: '✦';
+  position: absolute;
+  left: 22px;
+  top: 16px;
+  font-size: 1.5em;
+  color: #d97706;
+  line-height: 1;
+}
+.post-body blockquote.wu-funfact p { margin: 0.3em 0; font-style: normal; }
+.post-body blockquote.wu-funfact p:first-child { margin-top: 0; }
+.post-body blockquote.wu-funfact p:last-child { margin-bottom: 0; }
+.post-body blockquote.wu-funfact > p:first-child > strong:first-child,
+.post-body blockquote.wu-funfact > strong:first-child {
+  display: block;
+  font-size: 0.78em;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: #b45309;
+  margin-bottom: 6px;
+  font-weight: 800;
+}
+[data-theme="dark"] .post-body blockquote.wu-funfact {
+  background: rgba(245, 158, 11, 0.14);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+[data-theme="dark"] .post-body blockquote.wu-funfact::before { color: #fbbf24; }
+[data-theme="dark"] .post-body blockquote.wu-funfact > p:first-child > strong:first-child,
+[data-theme="dark"] .post-body blockquote.wu-funfact > strong:first-child { color: #fbbf24; }
+
+/* ── Inspiration / Quotation block — green left bar, italic ──────────────── */
+.post-body blockquote.wu-inspiration {
+  margin: 1.8em 0;
+  padding: 18px 22px;
+  border-left: 5px solid var(--color-primary);
+  background: rgba(0, 128, 0, 0.05);
+  border-radius: 0 12px 12px 0;
+  font-style: italic;
+  font-size: 1.08em;
+  color: var(--color-fg);
+}
+.post-body blockquote.wu-inspiration p { margin: 0.3em 0; }
+.post-body blockquote.wu-inspiration p:first-child { margin-top: 0; }
+.post-body blockquote.wu-inspiration p:last-child { margin-bottom: 0; }
+.post-body blockquote.wu-inspiration cite,
+.post-body blockquote.wu-inspiration footer {
+  display: block;
+  margin-top: 0.6em;
+  font-style: normal;
+  font-size: 0.85em;
+  color: var(--color-fg-soft);
+  text-align: right;
+}
+[data-theme="dark"] .post-body blockquote.wu-inspiration {
+  background: rgba(0, 128, 0, 0.10);
+}
+
+/* ── Wildlife Story — soft gradient with eyebrow ─────────────────────────── */
+.post-body blockquote.wu-story {
+  margin: 1.9em 0;
+  padding: 22px 26px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(0, 128, 0, 0.05), rgba(212, 175, 55, 0.05));
+  border: 1px solid var(--glass-border);
+  position: relative;
+  font-style: normal;
+  color: var(--color-fg);
+}
+.post-body blockquote.wu-story::before {
+  content: 'Wildlife Story';
+  display: block;
+  font-size: 0.74em;
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  color: var(--color-primary);
+  font-weight: 800;
+  margin-bottom: 12px;
+}
+.post-body blockquote.wu-story p { margin: 0.45em 0; line-height: 1.75; }
+.post-body blockquote.wu-story p:first-of-type { margin-top: 0; }
+.post-body blockquote.wu-story p:last-of-type { margin-bottom: 0; }
+[data-theme="dark"] .post-body blockquote.wu-story {
+  background: linear-gradient(135deg, rgba(0, 128, 0, 0.10), rgba(212, 175, 55, 0.08));
+}
+
+/* ── Comparison table variant (class="wu-comparison") ─────────────────────── */
+.post-body table.wu-comparison th:first-child,
+.post-body .wu-table.wu-comparison th:first-child {
+  background: rgba(0, 128, 0, 0.14);
+  font-weight: 800;
+}
+.post-body table.wu-comparison td:first-child,
+.post-body .wu-table.wu-comparison td:first-child {
+  font-weight: 700;
+  color: var(--color-fg);
+  background: rgba(0, 128, 0, 0.04);
+}
+[data-theme="dark"] .post-body table.wu-comparison td:first-child,
+[data-theme="dark"] .post-body .wu-table.wu-comparison td:first-child {
+  background: rgba(0, 128, 0, 0.10);
+}
 .post-body hr { border: none; border-top: 1px solid var(--glass-border); margin: 1.5em 0; }
 .post-body img,
 .post-body video {
