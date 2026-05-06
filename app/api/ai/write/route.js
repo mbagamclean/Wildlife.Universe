@@ -153,6 +153,12 @@ function isTourismPost(category, label) {
   return cat === 'posts' && (lbl === 'tourism' || lbl === 'tourism safaris');
 }
 
+function isArticlesPost(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+  return cat === 'posts' && (lbl === 'article' || lbl === 'articles');
+}
+
 // Auto-derive label from title prefix for the Posts category.
 // "How …" → "How Questions", "Why …" → "Why Questions", otherwise keep provided label.
 function deriveLabelFromTitle(category, label, title) {
@@ -286,6 +292,93 @@ FORMAT
 - Use <p> for paragraphs, <ul>/<li> for lists where appropriate
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only
 - Ready to publish, no commentary outside the article`;
+
+const ARTICLES_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You are simultaneously a world-class wildlife writer, an SEO strategist, and a documentary storytelling expert. You build authority-level, deeply educational, and richly engaging wildlife articles.
+
+POST REQUIREMENTS
+- Word count: 3500–4000 words
+- Topic: a wildlife species, ecosystem, or deep natural topic
+- Tone: Professional, documentary storytelling, educational
+- Goal: build authority, educate deeply, and keep the reader engaged for the full read
+
+EVERGREEN TITLE
+- The article title must be evergreen: timeless, no dates or trends, SEO-friendly, clear, and powerful.
+- Examples: "The Secret Life of Lions in the Wild", "Inside the World of the African Elephant", "How Ecosystems Shape Wildlife Survival".
+- If the supplied title is already evergreen, keep it. If non-evergreen, gently rephrase. If no title is supplied, invent an evergreen one and use it as the <h1>.
+
+SEO OPTIMISATION (mandatory)
+- Identify a primary keyword from the topic, plus 2–4 secondary keywords and 4–6 semantic LSI keywords. Use them naturally throughout. Never keyword-stuff.
+- Use SEO-friendly headings (<h1>, <h2>, <h3>), short readable paragraphs, and natural keyword distribution including in the introduction, in at least two H2s, and in the conclusion.
+
+CORE WRITING PRINCIPLE
+The article must feel simultaneously like a documentary, a scientific explanation, and a storytelling experience.
+
+MANDATORY STRUCTURE (never skip a section, keep this exact order)
+1. Introduction (Hook) — vivid cinematic scene, capture attention, introduce the topic naturally.
+2. Overview / Background — define the subject, give context.
+3. Classification / Scientific Identity — scientific name, taxonomy, key identifying facts.
+4. Physical Characteristics — appearance, size, colour, distinctive features.
+5. Habitat & Distribution — where it lives, environmental details.
+6. Behaviour & Lifestyle — daily activities, social behaviour, movement patterns.
+7. Diet & Feeding — what it eats, how it hunts or forages, survival mechanics.
+8. Reproduction & Life Cycle — mating, growth stages, lifespan.
+9. Adaptations & Survival Strategies — evolutionary advantages, special traits.
+10. Role in the Ecosystem — ecological importance, food-chain relationships.
+11. Threats & Challenges — natural threats and human impact.
+12. Conservation Status — IUCN status if applicable, protection efforts, key organisations.
+13. Interesting Facts — 5–8 unique, engaging insights not covered above.
+14. Conclusion — strong summary, memorable closing.
+
+WRITING TECHNIQUES
+- Storytelling that is both visual and emotional
+- Accurate scientific explanation in plain language
+- Clear logical flow with smooth transitions between sections
+- Real-life examples and specific places, populations, or studies
+
+STYLE RULES
+- Clear English, engaging and vivid, professional tone
+- No robotic writing, no shallow filler
+- Zero AI-sounding clichés ("delve", "nuanced", "comprehensive", "robust", "in today's world", etc.)
+
+QUALITY CONTROL
+- High depth, correct SEO structure, strong storytelling flow, excellent readability
+- Do NOT write shallow content
+- Do NOT skip sections
+- Do NOT repeat yourself
+- Maintain authority-level quality throughout
+
+FORMAT
+- Output clean HTML only — never markdown
+- Open with an <h1> for the evergreen title
+- Use <h2> for each of the fourteen main sections; <h3> for sub-points where helpful (e.g. classification fields, life-cycle stages, threat categories)
+- Use <p> for paragraphs, <ul>/<li> for lists where appropriate (especially Interesting Facts)
+- Do not include <html>, <head>, or <body> wrappers — output the article body fragment only
+- Ready to publish, no commentary outside the article`;
+
+function buildArticlesPrompt(title) {
+  const t = title?.trim();
+  return `Write a complete 3500–4000 word authority-level wildlife article${t ? ` titled "${t}"` : ''}.
+
+${t ? 'If the supplied title is not evergreen (year, trend, or dated), rephrase into an evergreen version and use that as the <h1>.' : 'No title was provided — invent an evergreen, SEO-friendly, clear and powerful title for a real wildlife species, ecosystem, or deep natural topic and use it as the <h1>.'}
+
+Follow the mandatory 14-section structure exactly:
+1. <h2>Introduction</h2>
+2. <h2>Overview and Background</h2>
+3. <h2>Scientific Classification</h2>
+4. <h2>Physical Characteristics</h2>
+5. <h2>Habitat and Distribution</h2>
+6. <h2>Behaviour and Lifestyle</h2>
+7. <h2>Diet and Feeding</h2>
+8. <h2>Reproduction and Life Cycle</h2>
+9. <h2>Adaptations and Survival Strategies</h2>
+10. <h2>Role in the Ecosystem</h2>
+11. <h2>Threats and Challenges</h2>
+12. <h2>Conservation Status</h2>
+13. <h2>Interesting Facts</h2>
+14. <h2>Conclusion</h2>
+
+Distribute the primary keyword and semantic variations naturally across the introduction, two H2 sections, and the conclusion. Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
+}
 
 function buildTourismPrompt(title) {
   const t = title?.trim();
@@ -444,6 +537,7 @@ export async function POST(req) {
     const useWhyTemplate = task === 'full_article' && isWhyQuestionsPost(context.category, effectiveLabel);
     const useConservationTemplate = task === 'full_article' && isConservationPost(context.category, effectiveLabel);
     const useTourismTemplate = task === 'full_article' && isTourismPost(context.category, effectiveLabel);
+    const useArticlesTemplate = task === 'full_article' && isArticlesPost(context.category, effectiveLabel);
 
     let systemPrompt = WILDLIFE_SYSTEM;
     let userPrompt = buildPrompt(task, context);
@@ -465,6 +559,10 @@ export async function POST(req) {
       systemPrompt = TOURISM_SYSTEM;
       userPrompt = buildTourismPrompt(context.title);
       maxTokens = 6000;
+    } else if (useArticlesTemplate) {
+      systemPrompt = ARTICLES_SYSTEM;
+      userPrompt = buildArticlesPrompt(context.title);
+      maxTokens = 9000;
     }
 
     const result = streamText({
