@@ -438,9 +438,21 @@ No changes. Keeps using `db.posts.listAllWithIUCN()`, which only requires `iucn_
 
 - IUCN Red List API v4 token application (user action — apply at iucnredlist.org/resources/api).
 - Birds/Insects-specific prompt guides (deferred until user provides them).
-- Dedicated prompt for `label="IUCN Redlist"` topical/curated list posts (e.g. "Top 10 Critically Endangered Mammals"). For now they use the default `WILDLIFE_SYSTEM` and still surface on `/redlist` via the label.
 - Multi-language IUCN status labels.
 - Scheduled re-verification of stale `iucn_verified_at` rows.
+
+## Update — 2026-05-06: IUCN_REDLIST_SYSTEM scope addition
+
+The user provided a dedicated prompt guide for `category=Animals AND label="IUCN Redlist"` mid-implementation. This adds a new prompt template (`IUCN_REDLIST_SYSTEM`) alongside `ANIMALS_SYSTEM`, distinguished by frame:
+
+- **`ANIMALS_SYSTEM`** (label ∈ {Mammals, Reptiles, Amphibians, Fish}) — natural-history species profile: taxonomy, physical characteristics, behaviour, reproduction, etc. 18 sections.
+- **`IUCN_REDLIST_SYSTEM`** (label = "IUCN Redlist") — conservation engineering deep-dive: population dynamics, habitat stability, keystone analysis, human-wildlife conflict, climate vulnerability, genetic diversity, conservation engineering, ecosystem interdependence, extinction-risk modelling, conservation policy. 14 sections.
+
+Both share the title rule (`Common Name (Scientific name)`), 6500+ word target, dedicated `IUCN Red List Analysis` section, and trailing FAQ. They diverge in section list and emphasis.
+
+`isIucnRedlistAnimalPost(category, label)` returns true when `cat === 'animals' && lbl === 'iucn redlist'`. The dispatch branch sits alongside `useAnimalsTemplate` in `app/api/ai/write/route.js`.
+
+Implementation is tracked as Task 13 in the plan.
 
 ## Acceptance Criteria
 

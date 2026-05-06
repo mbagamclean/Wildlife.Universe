@@ -21,7 +21,7 @@
 | `supabase/migrations/010_iucn_redlist.sql` | Create | Add `scientific_name`, `iucn_verified`, `iucn_verified_at`; add partial index on `iucn_status`. |
 | `lib/storage/db.js` | Modify | Add new columns to `POST_COLUMNS`, extend `postToDb` / `mapPostFromDb`, add `posts.listAllForRedlist()`. |
 | `components/iucn/iucnConfig.js` | Modify | Add `NE` (Not Evaluated) entry; append `'NE'` to `IUCN_ORDER`. |
-| `app/api/ai/write/route.js` | Modify | Add `IUCN_DETECT_SYSTEM`, `IUCN_SCHEMA`, `iucn_detect` task short-circuit, `ANIMALS_SYSTEM`, `buildAnimalsPrompt`, `isAnimalsPost`, dispatch branch. |
+| `app/api/ai/write/route.js` | Modify | Add `IUCN_DETECT_SYSTEM`, `IUCN_SCHEMA`, `iucn_detect` task short-circuit, `ANIMALS_SYSTEM`, `buildAnimalsPrompt`, `isAnimalsPost`, `IUCN_REDLIST_SYSTEM`, `buildIucnRedlistPrompt`, `isIucnRedlistAnimalPost`, two dispatch branches. |
 | `app/api/iucn/verify/route.js` | Create | POST endpoint that calls IUCN Red List API v4 when `IUCN_API_TOKEN` is set; silent fallback otherwise. |
 | `lib/stores/aiStore.js` | Modify | Add `autoDetectIUCNOnTitleBlur` flag + `setAutoDetectIUCN`; persist via `partialize`. |
 | `components/admin/settings/AIProviderSettings.jsx` | Modify | Add a toggle for `autoDetectIUCNOnTitleBlur`. |
@@ -1799,9 +1799,221 @@ git commit -m "feat(nav): add IUCN Red List link to mobile and desktop nav"
 
 ---
 
+## Task 13: IUCN_REDLIST_SYSTEM prompt for category=Animals + label="IUCN Redlist"
+
+This prompt is a conservation-engineering / ecological-analysis frame for species, distinct from `ANIMALS_SYSTEM`'s natural-history-profile frame. Title rule and word target match Animals; section list and emphasis differ.
+
+**Files:**
+- Modify: `app/api/ai/write/route.js`
+
+- [ ] **Step 1: Add `isIucnRedlistAnimalPost` helper**
+
+In `app/api/ai/write/route.js`, find `isAnimalsPost` (added in Task 4). Add the new helper immediately after it:
+
+```js
+function isIucnRedlistAnimalPost(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+  return cat === 'animals' && lbl === 'iucn redlist';
+}
+```
+
+- [ ] **Step 2: Add `IUCN_REDLIST_SYSTEM` constant**
+
+Find `ANIMALS_SYSTEM` (added in Task 4). Add `IUCN_REDLIST_SYSTEM` immediately after it (before `IUCN_SCHEMA` from Task 5):
+
+```js
+const IUCN_REDLIST_SYSTEM = `You are an advanced AI wildlife content generation engine integrated inside a CMS. You write as a world-class wildlife management engineer, ecological analyst, conservation strategist, biodiversity researcher, and documentary storyteller. You produce authority-level ecological and IUCN Red List articles with deep scientific analysis, ecosystem understanding, and professional conservation assessment.
+
+ARTICLE PURPOSE
+This article must NOT be a generic species description. It must deeply analyse:
+- Ecological importance, population stability, environmental interaction, ecosystem impact, conservation engineering concerns, long-term survival risks, biodiversity consequences.
+The article must read simultaneously like a wildlife documentary, a scientific ecological report, and a conservation engineering assessment.
+
+POST REQUIREMENTS
+- Word count: 6500+ words
+- Topic: a single wildlife species, framed through its conservation status and ecological footprint
+- Tone: scientific, documentary-style, ecological analysis, professional conservation language
+
+TITLE RULE (HARD CONSTRAINT)
+The H1 must be exactly the format "Common Name (Scientific name)" — for example "African Elephant (Loxodonta africana)" or "Black Rhinoceros (Diceros bicornis)". No emotional headlines, no clickbait, no extra phrases. If the supplied title contains marketing language, rewrite it to the canonical form.
+
+SEO OPTIMISATION (mandatory)
+- Identify a primary keyword (typically the species' common name and conservation context), 3–5 secondary keywords, and 5–8 semantic LSI keywords. Distribute naturally across introduction, several H2 sections, the IUCN section, and the conclusion. Never keyword-stuff.
+- Use SEO-friendly heading hierarchy (<h1>, <h2>, <h3>), short readable paragraphs, natural search-intent phrasing.
+
+CORE WRITING PRINCIPLE
+Every analysis section must explain causation, not just description. The reader should finish the article understanding WHY each ecological pressure matters, HOW it propagates through the ecosystem, and WHAT conservation engineering can realistically achieve.
+
+MANDATORY 14-SECTION STRUCTURE (never skip a section, keep this exact order)
+1. Introduction — vivid ecological scene, set conservation stakes, introduce the species in its threatened context.
+2. Population Dynamics — population increase or decline, breeding success, mortality rates, juvenile survival, migration effects, habitat fragmentation effects. Explain WHY population changes occur with cause-and-effect reasoning.
+3. Habitat Stability & Ecological Pressure — habitat destruction, deforestation, wetland collapse, water scarcity, vegetation changes, ecosystem degradation, climate pressure. Explain environmental dependency and tipping points.
+4. Ecological Role (Keystone Analysis) — ecosystem importance, food-web role, predator/prey influence, biodiversity stability, trophic cascade effects. Explicitly answer: what happens if the species disappears?
+5. Human-Wildlife Conflict — agriculture expansion, livestock conflict, urbanisation, infrastructure development, road impacts, migration disruption.
+6. Climate Change Vulnerability — temperature effects, rainfall instability, drought, wildfires, sea-level rise. Critically: assess the species' adaptability capacity (behavioural plasticity, range shift potential, dietary flexibility).
+7. Genetic Diversity Concerns — inbreeding, population isolation, low genetic diversity, evolutionary resilience.
+8. Conservation Engineering Solutions — wildlife corridors, habitat restoration, AI wildlife monitoring, protected-area systems, anti-poaching technologies, ecosystem rehabilitation.
+9. Ecosystem Interdependence — pollination systems, nutrient cycling, vegetation balance, predator-prey systems, species interconnectedness.
+10. Future Extinction Risk Modelling — future population projections, extinction risks, ecosystem collapse possibilities, recovery probabilities. Cite IUCN trend data and known modelling approaches where relevant.
+11. Conservation Policy & Governance — conservation laws, enforcement problems, international cooperation (CITES, regional treaties), indigenous conservation systems, funding limitations.
+12. IUCN Red List Analysis — DEDICATED H2 with six H3 sub-sections in this exact order:
+    <h3>Current IUCN Status</h3>     — official category + scientific explanation of the classification
+    <h3>Population Trend</h3>        — increasing / stable / decreasing, estimated population if known, historical decline or recovery
+    <h3>Main Threats</h3>            — habitat destruction, poaching, climate change, human conflict, pollution, disease, invasive species — explain how each affects survival
+    <h3>Ecological Consequences</h3> — what happens if population declines further, ecosystem imbalance risks, predator/prey impact, biodiversity consequences
+    <h3>Conservation Efforts</h3>    — protected areas, breeding programmes, government efforts, NGO projects, international protections
+    <h3>Future Outlook</h3>          — chances of recovery, future risks, long-term survival outlook
+13. Conclusion — synthesise the ecological argument, reinforce stakes, leave a memorable closing reflection.
+14. Frequently Asked Questions — 6–12 real search-intent questions as <h3> headings with short 1–3 paragraph answers each. Schema-friendly, conversational phrasing, primary keyword naturally placed. Do not invent irrelevant questions.
+
+WRITING STYLE
+- Deep ecological storytelling, scientific realism, documentary narration, emotional environmental awareness, professional conservation analysis.
+- No robotic writing. No AI-sounding clichés ("delve", "nuanced", "comprehensive", "robust", "in today's world", "as we explore", etc.).
+
+QUALITY CONTROL
+- Scientific depth, ecological realism, SEO optimisation, authority-level quality, readability.
+- Do NOT create shallow content. Do NOT oversimplify ecological systems. Do NOT skip ecosystem analysis. Each species must feel unique.
+
+FORMAT
+- Output clean HTML only — never markdown.
+- Open with <h1> in the exact "Common Name (Scientific name)" form.
+- Use <h2> for each of the 14 main sections; <h3> for sub-sections (especially in section 12).
+- Use <p> for paragraphs, <ul>/<li> for lists where appropriate.
+- Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
+- Ready to publish, no commentary outside the article.`;
+```
+
+- [ ] **Step 3: Add `buildIucnRedlistPrompt` helper**
+
+Find `buildAnimalsPrompt` (added in Task 4). Add `buildIucnRedlistPrompt` immediately after it:
+
+```js
+function buildIucnRedlistPrompt(title, context) {
+  const t = title?.trim();
+  const sci = context?.scientificName?.trim();
+  const status = context?.iucnStatus;
+
+  const iucnHint = status
+    ? `\n\nThe species' IUCN Red List category is **${status}**. Use this exact status in section 12 — do not invent a different status.${sci ? ` Scientific name: ${sci}.` : ''}`
+    : '\n\nIf the species has an official IUCN Red List status, identify it from your knowledge and use it accurately in section 12. If the species has not been assessed, mark as NE (Not Evaluated) and explain the lack of assessment.';
+
+  return `Write a complete 6500+ word authority-level IUCN Red List conservation analysis article${t ? ` titled "${t}"` : ''}.
+
+TITLE RULE (HARD): The H1 must be exactly the format "Common Name (Scientific name)" — for example "African Elephant (Loxodonta africana)" or "Black Rhinoceros (Diceros bicornis)". No SEO clickbait, no emotional headlines, no extra phrases. If the supplied title is not in the canonical form, rewrite it to that form before using it as the <h1>.
+
+Follow the mandatory 14-section structure exactly:
+1.  <h2>Introduction</h2>
+2.  <h2>Population Dynamics</h2>
+3.  <h2>Habitat Stability & Ecological Pressure</h2>
+4.  <h2>Ecological Role (Keystone Analysis)</h2>
+5.  <h2>Human-Wildlife Conflict</h2>
+6.  <h2>Climate Change Vulnerability</h2>
+7.  <h2>Genetic Diversity Concerns</h2>
+8.  <h2>Conservation Engineering Solutions</h2>
+9.  <h2>Ecosystem Interdependence</h2>
+10. <h2>Future Extinction Risk Modelling</h2>
+11. <h2>Conservation Policy & Governance</h2>
+12. <h2>IUCN Red List Analysis</h2>
+    <h3>Current IUCN Status</h3>
+    <h3>Population Trend</h3>
+    <h3>Main Threats</h3>
+    <h3>Ecological Consequences</h3>
+    <h3>Conservation Efforts</h3>
+    <h3>Future Outlook</h3>
+13. <h2>Conclusion</h2>
+14. <h2>Frequently Asked Questions</h2> (6–12 questions, each as <h3>, with 1–3 paragraph short answers; FAQ-schema-friendly; conversational phrasing; primary keyword naturally placed)
+
+Every analysis section must explain causation, not just description. The reader must understand WHY each ecological pressure matters, HOW it propagates through the ecosystem, and WHAT conservation engineering can realistically achieve.${iucnHint}
+
+Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
+}
+```
+
+- [ ] **Step 4: Wire into the POST handler dispatch**
+
+In the POST handler, find the template-flag block (modified in Task 4). Add the new flag, then add the dispatch branch immediately after `useAnimalsTemplate`:
+
+```js
+    const useAnimalsTemplate = task === 'full_article' && isAnimalsPost(context.category, effectiveLabel);
+    const useIucnRedlistTemplate = task === 'full_article' && isIucnRedlistAnimalPost(context.category, effectiveLabel);
+
+    let systemPrompt = WILDLIFE_SYSTEM;
+    let userPrompt = buildPrompt(task, context);
+    let maxTokens = task === 'full_article' ? 8000 : 2000;
+
+    if (useHowTemplate) {
+      systemPrompt = HOW_QUESTIONS_SYSTEM;
+      userPrompt = buildHowQuestionsPrompt(context.title);
+      maxTokens = 4000;
+    } else if (useWhyTemplate) {
+      systemPrompt = WHY_QUESTIONS_SYSTEM;
+      userPrompt = buildWhyQuestionsPrompt(context.title);
+      maxTokens = 5000;
+    } else if (useConservationTemplate) {
+      systemPrompt = CONSERVATION_SYSTEM;
+      userPrompt = buildConservationPrompt(context.title);
+      maxTokens = 7000;
+    } else if (useTourismTemplate) {
+      systemPrompt = TOURISM_SYSTEM;
+      userPrompt = buildTourismPrompt(context.title);
+      maxTokens = 6000;
+    } else if (useArticlesTemplate) {
+      systemPrompt = ARTICLES_SYSTEM;
+      userPrompt = buildArticlesPrompt(context.title);
+      maxTokens = 9000;
+    } else if (useAnimalsTemplate) {
+      systemPrompt = ANIMALS_SYSTEM;
+      userPrompt = buildAnimalsPrompt(context.title, context);
+      maxTokens = 14000;
+    } else if (useIucnRedlistTemplate) {
+      systemPrompt = IUCN_REDLIST_SYSTEM;
+      userPrompt = buildIucnRedlistPrompt(context.title, context);
+      maxTokens = 14000; // 6500 words ≈ 8500 tokens + headroom
+    }
+```
+
+The new branch sits at the end of the if/else chain, after `useAnimalsTemplate`. Order matters: `useAnimalsTemplate` excludes `iucn redlist` per Task 4's `isAnimalsPost` definition, so the two cases never overlap.
+
+- [ ] **Step 5: Verify**
+
+```bash
+npm run lint
+```
+Expected: zero new errors related to `route.js`.
+
+Quick integration check via curl. Start `npm run dev` and:
+
+```bash
+curl -X POST http://localhost:3001/api/ai/write \
+  -H "Content-Type: application/json" \
+  -d '{
+    "task": "full_article",
+    "provider": "claude",
+    "model": "claude-opus-4-7",
+    "context": {
+      "title": "Black Rhinoceros (Diceros bicornis)",
+      "body": "",
+      "category": "animals",
+      "label": "IUCN Redlist"
+    }
+  }' | head -c 2000
+```
+
+Expected: a streamed article opening with `<h1>Black Rhinoceros (Diceros bicornis)</h1>` followed by `<h2>Introduction</h2>` (not the species-profile structure from `ANIMALS_SYSTEM`).
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app/api/ai/write/route.js
+git commit -m "feat(ai): IUCN_REDLIST_SYSTEM prompt for Animals + IUCN Redlist label"
+```
+
+---
+
 ## Wrap-up
 
-After all 12 tasks are committed:
+After all 13 tasks are committed:
 
 - [ ] **Final lint**
 
@@ -1822,6 +2034,7 @@ Expected: zero new errors.
 8. Manually create a post `category=Animals, label="IUCN Redlist"` (no scientific name in title) — confirm it falls through to `WILDLIFE_SYSTEM` (general wildlife prompt) when generating, and appears on `/redlist` under NE.
 9. Click "Detect from species" on the topical post — confirm the panel returns `NE` with low confidence and a reasoning line explaining it's a topical article.
 10. Toggle off `autoDetectIUCNOnTitleBlur` in settings. Confirm title-blur no longer fires.
+11. Create a second post: `category=Animals, label=IUCN Redlist`, title `Black Rhinoceros (Diceros bicornis)`. Click Generate. Confirm the article uses the conservation-engineering 14-section structure (Population Dynamics → Conservation Policy → IUCN Red List Analysis → Conclusion → FAQ), NOT the 18-section species-profile structure used by Mammals/Reptiles/Amphibians/Fish. Confirm it appears under CR on `/redlist`.
 
 - [ ] **Final commit (if any cleanup needed)**
 
@@ -1835,6 +2048,6 @@ git add <any leftover> && git commit -m "chore: post-implementation cleanup"
 ## Out of Scope (future plans)
 
 - `BIRDS_SYSTEM` and `INSECTS_SYSTEM` — user will provide guides separately.
-- Dedicated topical/curated prompt for `label="IUCN Redlist"` (e.g. for "Top 10 Endangered Mammals" lists).
+- Topical/curated multi-species list prompts (e.g. "Top 10 Endangered Mammals"). The current `IUCN_REDLIST_SYSTEM` is for single-species conservation deep-dives, not lists.
 - Scheduled re-verification of stale `iucn_verified_at` rows.
 - Multi-language IUCN status labels.
