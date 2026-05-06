@@ -16,9 +16,14 @@ export function HeroControls({
       <button
         aria-label={playing ? 'Pause autoplay' : 'Play autoplay'}
         onClick={onTogglePlay}
-        className="glass absolute right-4 top-16 z-20 flex h-9 w-9 items-center justify-center rounded-full text-white transition-all hover:scale-110 hover:bg-[var(--color-primary)]/40 sm:right-6 sm:top-20 md:top-24"
+        className="absolute right-4 top-16 z-20 flex h-9 w-9 items-center justify-center rounded-full text-white shadow-lg ring-1 ring-white/30 transition-all hover:scale-110 hover:bg-[var(--color-primary)]/55 sm:right-6 sm:top-20 md:top-24"
+        style={{
+          background: 'rgba(0,0,0,0.55)',
+          backdropFilter: 'blur(8px)',
+          WebkitBackdropFilter: 'blur(8px)',
+        }}
       >
-        {playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
+        {playing ? <Pause className="h-3.5 w-3.5" strokeWidth={2.5} /> : <Play className="h-3.5 w-3.5" strokeWidth={2.5} />}
       </button>
 
       <div

@@ -113,11 +113,12 @@ function sampleImageTitle(imgEl, accentHex) {
 
 // ─── Shared title / body styles ───────────────────────────────────────────────
 
-// Body text is always at the bottom of the slide on a dark cinematic overlay,
-// so it is always white — no theme dependency needed.
+// Body text always sits on a cinematic dark scrim. Doubled text-shadow (a tight
+// drop + a wider blur) keeps the description legible even when the slide is in
+// transition or the placeholder briefly looks pale (e.g. light-mode bg).
 const BODY_STYLE = {
-  color: 'rgba(255,255,255,0.88)',
-  textShadow: '0 2px 10px rgba(0,0,0,0.55)',
+  color: 'rgba(255,255,255,0.96)',
+  textShadow: '0 1px 3px rgba(0,0,0,0.75), 0 2px 14px rgba(0,0,0,0.85)',
 };
 
 // ─── Title animation ──────────────────────────────────────────────────────────
@@ -348,7 +349,7 @@ export function HeroSlide({ slide, isActive, onVideoEnded }) {
         aria-hidden="true"
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.18) 0%, rgba(0,0,0,0.30) 50%, rgba(0,0,0,0.62) 100%)',
+          background: 'linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.40) 35%, rgba(0,0,0,0.55) 65%, rgba(0,0,0,0.82) 100%)',
         }}
       />
 
