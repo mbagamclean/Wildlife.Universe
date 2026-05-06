@@ -212,6 +212,42 @@ export function AIProviderSettings() {
         </ProviderPanel>
       )}
 
+      {/* IUCN auto-detect toggle */}
+      <div style={{
+        marginTop: 16, padding: 12, borderRadius: 9,
+        border: '1px solid var(--adm-border)', background: 'var(--adm-surface)',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--adm-text)' }}>
+              Auto-detect IUCN status on title blur
+            </div>
+            <div style={{ fontSize: 10, color: 'var(--adm-text-subtle)', marginTop: 2 }}>
+              For Animals / Birds / Insects categories. Fires when you finish typing a title containing a scientific name in parentheses.
+            </div>
+          </div>
+          <label style={{ position: 'relative', display: 'inline-block', width: 36, height: 20 }}>
+            <input
+              type="checkbox"
+              checked={!!store.autoDetectIUCNOnTitleBlur}
+              onChange={(e) => store.setAutoDetectIUCN(e.target.checked)}
+              style={{ opacity: 0, width: 0, height: 0 }}
+            />
+            <span style={{
+              position: 'absolute', cursor: 'pointer', inset: 0,
+              background: store.autoDetectIUCNOnTitleBlur ? '#7c3aed' : 'var(--adm-border)',
+              transition: '0.2s', borderRadius: 999,
+            }}>
+              <span style={{
+                position: 'absolute', height: 16, width: 16, left: 2, top: 2,
+                background: '#fff', transition: '0.2s', borderRadius: '50%',
+                transform: store.autoDetectIUCNOnTitleBlur ? 'translateX(16px)' : 'translateX(0)',
+              }} />
+            </span>
+          </label>
+        </div>
+      </div>
+
       <div className="mt-6 flex flex-wrap items-center gap-2 text-xs" style={{ color: 'var(--adm-text-subtle)' }}>
         <Save size={12} />
         Saved automatically to your browser. Server validates every request against the same model registry.
