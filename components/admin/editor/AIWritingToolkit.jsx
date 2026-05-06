@@ -292,7 +292,7 @@ export function AIWritingToolkit({
         console.error('[Write]', err);
       }
     }
-  }, [editor, title, store, customPrompt]);
+  }, [editor, title, store, customPrompt, category, label, onIUCNChange]);
 
   const handleInsert = (mode) => {
     if (!editor || !store.generatedContent) return;
