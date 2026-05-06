@@ -8,6 +8,7 @@ import { LatestPlantsSection } from '@/components/plants/LatestPlantsSection';
 import { IUCNSection } from '@/components/iucn/IUCNSection';
 import { LatestBirdsSection } from '@/components/birds/LatestBirdsSection';
 import { LatestInsectsSection } from '@/components/insects/LatestInsectsSection';
+import { LatestTourismSection } from '@/components/posts/LatestTourismSection';
 import { WhyHowSection } from '@/components/posts/WhyHowSection';
 import { BooksSection } from '@/components/posts/BooksSection';
 import { ShortsSection } from '@/components/posts/ShortsSection';
@@ -221,6 +222,11 @@ export default function HomePage() {
       </ScrollReveal>
       <ScrollReveal effect="bounceUp">
         <ShortsSection />
+      </ScrollReveal>
+
+      {/* ── Latest Tourism Posts — slide right (matches Latest Plants design) ── */}
+      <ScrollReveal effect="slideRight">
+        <LatestTourismSection />
       </ScrollReveal>
 
       {/* ── Documentaries — curated when set, plus auto-derived ── */}
