@@ -159,6 +159,18 @@ function isArticlesPost(category, label) {
   return cat === 'posts' && (lbl === 'article' || lbl === 'articles');
 }
 
+function isAnimalsPost(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+  // ANIMALS_SYSTEM is for single-species articles only.
+  // The "IUCN Redlist" label is reserved for curated/topical posts and falls
+  // through to WILDLIFE_SYSTEM. A dedicated topical-list system can be added
+  // later without touching this gate.
+  return cat === 'animals' && [
+    'mammals', 'reptiles', 'amphibians', 'fish',
+  ].includes(lbl);
+}
+
 // Auto-derive label from title prefix for the Posts category.
 // "How …" → "How Questions", "Why …" → "Why Questions", otherwise keep provided label.
 function deriveLabelFromTitle(category, label, title) {
@@ -355,6 +367,73 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only
 - Ready to publish, no commentary outside the article`;
 
+const ANIMALS_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You are simultaneously a world-class wildlife scientist, documentary storyteller, ecological analyst, and SEO strategist. You produce deeply immersive, scientifically accurate, emotionally engaging, authority-level wildlife species articles.
+
+POST REQUIREMENTS
+- Word count: 6500+ words
+- Topic: a single wildlife species (mammal, reptile, amphibian, or fish)
+- Tone: documentary storytelling, scientific, deep ecological analysis, immersive narrative
+- Goal: build authority-level wildlife content; deliver realistic behavioural and ecological analysis; create emotional and visual immersion
+
+TITLE RULE (HARD CONSTRAINT)
+The H1 must be exactly the format "Common Name (Scientific name)" — for example "African Elephant (Loxodonta africana)". No SEO clickbait. Do not write "The Amazing Life of …", "Why … Are Important", "Discover the Secret World of …", "Inside the World of …", or any emotional/marketing phrasing. Encyclopedia / documentary style only. If the supplied title contains clickbait, rewrite it to the canonical "Common Name (Scientific name)" form.
+
+SEO OPTIMISATION (mandatory)
+- Identify a primary keyword from the species, plus 3–5 secondary keywords and 5–8 semantic LSI keywords. Distribute naturally across introduction, several H2 sections, and conclusion. Never keyword-stuff.
+- Use SEO-friendly heading hierarchy (<h1>, <h2>, <h3>), short readable paragraphs, natural keyword placement.
+
+CORE WRITING PRINCIPLE
+The article must feel simultaneously like a high-end wildlife documentary, a scientific field study, a storytelling experience, and an ecological exploration. Deeply explore: true behaviour, environmental interaction, predator-prey relationships, ecological role, survival psychology, adaptation mechanisms, social dynamics.
+
+DEPTH REQUIREMENT
+Do NOT write surface-level explanations. Analyse WHY the animal behaves as it does, HOW environment shapes behaviour, predator-prey relationships, territory behaviour, seasonal changes, communication systems, intelligence and emotional behaviour, parenting and hierarchy, ecological role.
+
+MANDATORY 18-SECTION STRUCTURE (never skip a section, keep this exact order)
+1. Introduction — vivid wildlife scene, emotional/visual immersion, introduce the species naturally.
+2. Scientific Classification — scientific name + Kingdom / Phylum / Class / Order / Family / Genus / Species (use a <ul> of <li> rows with <strong> labels).
+3. Physical Characteristics — size, weight, body structure, colours and patterns, sensory adaptations.
+4. Habitat & Geographic Distribution — ecosystems, climate, migration ranges, environmental preferences.
+5. Behaviour & Social Structure — group dynamics, dominance hierarchy, territorial behaviour, communication systems, emotional and intelligence traits.
+6. Daily Life & Activity Cycle — hunting patterns, sleeping behaviour, movement patterns, seasonal behaviour.
+7. Diet & Survival Strategies — feeding behaviour, hunting methods, competition, adaptation to food scarcity.
+8. Interaction with Other Animals — predator/prey, cooperation, competition, symbiosis, conflict.
+9. Interaction with Environment — relationship with habitat, ecological dependence, impact on vegetation/water/balance, climate adaptation.
+10. Reproduction & Parenting — courtship, mating, birth, parenting, juvenile survival.
+11. Evolutionary Adaptations — camouflage, defence, speed, intelligence, specialised anatomy.
+12. Ecological Importance — ecosystem role, keystone impact, population control, environmental balance.
+13. Threats & Conservation — habitat destruction, human conflict, climate change, poaching; mention IUCN status briefly here, then expand in section 14.
+14. IUCN Red List Analysis — DEDICATED H2 with six H3 sub-sections in this exact order:
+    <h3>Current IUCN Status</h3>     — official category + scientific explanation of the classification
+    <h3>Population Trend</h3>        — increasing / stable / decreasing, estimated population if known, historical decline or recovery
+    <h3>Main Threats</h3>            — habitat destruction, poaching, climate change, human conflict, pollution, disease, invasive species — explain how each affects survival
+    <h3>Ecological Consequences</h3> — what happens if population declines further, ecosystem imbalance risks, predator/prey impact, biodiversity consequences
+    <h3>Conservation Efforts</h3>    — protected areas, breeding programmes, government efforts, NGO projects, international protections
+    <h3>Future Outlook</h3>          — chances of recovery, future risks, long-term survival outlook
+    Tone: scientific but understandable, deep ecological analysis, realistic and factual, documentary-style.
+15. Human Relationship — cultural significance, tourism impact, human-wildlife conflict, historical relationship.
+16. Unique & Rare Facts — rare behaviour, scientific discoveries, unexpected abilities (5–10 items, can use <ul>).
+17. Conclusion — powerful emotional closing, reinforce ecological importance, leave a memorable impression.
+18. Frequently Asked Questions — 6–12 real search-intent questions as <h3> headings with short 1–3 paragraph answers each. Schema-friendly, conversational phrasing, primary keyword naturally placed. Do not invent irrelevant questions. Examples of good shape: "What do African elephants eat?", "How long do Siberian tigers live?", "Are Nile crocodiles dangerous to humans?"
+
+WRITING TECHNIQUES
+- Deep storytelling, ecological analysis, cause-and-effect reasoning, scientific realism, sensory description, behavioural interpretation.
+
+STYLE RULES
+- Clear but advanced English, professional documentary tone, cinematic descriptions, smooth transitions.
+- No robotic writing. No AI-sounding clichés ("delve", "nuanced", "comprehensive", "robust", "in today's world", "as we explore", etc.).
+
+QUALITY CONTROL
+- Scientific realism, ecological depth, emotional engagement, storytelling quality, SEO optimisation.
+- Do NOT create shallow explanations. Do NOT repeat unnecessarily. Do NOT skip ecological interaction. Each species article must feel unique.
+
+FORMAT
+- Output clean HTML only — never markdown.
+- Open with <h1> in the exact "Common Name (Scientific name)" form.
+- Use <h2> for each of the 18 main sections; <h3> for sub-sections (especially in section 14 — IUCN Red List Analysis).
+- Use <p> for paragraphs, <ul>/<li> for lists where appropriate (Scientific Classification, Unique Facts).
+- Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
+- Ready to publish, no commentary outside the article.`;
+
 function buildArticlesPrompt(title) {
   const t = title?.trim();
   return `Write a complete 3500–4000 word authority-level wildlife article${t ? ` titled "${t}"` : ''}.
@@ -378,6 +457,49 @@ Follow the mandatory 14-section structure exactly:
 14. <h2>Conclusion</h2>
 
 Distribute the primary keyword and semantic variations naturally across the introduction, two H2 sections, and the conclusion. Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
+}
+
+function buildAnimalsPrompt(title, context) {
+  const t = title?.trim();
+  const sci = context?.scientificName?.trim();
+  const status = context?.iucnStatus;
+
+  const iucnHint = status
+    ? `\n\nThe species' IUCN Red List category is **${status}**. Use this exact status in section 14 — do not invent a different status.${sci ? ` Scientific name: ${sci}.` : ''}`
+    : '\n\nIf the species has an official IUCN Red List status, identify it from your knowledge and use it accurately in section 14. If the species has not been assessed, mark as NE (Not Evaluated) and explain the lack of assessment.';
+
+  return `Write a complete 6500+ word authority-level wildlife species article${t ? ` titled "${t}"` : ''}.
+
+TITLE RULE (HARD): The H1 must be exactly the format "Common Name (Scientific name)" — for example "African Elephant (Loxodonta africana)". No SEO clickbait, no "Amazing", "Discover", "Secret World", "Inside the World", "Why … Are Important", emotional headlines, or extra phrases. Encyclopedia/documentary style only. If the supplied title is not in the canonical form, rewrite it to that form before using it as the <h1>.
+
+Follow the mandatory 18-section structure exactly:
+1.  <h2>Introduction</h2>
+2.  <h2>Scientific Classification</h2>
+3.  <h2>Physical Characteristics</h2>
+4.  <h2>Habitat & Geographic Distribution</h2>
+5.  <h2>Behaviour & Social Structure</h2>
+6.  <h2>Daily Life & Activity Cycle</h2>
+7.  <h2>Diet & Survival Strategies</h2>
+8.  <h2>Interaction with Other Animals</h2>
+9.  <h2>Interaction with Environment</h2>
+10. <h2>Reproduction & Parenting</h2>
+11. <h2>Evolutionary Adaptations</h2>
+12. <h2>Ecological Importance</h2>
+13. <h2>Threats & Conservation</h2>
+14. <h2>IUCN Red List Analysis</h2>
+    <h3>Current IUCN Status</h3>
+    <h3>Population Trend</h3>
+    <h3>Main Threats</h3>
+    <h3>Ecological Consequences</h3>
+    <h3>Conservation Efforts</h3>
+    <h3>Future Outlook</h3>
+15. <h2>Human Relationship</h2>
+16. <h2>Unique & Rare Facts</h2>
+17. <h2>Conclusion</h2>
+18. <h2>Frequently Asked Questions</h2> (6-12 questions, each as <h3>, short 1-3 paragraph answers, FAQ schema-friendly)
+${iucnHint}
+
+Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
 function buildTourismPrompt(title) {
@@ -538,6 +660,7 @@ export async function POST(req) {
     const useConservationTemplate = task === 'full_article' && isConservationPost(context.category, effectiveLabel);
     const useTourismTemplate = task === 'full_article' && isTourismPost(context.category, effectiveLabel);
     const useArticlesTemplate = task === 'full_article' && isArticlesPost(context.category, effectiveLabel);
+    const useAnimalsTemplate = task === 'full_article' && isAnimalsPost(context.category, effectiveLabel);
 
     let systemPrompt = WILDLIFE_SYSTEM;
     let userPrompt = buildPrompt(task, context);
@@ -563,6 +686,10 @@ export async function POST(req) {
       systemPrompt = ARTICLES_SYSTEM;
       userPrompt = buildArticlesPrompt(context.title);
       maxTokens = 9000;
+    } else if (useAnimalsTemplate) {
+      systemPrompt = ANIMALS_SYSTEM;
+      userPrompt = buildAnimalsPrompt(context.title, context);
+      maxTokens = 14000; // 6500 words ≈ 8500 tokens + headroom
     }
 
     const result = streamText({
