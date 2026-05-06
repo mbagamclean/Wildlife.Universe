@@ -7,18 +7,20 @@ import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { HeroPlaceholder } from './HeroPlaceholder';
 
-// Plain, undecorated styles for light mode — black text, no glows or halos.
-// Per user request: "avoid a lot of decoration used in light mode just use
-// black texts for good visibility". A subtle white drop is kept so the text
-// stays legible if it momentarily lands on a dark patch of the underlying
-// image during a slide transition.
+// Plain, undecorated styles for light mode — black text. We give it a soft
+// white aura (a single multi-radius white blur) so the text stays legible
+// against the now-visible image/video without painting an accent halo or
+// using accent colours. This is the minimum decoration needed when the
+// overlay is intentionally light enough to let the image show.
 const LIGHT_TITLE_STYLE = {
   color: '#0a0a0a',
-  textShadow: '0 1px 2px rgba(255,255,255,0.55)',
+  textShadow:
+    '0 0 22px rgba(255,255,255,0.95), 0 0 9px rgba(255,255,255,0.85), 0 1px 3px rgba(255,255,255,0.7)',
 };
 const LIGHT_BODY_STYLE = {
-  color: 'rgba(0,0,0,0.88)',
-  textShadow: '0 1px 2px rgba(255,255,255,0.55)',
+  color: 'rgba(0,0,0,0.92)',
+  textShadow:
+    '0 0 14px rgba(255,255,255,0.85), 0 1px 3px rgba(255,255,255,0.7)',
 };
 
 // ─── Color utilities ──────────────────────────────────────────────────────────
@@ -373,8 +375,13 @@ export function HeroSlide({ slide, isActive, onVideoEnded }) {
         aria-hidden="true"
         className="absolute inset-0"
         style={{
+          // Light mode: minimal top haze that fades to clear by mid-slide so
+          // the video / image stays clearly visible. The bottom 70% is then
+          // separately handled by the white .gradient-fade-down element below
+          // (which rises to ~0.94 white at the bottom for the description).
+          // Dark mode keeps the cinematic full-slide scrim.
           background: isLight
-            ? 'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.40) 40%, rgba(255,255,255,0.62) 100%)'
+            ? 'linear-gradient(to bottom, rgba(255,255,255,0.32) 0%, rgba(255,255,255,0.16) 25%, rgba(255,255,255,0.04) 50%, rgba(255,255,255,0) 100%)'
             : 'linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.40) 35%, rgba(0,0,0,0.55) 65%, rgba(0,0,0,0.82) 100%)',
         }}
       />

@@ -29,7 +29,7 @@ export function HeroCarousel() {
       role="region"
       aria-roledescription="carousel"
       aria-label="Featured wildlife"
-      className="group/hero relative h-[100svh] min-h-[600px] w-full overflow-hidden"
+      className="group/hero relative h-[100svh] min-h-[820px] w-full overflow-hidden"
     >
       <div className="absolute inset-0">
         <AnimatePresence initial={false} custom={direction} mode="popLayout">

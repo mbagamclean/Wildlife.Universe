@@ -82,7 +82,7 @@ export function HeroOrchestrator() {
 
   if (!state.ready) {
     return (
-      <div className="relative h-[100svh] min-h-[600px] w-full overflow-hidden bg-gradient-to-br from-[#031a0d] via-[#0c4a1a] to-[#3aa15a]">
+      <div className="relative h-[100svh] min-h-[820px] w-full overflow-hidden bg-gradient-to-br from-[#031a0d] via-[#0c4a1a] to-[#3aa15a]">
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_70%_30%,rgba(255,235,180,0.15),transparent_60%)]" />
       </div>
     );
@@ -90,7 +90,7 @@ export function HeroOrchestrator() {
 
   if (state.slides.length === 0) {
     return (
-      <div className="relative flex h-[100svh] min-h-[600px] w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[#031a0d] via-[#0c4a1a] to-[#3aa15a] text-center text-white">
+      <div className="relative flex h-[100svh] min-h-[820px] w-full items-center justify-center overflow-hidden bg-gradient-to-br from-[#031a0d] via-[#0c4a1a] to-[#3aa15a] text-center text-white">
         <div className="px-6">
           <h1 className="font-display text-4xl font-black sm:text-5xl">
             No hero items yet

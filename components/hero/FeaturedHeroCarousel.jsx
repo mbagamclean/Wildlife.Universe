@@ -111,7 +111,7 @@ export function FeaturedHeroCarousel() {
       role="region"
       aria-roledescription="carousel"
       aria-label="Featured posts"
-      className="group/hero relative h-[100svh] min-h-[600px] w-full overflow-hidden"
+      className="group/hero relative h-[100svh] min-h-[820px] w-full overflow-hidden"
       onMouseEnter={onEnter}
       onMouseLeave={onLeave}
     >
