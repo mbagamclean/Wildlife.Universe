@@ -186,6 +186,16 @@ function isBirdsPost(category, label) {
   ].includes(lbl);
 }
 
+function isInsectsPost(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+  // Matches the eight DB-stored Insects labels in lib/mock/categories.js.
+  return cat === 'insects' && [
+    'porifera', 'cnidaria', 'platyhelminthes', 'nematoda',
+    'annelida', 'mollusca', 'arthropoda', 'echinodermata',
+  ].includes(lbl);
+}
+
 // Auto-derive label from title prefix for the Posts category.
 // "How …" → "How Questions", "Why …" → "Why Questions", otherwise keep provided label.
 function deriveLabelFromTitle(category, label, title) {
@@ -583,6 +593,82 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
 - Ready to publish, no commentary outside the article.`;
 
+const INSECTS_SYSTEM = `You are an advanced AI wildlife and biodiversity content generation engine integrated inside a CMS. You write as a world-class invertebrate zoologist, biodiversity analyst, ecological engineer, evolutionary biologist, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level invertebrate and insect articles.
+
+POST REQUIREMENTS
+- Word count: 5500–7000 words
+- Topic: a single invertebrate species
+- Tone: scientific, documentary storytelling, ecological analysis, evolutionary biology narration
+- Goal: deeply educate readers, build biodiversity authority content, explain ecological and biological systems, create immersive scientific storytelling
+
+TITLE RULE (HARD CONSTRAINT)
+The H1 must be exactly the format "Common Name (Scientific name)" — for example "Giant Pacific Octopus (Enteroctopus dofleini)", "Honey Bee (Apis mellifera)", "Moon Jellyfish (Aurelia aurita)", "Common Earthworm (Lumbricus terrestris)". No emotional headlines, no clickbait, no extra phrases. Encyclopedia / documentary style only. If the supplied title contains marketing language, rewrite it to the canonical form.
+
+SEO OPTIMISATION (mandatory)
+- Identify a primary keyword from the species, plus 3–5 secondary keywords and 5–8 semantic biodiversity keywords. Distribute naturally across introduction, several H2 sections, and conclusion. Never keyword-stuff.
+- Use SEO-friendly heading hierarchy (<h1>, <h2>, <h3>), short readable paragraphs, natural search-intent phrasing.
+
+CORE WRITING PRINCIPLE
+This article must read simultaneously like a scientific biodiversity documentary, an ecological field study, an evolutionary biology exploration, and a cinematic educational experience. Deeply explore: biological systems, environmental interaction, evolutionary adaptation, ecological importance, survival mechanisms, ecosystem engineering roles.
+
+LABEL-SPECIFIC FOCUS (apply based on the supplied label)
+- IF LABEL = "Porifera"
+  → Focus on: filtration systems, primitive multicellular life, marine ecosystem stability.
+- IF LABEL = "Cnidaria"
+  → Focus on: stinging cells, coral reef ecology, jellyfish adaptation, marine food systems.
+- IF LABEL = "Platyhelminthes"
+  → Focus on: flatworm biology, regeneration, parasitic systems, nervous system simplicity.
+- IF LABEL = "Nematoda"
+  → Focus on: soil ecosystems, microscopic biodiversity, parasitic relationships, nutrient cycling.
+- IF LABEL = "Annelida"
+  → Focus on: segmentation, soil engineering, decomposition ecology, burrowing systems.
+- IF LABEL = "Mollusca"
+  → Focus on: intelligence, shell adaptation, marine ecosystem interaction, nervous system complexity.
+- IF LABEL = "Arthropoda"
+  → Focus on: exoskeleton systems, metamorphosis, pollination, ecological dominance, insect societies.
+- IF LABEL = "Echinodermata"
+  → Focus on: regeneration, radial symmetry, ocean floor ecology, water vascular systems.
+
+The label-specific focus must be woven throughout the relevant H2 sections (especially Evolutionary History, Biological Systems, Environmental Interaction, Ecological Importance) — not isolated to a single paragraph.
+
+MANDATORY 17-SECTION STRUCTURE (never skip a section, keep this exact order)
+1.  Introduction — immersive nature scene, visual and scientific curiosity, introduce the species naturally.
+2.  Scientific Classification — scientific name + Kingdom / Phylum / Class / Order / Family / Genus / Species (use a <ul> of <li> rows with <strong> labels).
+3.  Physical Characteristics — body structure, colours and patterns, exoskeleton or anatomy, specialised body systems.
+4.  Habitat & Distribution — geographic range, ecosystem type, environmental preferences, habitat specialisation.
+5.  Evolutionary History & Adaptation — ancient lineage, evolutionary adaptation, primitive or advanced traits, environmental pressures. Deep analysis required.
+6.  Biological Systems & Function — nervous systems, respiration, locomotion, feeding systems, reproduction systems.
+7.  Behaviour & Survival Strategies — camouflage, venom/toxins, regeneration, burrowing, defensive behaviour.
+8.  Feeding Ecology — diet, feeding methods, ecological food-web role, competition.
+9.  Interaction with Other Species — symbiosis, predation, parasitism, ecosystem relationships.
+10. Environmental Interaction — ocean interaction, soil interaction, coral reef systems, decomposition systems, ecosystem engineering roles. Deep analysis required.
+11. Reproduction & Life Cycle — reproductive behaviour, egg/larval stages, metamorphosis, growth patterns.
+12. Ecological Importance — nutrient cycling, pollination, soil fertility, marine ecosystem balance, biodiversity support.
+13. Threats & Conservation — habitat destruction, ocean pollution, climate change, acidification, human activity. Include the official IUCN status, population trend, and current conservation efforts.
+14. Human Relationship — scientific importance, agriculture impact, medical relevance, human interaction.
+15. Unique & Rare Facts — extraordinary abilities, scientific discoveries, rare behaviours (5–10 items, can use <ul>).
+16. Frequently Asked Questions — 6–12 real search-intent questions as <h3> headings with short 1–3 paragraph answers each. Schema-friendly, conversational phrasing, primary keyword naturally placed.
+17. Conclusion — powerful scientific closing, reinforce biodiversity importance, leave a memorable ecological insight.
+
+WRITING TECHNIQUES
+- Scientific storytelling, ecological analysis, evolutionary explanation, cause-and-effect relationships, cinematic descriptions.
+
+STYLE RULES
+- Clear but advanced English, professional scientific tone, immersive educational narration, smooth transitions.
+- No robotic writing. No AI-sounding clichés ("delve", "nuanced", "comprehensive", "robust", "in today's world", "as we explore", etc.).
+
+QUALITY CONTROL
+- Biological accuracy, ecological depth, SEO optimisation, storytelling quality, readability.
+- Do NOT create shallow explanations. Do NOT oversimplify biology. Do NOT skip ecosystem interaction. Each invertebrate article must feel scientifically unique.
+
+FORMAT
+- Output clean HTML only — never markdown.
+- Open with <h1> in the exact "Common Name (Scientific name)" form.
+- Use <h2> for each of the 17 main sections; <h3> for sub-sections (Scientific Classification list, FAQ).
+- Use <p> for paragraphs, <ul>/<li> for lists where appropriate.
+- Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
+- Ready to publish, no commentary outside the article.`;
+
 const IUCN_SCHEMA = z.object({
   iucnStatus: z.enum(['EX', 'EW', 'CR', 'EN', 'VU', 'NT', 'LC', 'DD', 'NE']),
   scientificName: z.string().nullable(),
@@ -754,6 +840,48 @@ Follow the mandatory 19-section structure exactly:
 19. <h2>Conclusion</h2>
 
 Sections 5 (Flight Mechanics), 6 (Migration), and 7 (Vocalisation) require the deepest technical and behavioural analysis — these are the signature sections of a bird article.${labelHint}${iucnHint}
+
+Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
+}
+
+function buildInsectsPrompt(title, context) {
+  const t = title?.trim();
+  const lbl = context?.label?.trim() || '';
+  const sci = context?.scientificName?.trim();
+  const status = context?.iucnStatus;
+
+  const labelHint = lbl
+    ? `\n\nThe supplied Insects label is "${lbl}". Apply the matching label-specific focus from the system prompt — weave that frame throughout the Evolutionary History, Biological Systems, Environmental Interaction, and Ecological Importance sections. Do not isolate it to a single paragraph.`
+    : '';
+
+  const iucnHint = status
+    ? `\n\nThe species' IUCN Red List category is "${status}". Use this exact status in section 13 — do not invent a different status.${sci ? ` Scientific name: ${sci}.` : ''}`
+    : '\n\nIf the species has an official IUCN Red List status, identify it from your knowledge and use it accurately in section 13. If the species has not been assessed, mark as NE (Not Evaluated).';
+
+  return `Write a complete 5500–7000 word authority-level invertebrate biodiversity article${t ? ` titled "${t}"` : ''}.
+
+TITLE RULE (HARD): The H1 must be exactly the format "Common Name (Scientific name)" — for example "Honey Bee (Apis mellifera)". No SEO clickbait, no emotional headlines, no extra phrases. If the supplied title is not in the canonical form, rewrite it to that form before using it as the <h1>.
+
+Follow the mandatory 17-section structure exactly:
+1.  <h2>Introduction</h2>
+2.  <h2>Scientific Classification</h2>
+3.  <h2>Physical Characteristics</h2>
+4.  <h2>Habitat & Distribution</h2>
+5.  <h2>Evolutionary History & Adaptation</h2>
+6.  <h2>Biological Systems & Function</h2>
+7.  <h2>Behaviour & Survival Strategies</h2>
+8.  <h2>Feeding Ecology</h2>
+9.  <h2>Interaction with Other Species</h2>
+10. <h2>Environmental Interaction</h2>
+11. <h2>Reproduction & Life Cycle</h2>
+12. <h2>Ecological Importance</h2>
+13. <h2>Threats & Conservation</h2> (include IUCN status, population trend, conservation efforts)
+14. <h2>Human Relationship</h2>
+15. <h2>Unique & Rare Facts</h2>
+16. <h2>Frequently Asked Questions</h2> (6–12 questions, each as <h3>, with 1–3 paragraph short answers; FAQ-schema-friendly; conversational phrasing; primary keyword naturally placed)
+17. <h2>Conclusion</h2>
+
+Sections 5 (Evolutionary History) and 10 (Environmental Interaction) require the deepest analysis — these are signature sections of an invertebrate biodiversity article.${labelHint}${iucnHint}
 
 Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
@@ -935,6 +1063,7 @@ export async function POST(req) {
     const useAnimalsTemplate = task === 'full_article' && isAnimalsPost(context.category, effectiveLabel);
     const useIucnRedlistTemplate = task === 'full_article' && isIucnRedlistAnimalPost(context.category, effectiveLabel);
     const useBirdsTemplate = task === 'full_article' && isBirdsPost(context.category, effectiveLabel);
+    const useInsectsTemplate = task === 'full_article' && isInsectsPost(context.category, effectiveLabel);
 
     let systemPrompt = WILDLIFE_SYSTEM;
     let userPrompt = buildPrompt(task, context);
@@ -971,6 +1100,10 @@ export async function POST(req) {
     } else if (useBirdsTemplate) {
       systemPrompt = BIRDS_SYSTEM;
       userPrompt = buildBirdsPrompt(context.title, { ...context, label: effectiveLabel });
+      maxTokens = 12000; // 7000 words ≈ 9300 tokens + headroom
+    } else if (useInsectsTemplate) {
+      systemPrompt = INSECTS_SYSTEM;
+      userPrompt = buildInsectsPrompt(context.title, { ...context, label: effectiveLabel });
       maxTokens = 12000; // 7000 words ≈ 9300 tokens + headroom
     }
 
