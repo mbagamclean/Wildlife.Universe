@@ -437,7 +437,6 @@ No changes. Keeps using `db.posts.listAllWithIUCN()`, which only requires `iucn_
 ## Open Items / Out of Scope
 
 - IUCN Red List API v4 token application (user action — apply at iucnredlist.org/resources/api).
-- `INSECTS_SYSTEM` prompt guide (deferred until user provides it).
 - Multi-language IUCN status labels.
 - Scheduled re-verification of stale `iucn_verified_at` rows.
 
@@ -473,6 +472,22 @@ Label-specific focus rules (applied inside the system prompt based on the label 
 Note: `lib/mock/categories.js` stores Birds labels as short forms (`Basal`, `Land`, `Song`). The user's guide names them in long form (`Basal / Primitive`, `Land Birds`, `Song Birds`). The prompt's IF rules accept both forms; no migration is required. If long-form labels are desired in admin/UI, that becomes a separate `categories.js` rename + slug-migration task.
 
 Implementation is tracked as Task 14 in the plan.
+
+## Update — 2026-05-06: INSECTS_SYSTEM scope addition
+
+The user provided the dedicated prompt for `category=Insects`. 17-section invertebrate-zoology deep-dive (Introduction → Scientific Classification → Physical → Habitat → Evolutionary History → Biological Systems → Behavior → Feeding → Interactions → Environmental Interaction → Reproduction → Ecological Importance → Threats/IUCN → Human Relationship → Unique Facts → FAQ → Conclusion), 5500–7000 words. Label-specific focus rules per phylum (Porifera/Cnidaria/Platyhelminthes/Nematoda/Annelida/Mollusca/Arthropoda/Echinodermata). FAQ is section 16, Conclusion is section 17.
+
+`isInsectsPost(category, label)` returns true when `cat === 'insects'` and the label is one of the eight phylum names. Implementation is tracked as Task 15 in the plan.
+
+## Update — 2026-05-06: PLANTS_SYSTEM scope addition
+
+The user provided the dedicated prompt for `category=Plants`. 16-section botanical/ecological deep-dive (Introduction → Scientific Classification → Physical → Habitat → Growth Systems → Evolutionary Adaptation → Ecological Interaction → Role in Ecosystem → Wildlife Interaction → Reproduction → Environmental Importance → Human Relationship → Threats & Conservation → Unique Facts → FAQ → Conclusion), 5500–7000 words. Label-specific focus rules per growth form (Trees/Herbs/Shrubs/Vines). FAQ is section 15, Conclusion is section 16.
+
+`isPlantsPost(category, label)` returns true when `cat === 'plants'` and the label is one of {trees, herbs, shrubs, vines}.
+
+Note: Plants posts do NOT get the IUCN sidebar autodetect feature (IUCN_CATEGORY_SCOPE remains animals/birds/insects). Plants articles still mention conservation status in section 13 but don't trigger the dedicated IUCN sidebar UI.
+
+Implementation is tracked as Task 16 in the plan.
 
 ## Acceptance Criteria
 

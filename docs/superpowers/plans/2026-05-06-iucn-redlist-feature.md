@@ -21,7 +21,7 @@
 | `supabase/migrations/010_iucn_redlist.sql` | Create | Add `scientific_name`, `iucn_verified`, `iucn_verified_at`; add partial index on `iucn_status`. |
 | `lib/storage/db.js` | Modify | Add new columns to `POST_COLUMNS`, extend `postToDb` / `mapPostFromDb`, add `posts.listAllForRedlist()`. |
 | `components/iucn/iucnConfig.js` | Modify | Add `NE` (Not Evaluated) entry; append `'NE'` to `IUCN_ORDER`. |
-| `app/api/ai/write/route.js` | Modify | Add `IUCN_DETECT_SYSTEM`, `IUCN_SCHEMA`, `iucn_detect` task short-circuit, `ANIMALS_SYSTEM`, `buildAnimalsPrompt`, `isAnimalsPost`, `IUCN_REDLIST_SYSTEM`, `buildIucnRedlistPrompt`, `isIucnRedlistAnimalPost`, `BIRDS_SYSTEM`, `buildBirdsPrompt`, `isBirdsPost`, three dispatch branches. |
+| `app/api/ai/write/route.js` | Modify | Add `IUCN_DETECT_SYSTEM`, `IUCN_SCHEMA`, `iucn_detect` task short-circuit, `ANIMALS_SYSTEM`, `buildAnimalsPrompt`, `isAnimalsPost`, `IUCN_REDLIST_SYSTEM`, `buildIucnRedlistPrompt`, `isIucnRedlistAnimalPost`, `BIRDS_SYSTEM`, `buildBirdsPrompt`, `isBirdsPost`, `INSECTS_SYSTEM`, `buildInsectsPrompt`, `isInsectsPost`, `PLANTS_SYSTEM`, `buildPlantsPrompt`, `isPlantsPost`, five dispatch branches. |
 | `app/api/iucn/verify/route.js` | Create | POST endpoint that calls IUCN Red List API v4 when `IUCN_API_TOKEN` is set; silent fallback otherwise. |
 | `lib/stores/aiStore.js` | Modify | Add `autoDetectIUCNOnTitleBlur` flag + `setAutoDetectIUCN`; persist via `partialize`. |
 | `components/admin/settings/AIProviderSettings.jsx` | Modify | Add a toggle for `autoDetectIUCNOnTitleBlur`. |
@@ -2219,9 +2219,378 @@ git commit -m "feat(ai): BIRDS_SYSTEM prompt with label-specific ornithology foc
 
 ---
 
+## Task 15: INSECTS_SYSTEM prompt for category=Insects
+
+A 17-section invertebrate-zoology deep-dive prompt with label-specific focus rules for the eight Insects labels (Porifera / Cnidaria / Platyhelminthes / Nematoda / Annelida / Mollusca / Arthropoda / Echinodermata). Same pattern as Tasks 4, 13, 14.
+
+**Files:**
+- Modify: `app/api/ai/write/route.js`
+
+- [ ] **Step 1: Add `isInsectsPost` helper**
+
+In `app/api/ai/write/route.js`, find `isBirdsPost` (added in Task 14). Add the new helper IMMEDIATELY AFTER it:
+
+```js
+function isInsectsPost(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+  // Matches the eight DB-stored Insects labels in lib/mock/categories.js.
+  return cat === 'insects' && [
+    'porifera', 'cnidaria', 'platyhelminthes', 'nematoda',
+    'annelida', 'mollusca', 'arthropoda', 'echinodermata',
+  ].includes(lbl);
+}
+```
+
+- [ ] **Step 2: Add `INSECTS_SYSTEM` constant**
+
+Find `BIRDS_SYSTEM` (added in Task 14). Add `INSECTS_SYSTEM` IMMEDIATELY AFTER it:
+
+```js
+const INSECTS_SYSTEM = `You are an advanced AI wildlife and biodiversity content generation engine integrated inside a CMS. You write as a world-class invertebrate zoologist, biodiversity analyst, ecological engineer, evolutionary biologist, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level invertebrate and insect articles.
+
+POST REQUIREMENTS
+- Word count: 5500–7000 words
+- Topic: a single invertebrate species
+- Tone: scientific, documentary storytelling, ecological analysis, evolutionary biology narration
+- Goal: deeply educate readers, build biodiversity authority content, explain ecological and biological systems, create immersive scientific storytelling
+
+TITLE RULE (HARD CONSTRAINT)
+The H1 must be exactly the format "Common Name (Scientific name)" — for example "Giant Pacific Octopus (Enteroctopus dofleini)", "Honey Bee (Apis mellifera)", "Moon Jellyfish (Aurelia aurita)", "Common Earthworm (Lumbricus terrestris)". No emotional headlines, no clickbait, no extra phrases. Encyclopedia / documentary style only. If the supplied title contains marketing language, rewrite it to the canonical form.
+
+SEO OPTIMISATION (mandatory)
+- Identify a primary keyword from the species, plus 3–5 secondary keywords and 5–8 semantic biodiversity keywords. Distribute naturally across introduction, several H2 sections, and conclusion. Never keyword-stuff.
+- Use SEO-friendly heading hierarchy (<h1>, <h2>, <h3>), short readable paragraphs, natural search-intent phrasing.
+
+CORE WRITING PRINCIPLE
+This article must read simultaneously like a scientific biodiversity documentary, an ecological field study, an evolutionary biology exploration, and a cinematic educational experience. Deeply explore: biological systems, environmental interaction, evolutionary adaptation, ecological importance, survival mechanisms, ecosystem engineering roles.
+
+LABEL-SPECIFIC FOCUS (apply based on the supplied label)
+- IF LABEL = "Porifera"
+  → Focus on: filtration systems, primitive multicellular life, marine ecosystem stability.
+- IF LABEL = "Cnidaria"
+  → Focus on: stinging cells, coral reef ecology, jellyfish adaptation, marine food systems.
+- IF LABEL = "Platyhelminthes"
+  → Focus on: flatworm biology, regeneration, parasitic systems, nervous system simplicity.
+- IF LABEL = "Nematoda"
+  → Focus on: soil ecosystems, microscopic biodiversity, parasitic relationships, nutrient cycling.
+- IF LABEL = "Annelida"
+  → Focus on: segmentation, soil engineering, decomposition ecology, burrowing systems.
+- IF LABEL = "Mollusca"
+  → Focus on: intelligence, shell adaptation, marine ecosystem interaction, nervous system complexity.
+- IF LABEL = "Arthropoda"
+  → Focus on: exoskeleton systems, metamorphosis, pollination, ecological dominance, insect societies.
+- IF LABEL = "Echinodermata"
+  → Focus on: regeneration, radial symmetry, ocean floor ecology, water vascular systems.
+
+The label-specific focus must be woven throughout the relevant H2 sections (especially Evolutionary History, Biological Systems, Environmental Interaction, Ecological Importance) — not isolated to a single paragraph.
+
+MANDATORY 17-SECTION STRUCTURE (never skip a section, keep this exact order)
+1.  Introduction — immersive nature scene, visual and scientific curiosity, introduce the species naturally.
+2.  Scientific Classification — scientific name + Kingdom / Phylum / Class / Order / Family / Genus / Species (use a <ul> of <li> rows with <strong> labels).
+3.  Physical Characteristics — body structure, colours and patterns, exoskeleton or anatomy, specialised body systems.
+4.  Habitat & Distribution — geographic range, ecosystem type, environmental preferences, habitat specialisation.
+5.  Evolutionary History & Adaptation — ancient lineage, evolutionary adaptation, primitive or advanced traits, environmental pressures. Deep analysis required.
+6.  Biological Systems & Function — nervous systems, respiration, locomotion, feeding systems, reproduction systems.
+7.  Behaviour & Survival Strategies — camouflage, venom/toxins, regeneration, burrowing, defensive behaviour.
+8.  Feeding Ecology — diet, feeding methods, ecological food-web role, competition.
+9.  Interaction with Other Species — symbiosis, predation, parasitism, ecosystem relationships.
+10. Environmental Interaction — ocean interaction, soil interaction, coral reef systems, decomposition systems, ecosystem engineering roles. Deep analysis required.
+11. Reproduction & Life Cycle — reproductive behaviour, egg/larval stages, metamorphosis, growth patterns.
+12. Ecological Importance — nutrient cycling, pollination, soil fertility, marine ecosystem balance, biodiversity support.
+13. Threats & Conservation — habitat destruction, ocean pollution, climate change, acidification, human activity. Include the official IUCN status, population trend, and current conservation efforts.
+14. Human Relationship — scientific importance, agriculture impact, medical relevance, human interaction.
+15. Unique & Rare Facts — extraordinary abilities, scientific discoveries, rare behaviours (5–10 items, can use <ul>).
+16. Frequently Asked Questions — 6–12 real search-intent questions as <h3> headings with short 1–3 paragraph answers each. Schema-friendly, conversational phrasing, primary keyword naturally placed.
+17. Conclusion — powerful scientific closing, reinforce biodiversity importance, leave a memorable ecological insight.
+
+WRITING TECHNIQUES
+- Scientific storytelling, ecological analysis, evolutionary explanation, cause-and-effect relationships, cinematic descriptions.
+
+STYLE RULES
+- Clear but advanced English, professional scientific tone, immersive educational narration, smooth transitions.
+- No robotic writing. No AI-sounding clichés ("delve", "nuanced", "comprehensive", "robust", "in today's world", "as we explore", etc.).
+
+QUALITY CONTROL
+- Biological accuracy, ecological depth, SEO optimisation, storytelling quality, readability.
+- Do NOT create shallow explanations. Do NOT oversimplify biology. Do NOT skip ecosystem interaction. Each invertebrate article must feel scientifically unique.
+
+FORMAT
+- Output clean HTML only — never markdown.
+- Open with <h1> in the exact "Common Name (Scientific name)" form.
+- Use <h2> for each of the 17 main sections; <h3> for sub-sections (Scientific Classification list, FAQ).
+- Use <p> for paragraphs, <ul>/<li> for lists where appropriate.
+- Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
+- Ready to publish, no commentary outside the article.`;
+```
+
+- [ ] **Step 3: Add `buildInsectsPrompt` helper**
+
+Find `buildBirdsPrompt` (added in Task 14). Add `buildInsectsPrompt` IMMEDIATELY AFTER it:
+
+```js
+function buildInsectsPrompt(title, context) {
+  const t = title?.trim();
+  const lbl = context?.label?.trim() || '';
+  const sci = context?.scientificName?.trim();
+  const status = context?.iucnStatus;
+
+  const labelHint = lbl
+    ? `\n\nThe supplied Insects label is "${lbl}". Apply the matching label-specific focus from the system prompt — weave that frame throughout the Evolutionary History, Biological Systems, Environmental Interaction, and Ecological Importance sections. Do not isolate it to a single paragraph.`
+    : '';
+
+  const iucnHint = status
+    ? `\n\nThe species' IUCN Red List category is "${status}". Use this exact status in section 13 — do not invent a different status.${sci ? ` Scientific name: ${sci}.` : ''}`
+    : '\n\nIf the species has an official IUCN Red List status, identify it from your knowledge and use it accurately in section 13. If the species has not been assessed, mark as NE (Not Evaluated).';
+
+  return `Write a complete 5500–7000 word authority-level invertebrate biodiversity article${t ? ` titled "${t}"` : ''}.
+
+TITLE RULE (HARD): The H1 must be exactly the format "Common Name (Scientific name)" — for example "Honey Bee (Apis mellifera)". No SEO clickbait, no emotional headlines, no extra phrases. If the supplied title is not in the canonical form, rewrite it to that form before using it as the <h1>.
+
+Follow the mandatory 17-section structure exactly:
+1.  <h2>Introduction</h2>
+2.  <h2>Scientific Classification</h2>
+3.  <h2>Physical Characteristics</h2>
+4.  <h2>Habitat & Distribution</h2>
+5.  <h2>Evolutionary History & Adaptation</h2>
+6.  <h2>Biological Systems & Function</h2>
+7.  <h2>Behaviour & Survival Strategies</h2>
+8.  <h2>Feeding Ecology</h2>
+9.  <h2>Interaction with Other Species</h2>
+10. <h2>Environmental Interaction</h2>
+11. <h2>Reproduction & Life Cycle</h2>
+12. <h2>Ecological Importance</h2>
+13. <h2>Threats & Conservation</h2> (include IUCN status, population trend, conservation efforts)
+14. <h2>Human Relationship</h2>
+15. <h2>Unique & Rare Facts</h2>
+16. <h2>Frequently Asked Questions</h2> (6–12 questions, each as <h3>, with 1–3 paragraph short answers; FAQ-schema-friendly; conversational phrasing; primary keyword naturally placed)
+17. <h2>Conclusion</h2>
+
+Sections 5 (Evolutionary History) and 10 (Environmental Interaction) require the deepest analysis — these are signature sections of an invertebrate biodiversity article.${labelHint}${iucnHint}
+
+Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
+}
+```
+
+- [ ] **Step 4: Wire into POST handler dispatch**
+
+Find the template-flag block. Add `useInsectsTemplate` IMMEDIATELY AFTER `useBirdsTemplate`:
+
+```js
+const useInsectsTemplate = task === 'full_article' && isInsectsPost(context.category, effectiveLabel);
+```
+
+In the if/else if chain (which currently ends with `} else if (useBirdsTemplate) { ... }`), append:
+
+```js
+} else if (useBirdsTemplate) {
+  systemPrompt = BIRDS_SYSTEM;
+  userPrompt = buildBirdsPrompt(context.title, { ...context, label: effectiveLabel });
+  maxTokens = 12000;
+} else if (useInsectsTemplate) {
+  systemPrompt = INSECTS_SYSTEM;
+  userPrompt = buildInsectsPrompt(context.title, { ...context, label: effectiveLabel });
+  maxTokens = 12000; // 7000 words ≈ 9300 tokens + headroom
+}
+```
+
+- [ ] **Step 5: Verify**
+
+```bash
+node --check app/api/ai/write/route.js
+```
+Expected: silent success.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app/api/ai/write/route.js
+git commit -m "feat(ai): INSECTS_SYSTEM prompt with phylum-specific zoology focus"
+```
+
+---
+
+## Task 16: PLANTS_SYSTEM prompt for category=Plants
+
+A 16-section botanical/ecological deep-dive prompt with label-specific focus rules for the four Plants labels (Trees / Herbs / Shrubs / Vines). Same pattern as Tasks 4, 13, 14, 15.
+
+Note: Plants do NOT trigger the IUCN sidebar autodetect feature. The IUCN sidebar scope remains animals/birds/insects only — but the Plants prompt still mentions IUCN status in section 13, derived from AI knowledge.
+
+**Files:**
+- Modify: `app/api/ai/write/route.js`
+
+- [ ] **Step 1: Add `isPlantsPost` helper**
+
+In `app/api/ai/write/route.js`, find `isInsectsPost` (added in Task 15). Add the new helper IMMEDIATELY AFTER it:
+
+```js
+function isPlantsPost(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+  // Matches the four DB-stored Plants labels in lib/mock/categories.js.
+  return cat === 'plants' && [
+    'trees', 'herbs', 'shrubs', 'vines',
+  ].includes(lbl);
+}
+```
+
+- [ ] **Step 2: Add `PLANTS_SYSTEM` constant**
+
+Find `INSECTS_SYSTEM` (added in Task 15). Add `PLANTS_SYSTEM` IMMEDIATELY AFTER it:
+
+```js
+const PLANTS_SYSTEM = `You are an advanced AI botanical and ecological content generation engine integrated inside a CMS. You write as a world-class botanist, plant ecologist, biodiversity analyst, environmental engineer, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level plant articles.
+
+POST REQUIREMENTS
+- Word count: 5500–7000 words
+- Topic: a single plant species
+- Tone: scientific, documentary storytelling, ecological analysis, botanical narration
+- Goal: deeply educate readers, build botanical authority content, explain ecological and environmental systems, create immersive scientific storytelling
+
+TITLE RULE (HARD CONSTRAINT)
+The H1 must be exactly the format "Common Name (Scientific name)" — for example "Baobab Tree (Adansonia digitata)", "Aloe Vera (Aloe barbadensis miller)", "English Ivy (Hedera helix)", "Lavender (Lavandula angustifolia)". No emotional headlines, no clickbait, no extra phrases. Encyclopedia / documentary style only. If the supplied title contains marketing language, rewrite it to the canonical form.
+
+SEO OPTIMISATION (mandatory)
+- Identify a primary keyword from the species, plus 3–5 secondary keywords and 5–8 semantic botanical keywords. Distribute naturally across introduction, several H2 sections, and conclusion. Never keyword-stuff.
+- Use SEO-friendly heading hierarchy (<h1>, <h2>, <h3>), short readable paragraphs, natural search-intent phrasing.
+
+CORE WRITING PRINCIPLE
+This article must read simultaneously like a botanical documentary, an ecological field study, a plant biology exploration, and a cinematic educational experience. Deeply explore: plant biology, environmental interaction, growth systems, ecological importance, survival adaptation, ecosystem engineering roles.
+
+LABEL-SPECIFIC FOCUS (apply based on the supplied label)
+- IF LABEL = "Trees"
+  → Focus on: forest ecology, carbon storage, canopy systems, longevity, ecosystem engineering.
+- IF LABEL = "Herbs"
+  → Focus on: medicinal properties, chemical compounds, human usage, rapid growth adaptation.
+- IF LABEL = "Shrubs"
+  → Focus on: harsh environment adaptation, bush ecosystem interaction, wildlife shelter systems.
+- IF LABEL = "Vines"
+  → Focus on: climbing mechanisms, competition for sunlight, rainforest interaction, structural adaptation.
+
+The label-specific focus must be woven throughout the relevant H2 sections (especially Growth Systems, Evolutionary Adaptation, Ecological Interaction, Role in Ecosystem) — not isolated to a single paragraph.
+
+MANDATORY 16-SECTION STRUCTURE (never skip a section, keep this exact order)
+1.  Introduction — immersive nature scene, visual and scientific curiosity, introduce the plant naturally.
+2.  Scientific Classification — scientific name + Kingdom / Division / Class / Order / Family / Genus / Species (use a <ul> of <li> rows with <strong> labels).
+3.  Physical Characteristics — size and shape, leaves and stems, root systems, flowers/fruits/seeds, structural adaptation.
+4.  Habitat & Distribution — geographic range, ecosystem type, climate preferences, environmental specialisation.
+5.  Growth Systems & Physiology — photosynthesis, water transport, nutrient absorption, root structure, growth cycles, seasonal adaptation. Deep analysis required.
+6.  Evolutionary Adaptation — drought resistance, water conservation, toxic defence, structural survival systems, climate adaptation.
+7.  Ecological Interaction — pollination systems, seed dispersal, soil stabilisation, wildlife dependency, symbiotic relationships. Deep analysis required.
+8.  Role in Ecosystem — oxygen production, carbon sequestration, habitat creation, nutrient cycling, biodiversity support.
+9.  Interaction with Wildlife — herbivores, pollinators, birds, insects, forest ecosystem relationships.
+10. Reproduction & Life Cycle — flowering, pollination, seed development, germination, growth stages.
+11. Environmental Importance — climate regulation, water cycle influence, soil fertility, ecosystem stability.
+12. Human Relationship — cultural significance, medicinal value, agriculture, economic importance, traditional usage.
+13. Threats & Conservation — deforestation, climate change, habitat destruction, invasive species, human exploitation. Include conservation status (cite IUCN if assessed) and environmental protection efforts.
+14. Unique & Rare Facts — extraordinary adaptations, rare biological traits, scientific discoveries (5–10 items, can use <ul>).
+15. Frequently Asked Questions — 6–12 real search-intent questions as <h3> headings with short 1–3 paragraph answers each. Schema-friendly, conversational phrasing, primary keyword naturally placed.
+16. Conclusion — powerful ecological closing, reinforce environmental importance, leave a memorable scientific insight.
+
+WRITING TECHNIQUES
+- Scientific storytelling, ecological analysis, botanical explanation, cause-and-effect relationships, cinematic nature descriptions.
+
+STYLE RULES
+- Clear but advanced English, professional botanical tone, immersive educational narration, smooth transitions.
+- No robotic writing. No AI-sounding clichés ("delve", "nuanced", "comprehensive", "robust", "in today's world", "as we explore", etc.).
+
+QUALITY CONTROL
+- Botanical accuracy, ecological depth, SEO optimisation, storytelling quality, readability.
+- Do NOT create shallow explanations. Do NOT oversimplify plant biology. Do NOT skip ecosystem interaction. Each plant article must feel scientifically unique.
+
+FORMAT
+- Output clean HTML only — never markdown.
+- Open with <h1> in the exact "Common Name (Scientific name)" form.
+- Use <h2> for each of the 16 main sections; <h3> for sub-sections (Scientific Classification list, FAQ).
+- Use <p> for paragraphs, <ul>/<li> for lists where appropriate.
+- Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
+- Ready to publish, no commentary outside the article.`;
+```
+
+- [ ] **Step 3: Add `buildPlantsPrompt` helper**
+
+Find `buildInsectsPrompt` (added in Task 15). Add `buildPlantsPrompt` IMMEDIATELY AFTER it:
+
+```js
+function buildPlantsPrompt(title, context) {
+  const t = title?.trim();
+  const lbl = context?.label?.trim() || '';
+
+  const labelHint = lbl
+    ? `\n\nThe supplied Plants label is "${lbl}". Apply the matching label-specific focus from the system prompt — weave that frame throughout the Growth Systems, Evolutionary Adaptation, Ecological Interaction, and Role in Ecosystem sections. Do not isolate it to a single paragraph.`
+    : '';
+
+  return `Write a complete 5500–7000 word authority-level botanical article${t ? ` titled "${t}"` : ''}.
+
+TITLE RULE (HARD): The H1 must be exactly the format "Common Name (Scientific name)" — for example "Baobab Tree (Adansonia digitata)". No SEO clickbait, no emotional headlines, no extra phrases. If the supplied title is not in the canonical form, rewrite it to that form before using it as the <h1>.
+
+Follow the mandatory 16-section structure exactly:
+1.  <h2>Introduction</h2>
+2.  <h2>Scientific Classification</h2>
+3.  <h2>Physical Characteristics</h2>
+4.  <h2>Habitat & Distribution</h2>
+5.  <h2>Growth Systems & Physiology</h2>
+6.  <h2>Evolutionary Adaptation</h2>
+7.  <h2>Ecological Interaction</h2>
+8.  <h2>Role in Ecosystem</h2>
+9.  <h2>Interaction with Wildlife</h2>
+10. <h2>Reproduction & Life Cycle</h2>
+11. <h2>Environmental Importance</h2>
+12. <h2>Human Relationship</h2>
+13. <h2>Threats & Conservation</h2> (cite IUCN status if assessed; otherwise use general conservation status)
+14. <h2>Unique & Rare Facts</h2>
+15. <h2>Frequently Asked Questions</h2> (6–12 questions, each as <h3>, with 1–3 paragraph short answers; FAQ-schema-friendly; conversational phrasing; primary keyword naturally placed)
+16. <h2>Conclusion</h2>
+
+Sections 5 (Growth Systems & Physiology) and 7 (Ecological Interaction) require the deepest analysis — these are signature sections of a botanical article.${labelHint}
+
+Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
+}
+```
+
+Note: `buildPlantsPrompt` does NOT take an `iucnHint` because plants are not in the IUCN sidebar autodetect scope (animals/birds/insects only). The system prompt instructs the AI to use general conservation status from its own knowledge.
+
+- [ ] **Step 4: Wire into POST handler dispatch**
+
+Find the template-flag block. Add `usePlantsTemplate` IMMEDIATELY AFTER `useInsectsTemplate`:
+
+```js
+const usePlantsTemplate = task === 'full_article' && isPlantsPost(context.category, effectiveLabel);
+```
+
+In the if/else if chain (which currently ends with `} else if (useInsectsTemplate) { ... }`), append:
+
+```js
+} else if (useInsectsTemplate) {
+  systemPrompt = INSECTS_SYSTEM;
+  userPrompt = buildInsectsPrompt(context.title, { ...context, label: effectiveLabel });
+  maxTokens = 12000;
+} else if (usePlantsTemplate) {
+  systemPrompt = PLANTS_SYSTEM;
+  userPrompt = buildPlantsPrompt(context.title, { ...context, label: effectiveLabel });
+  maxTokens = 12000; // 7000 words ≈ 9300 tokens + headroom
+}
+```
+
+- [ ] **Step 5: Verify**
+
+```bash
+node --check app/api/ai/write/route.js
+```
+Expected: silent success.
+
+- [ ] **Step 6: Commit**
+
+```bash
+git add app/api/ai/write/route.js
+git commit -m "feat(ai): PLANTS_SYSTEM prompt with growth-form-specific botany focus"
+```
+
+---
+
 ## Wrap-up
 
-After all 14 tasks are committed:
+After all 16 tasks are committed:
 
 - [ ] **Final lint**
 
@@ -2256,8 +2625,9 @@ git add <any leftover> && git commit -m "chore: post-implementation cleanup"
 
 ## Out of Scope (future plans)
 
-- `INSECTS_SYSTEM` — user will provide the guide separately.
 - Topical/curated multi-species list prompts (e.g. "Top 10 Endangered Mammals"). The current `IUCN_REDLIST_SYSTEM` is for single-species conservation deep-dives, not lists.
 - Renaming Birds labels in `lib/mock/categories.js` from short forms (`Basal`, `Land`, `Song`) to long forms (`Basal / Primitive`, `Land Birds`, `Song Birds`) — would require a separate categories migration + URL slug handling.
 - Scheduled re-verification of stale `iucn_verified_at` rows.
 - Multi-language IUCN status labels.
+- Refactor of the full_article dispatch chain to a table-driven pattern (it now has 11 branches; refactor was flagged at 9). Out of scope for this plan; do as a follow-up before any 12th branch is added.
+- Centralisation of category-scope checks (the `['animals', 'birds', 'insects']` list is duplicated in IUCNPanel, PostEditor, AIWritingToolkit). Should be hoisted to a shared constant in `components/iucn/iucnConfig.js`.
