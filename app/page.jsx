@@ -9,6 +9,7 @@ import { IUCNSection } from '@/components/iucn/IUCNSection';
 import { LatestBirdsSection } from '@/components/birds/LatestBirdsSection';
 import { LatestInsectsSection } from '@/components/insects/LatestInsectsSection';
 import { LatestTourismSection } from '@/components/posts/LatestTourismSection';
+import { LatestConservationSection } from '@/components/posts/LatestConservationSection';
 import { WhyHowSection } from '@/components/posts/WhyHowSection';
 import { BooksSection } from '@/components/posts/BooksSection';
 import { ShortsSection } from '@/components/posts/ShortsSection';
@@ -241,6 +242,11 @@ export default function HomePage() {
       </ScrollReveal>
       <ScrollReveal effect="fadeUp" delay={80}>
         <DocumentariesSection />
+      </ScrollReveal>
+
+      {/* ── Latest Conservation Posts — fade up (matches Latest Posts design) ── */}
+      <ScrollReveal effect="fadeUp">
+        <LatestConservationSection />
       </ScrollReveal>
     </>
   );
