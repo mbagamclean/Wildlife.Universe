@@ -4,7 +4,22 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
+import { useTheme } from 'next-themes';
 import { HeroPlaceholder } from './HeroPlaceholder';
+
+// Plain, undecorated styles for light mode — black text, no glows or halos.
+// Per user request: "avoid a lot of decoration used in light mode just use
+// black texts for good visibility". A subtle white drop is kept so the text
+// stays legible if it momentarily lands on a dark patch of the underlying
+// image during a slide transition.
+const LIGHT_TITLE_STYLE = {
+  color: '#0a0a0a',
+  textShadow: '0 1px 2px rgba(255,255,255,0.55)',
+};
+const LIGHT_BODY_STYLE = {
+  color: 'rgba(0,0,0,0.88)',
+  textShadow: '0 1px 2px rgba(255,255,255,0.55)',
+};
 
 // ─── Color utilities ──────────────────────────────────────────────────────────
 
@@ -281,6 +296,15 @@ function VideoLayer({ slide, onPlay, onPause, onEnded }) {
 export function HeroSlide({ slide, isActive, onVideoEnded }) {
   const isVideo = slide.type === 'video';
 
+  // Theme detection (mounted-pattern to avoid SSR/hydration mismatch).
+  // In light mode we replace the cinematic white-on-dark adaptive title with
+  // plain black text and switch the overlay to a soft white scrim so the
+  // image is dimmed instead of darkened.
+  const { resolvedTheme } = useTheme();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+  const isLight = mounted && resolvedTheme === 'light';
+
   // Initialise from palette (instant, before image loads) then refine via canvas
   const [titleStyle, setTitleStyle] = useState(() =>
     buildTitleStyle(hexToRgb(slide.palette.from), slide.accent)
@@ -349,7 +373,9 @@ export function HeroSlide({ slide, isActive, onVideoEnded }) {
         aria-hidden="true"
         className="absolute inset-0"
         style={{
-          background: 'linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.40) 35%, rgba(0,0,0,0.55) 65%, rgba(0,0,0,0.82) 100%)',
+          background: isLight
+            ? 'linear-gradient(to bottom, rgba(255,255,255,0.55) 0%, rgba(255,255,255,0.40) 40%, rgba(255,255,255,0.62) 100%)'
+            : 'linear-gradient(to bottom, rgba(0,0,0,0.42) 0%, rgba(0,0,0,0.40) 35%, rgba(0,0,0,0.55) 65%, rgba(0,0,0,0.82) 100%)',
         }}
       />
 
@@ -367,7 +393,7 @@ export function HeroSlide({ slide, isActive, onVideoEnded }) {
               onMouseEnter={() => setContentHovered(true)}
               onMouseLeave={() => setContentHovered(false)}
             >
-              <AnimatedTitle text={slide.title} isVideo titleStyle={titleStyle} />
+              <AnimatedTitle text={slide.title} isVideo titleStyle={isLight ? LIGHT_TITLE_STYLE : titleStyle} />
 
               <motion.p
                 animate={{
@@ -377,7 +403,7 @@ export function HeroSlide({ slide, isActive, onVideoEnded }) {
                 }}
                 transition={{ duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
                 className="max-w-2xl overflow-hidden text-sm text-balance sm:text-base md:text-lg lg:text-xl"
-                style={BODY_STYLE}
+                style={isLight ? LIGHT_BODY_STYLE : BODY_STYLE}
                 aria-hidden={!showDescription}
               >
                 {slide.description}
@@ -397,7 +423,7 @@ export function HeroSlide({ slide, isActive, onVideoEnded }) {
             /* ── Image layout ── */
             <>
               <div className="mt-[calc(5rem+3vh)] flex justify-center px-4 sm:mt-[14vh] sm:px-6 md:mt-[17vh] lg:mt-[20vh]">
-                <AnimatedTitle text={slide.title} isVideo={false} titleStyle={titleStyle} />
+                <AnimatedTitle text={slide.title} isVideo={false} titleStyle={isLight ? LIGHT_TITLE_STYLE : titleStyle} />
               </div>
               <div className="mt-auto flex w-full max-w-7xl mx-auto flex-col items-start gap-3 px-4 pb-20 sm:gap-5 sm:px-6 sm:pb-28 md:px-8 md:pb-32 lg:px-10 lg:pb-36">
                 <motion.p
@@ -406,7 +432,7 @@ export function HeroSlide({ slide, isActive, onVideoEnded }) {
                   animate="visible"
                   custom={0}
                   className="max-w-2xl text-sm text-balance sm:text-base md:text-lg lg:text-xl"
-                  style={BODY_STYLE}
+                  style={isLight ? LIGHT_BODY_STYLE : BODY_STYLE}
                 >
                   {slide.description}
                 </motion.p>
