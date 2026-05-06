@@ -24,14 +24,19 @@ export function BooksSection() {
 
   useEffect(() => {
     db.posts.list().then((all) => {
-      // Mock data processing for books & premium articles
-      const filtered = [...all].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      // Transform a subset into our immersive "books vs articles"
-      const mapped = filtered.slice(0, 8).map((p, i) => ({
+      // CEO-curated only: post.bookStatus must be 'free' or 'sold' (set in
+      // PostEditor under "Book status"). Posts without a book_status do NOT
+      // appear here — replaces the previous auto-derive-from-all-posts mock.
+      const curated = all.filter((p) => {
+        const bs = String(p.bookStatus || '').toLowerCase();
+        return bs === 'free' || bs === 'sold';
+      });
+      curated.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+      const mapped = curated.map((p) => ({
         ...p,
-        isBook: i % 2 === 0, // Alternate between books and articles
-        price: i % 3 === 0 ? 0 : 24.99, // Some free, some paid
-        id: `lib_${p.id}`
+        isBook: String(p.bookStatus).toLowerCase() === 'sold',
+        price: String(p.bookStatus).toLowerCase() === 'free' ? 0 : (p.price || 24.99),
+        id: `lib_${p.id}`,
       }));
       setItems(mapped);
       if (mapped.length > 0) {

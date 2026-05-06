@@ -11,10 +11,9 @@ import { LatestBirdsSection } from '@/components/birds/LatestBirdsSection';
 import { LatestInsectsSection } from '@/components/insects/LatestInsectsSection';
 import { LatestTourismSection } from '@/components/posts/LatestTourismSection';
 import { LatestConservationSection } from '@/components/posts/LatestConservationSection';
+import { LatestArticlesSection } from '@/components/posts/LatestArticlesSection';
 import { WhyHowSection } from '@/components/posts/WhyHowSection';
 import { BooksSection } from '@/components/posts/BooksSection';
-import { ShortsSection } from '@/components/posts/ShortsSection';
-import { DocumentariesSection } from '@/components/posts/DocumentariesSection';
 import { HomepageVideosSection } from '@/components/posts/HomepageVideosSection';
 import { categories } from '@/lib/mock/categories';
 import Link from 'next/link';
@@ -209,12 +208,19 @@ export default function HomePage() {
         />
       </ScrollReveal>
 
-      {/* ── Books — rise with scale ────────────────────────── */}
+      {/* ── Books — rise with scale (CEO-curated only via book_status) ─── */}
       <ScrollReveal effect="riseScale">
         <BooksSection />
       </ScrollReveal>
 
-      {/* ── Shorts — curated when set, falls back to post-derived ── */}
+      {/* ── Latest Articles — slide right (matches Latest Plants design) + bidirectional fade ── */}
+      <FadeOnScroll>
+        <ScrollReveal effect="slideRight">
+          <LatestArticlesSection />
+        </ScrollReveal>
+      </FadeOnScroll>
+
+      {/* ── Shorts — curated only (admin-managed via /admin/configuration/homepage-videos) ── */}
       <ScrollReveal effect="bounceUp">
         <HomepageVideosSection
           section="shorts"
@@ -224,9 +230,6 @@ export default function HomePage() {
           maxItems={8}
         />
       </ScrollReveal>
-      <ScrollReveal effect="bounceUp">
-        <ShortsSection />
-      </ScrollReveal>
 
       {/* ── Latest Tourism Posts — slide right (matches Latest Plants design) + bidirectional fade ── */}
       <FadeOnScroll>
@@ -235,7 +238,7 @@ export default function HomePage() {
         </ScrollReveal>
       </FadeOnScroll>
 
-      {/* ── Documentaries — curated when set, plus auto-derived ── */}
+      {/* ── Documentaries — curated only (admin-managed via /admin/configuration/homepage-videos) ── */}
       <ScrollReveal effect="fadeUp">
         <HomepageVideosSection
           section="documentaries"
@@ -244,9 +247,6 @@ export default function HomePage() {
           accent="#2563eb"
           maxItems={4}
         />
-      </ScrollReveal>
-      <ScrollReveal effect="fadeUp" delay={80}>
-        <DocumentariesSection />
       </ScrollReveal>
 
       {/* ── Latest Conservation Posts — fade up (matches Latest Posts design) + bidirectional fade ── */}

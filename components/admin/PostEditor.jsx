@@ -324,6 +324,7 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
   const [scientificName, setScientificName] = useState(initial?.scientificName || null);
   const [iucnVerified, setIucnVerified] = useState(initial?.iucnVerified || false);
   const [iucnVerifiedAt, setIucnVerifiedAt] = useState(initial?.iucnVerifiedAt || null);
+  const [bookStatus, setBookStatus] = useState(initial?.bookStatus || null);
 
   const currentCat = useMemo(() => categories.find(c => c.slug === category), [category]);
   const labelOptions = currentCat?.labels || [];
@@ -389,6 +390,7 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
       if (d.metaTitle !== undefined) setMetaTitle(d.metaTitle);
       if (d.metaDesc !== undefined) setMetaDesc(d.metaDesc);
       if (d.metaKw !== undefined) setMetaKw(d.metaKw);
+      if (d.bookStatus !== undefined) setBookStatus(d.bookStatus);
       if (d.iucnStatus !== undefined) setIucnStatus(d.iucnStatus);
       if (d.scientificName !== undefined) setScientificName(d.scientificName);
       if (d.iucnVerified !== undefined) setIucnVerified(!!d.iucnVerified);
@@ -406,13 +408,13 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
           title, slug, category, label, description, excerpt, body,
           cover, palette, featured, tags,
           metaTitle, metaDesc, metaKw, publishDate,
-          iucnStatus, scientificName, iucnVerified, iucnVerifiedAt,
+          iucnStatus, scientificName, iucnVerified, iucnVerifiedAt, bookStatus,
         }));
         setSavedAt(new Date());
       } catch (_) {}
     }, 10000);
     return () => clearInterval(autosaveRef.current);
-  }, [title, slug, category, label, description, excerpt, cover, palette, featured, tags, metaTitle, metaDesc, metaKw, publishDate, iucnStatus, scientificName, iucnVerified, iucnVerifiedAt]); // eslint-disable-line
+  }, [title, slug, category, label, description, excerpt, cover, palette, featured, tags, metaTitle, metaDesc, metaKw, publishDate, iucnStatus, scientificName, iucnVerified, iucnVerifiedAt, bookStatus]); // eslint-disable-line
 
   const seoScore = useMemo(
     () => calcSeo(title, description, slug, cover, wordCount),
@@ -485,6 +487,7 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
       metaKw: metaKw.trim(),
       publishDate,
       iucnStatus, scientificName, iucnVerified, iucnVerifiedAt,
+      bookStatus,
     };
     try {
       await onSave(payload);
@@ -1088,6 +1091,30 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
                         {labelOptions.map(l => <option key={l} value={l}>{l}</option>)}
                       </select>
                       <ChevronDown size={12} style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--adm-text-muted)', pointerEvents: 'none' }} />
+                    </div>
+                  </div>
+
+                  {/* Book Status — CEO curation flag for the homepage Books carousel */}
+                  <div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 5, marginBottom: 5 }}>
+                      <Tag size={12} style={{ color: 'var(--adm-text-muted)' }} />
+                      <span style={{ fontSize: 11, fontWeight: 600, color: 'var(--adm-text-muted)' }}>Book status</span>
+                    </div>
+                    <div style={{ position: 'relative' }}>
+                      <select
+                        value={bookStatus || ''}
+                        onChange={e => setBookStatus(e.target.value || null)}
+                        style={{ ...fieldStyle, appearance: 'none', WebkitAppearance: 'none', paddingRight: 28, cursor: 'pointer' }}
+                        title="Set to Free or Sold to feature this post in the homepage Books carousel"
+                      >
+                        <option value="">Not a book</option>
+                        <option value="free">Free</option>
+                        <option value="sold">Sold</option>
+                      </select>
+                      <ChevronDown size={12} style={{ position: 'absolute', right: 9, top: '50%', transform: 'translateY(-50%)', color: 'var(--adm-text-muted)', pointerEvents: 'none' }} />
+                    </div>
+                    <div style={{ fontSize: 10, color: 'var(--adm-text-subtle)', marginTop: 4, lineHeight: 1.4 }}>
+                      Only posts with Free or Sold appear in the homepage Books carousel.
                     </div>
                   </div>
                 </div>
