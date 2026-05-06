@@ -43,13 +43,15 @@ export function IUCNPanel({
   iucnVerifiedAt,
   onChange,
 }) {
-  const store = useAIStore();
+  const provider = useAIStore((s) => s.provider);
+  const getCurrentTextModel = useAIStore((s) => s.getCurrentTextModel);
   const [detecting, setDetecting] = useState(false);
   const [verifying, setVerifying] = useState(false);
   const [populationTrend, setPopulationTrend] = useState('unknown');
   const [confidence, setConfidence] = useState(null);
   const [reasoning, setReasoning] = useState('');
   const [verifyReason, setVerifyReason] = useState(null);
+  const [detectError, setDetectError] = useState(null);
 
   const inScope = IN_SCOPE_CATEGORIES.has((category || '').toLowerCase());
 
@@ -57,14 +59,15 @@ export function IUCNPanel({
     if (detecting) return;
     setDetecting(true);
     setVerifyReason(null);
+    setDetectError(null);
     try {
       const res = await fetch('/api/ai/write', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           task: 'iucn_detect',
-          provider: store.provider,
-          model: store.getCurrentTextModel(),
+          provider,
+          model: getCurrentTextModel(),
           context: { title, body, category, label },
         }),
       });
@@ -81,10 +84,11 @@ export function IUCNPanel({
       });
     } catch (err) {
       console.error('[IUCNPanel] detect failed', err);
+      setDetectError(err?.message || 'detect-failed');
     } finally {
       setDetecting(false);
     }
-  }, [detecting, title, body, category, label, store, onChange]);
+  }, [detecting, title, body, category, label, provider, getCurrentTextModel, onChange]);
 
   const runVerify = useCallback(async () => {
     if (verifying || !scientificName) return;
@@ -120,6 +124,7 @@ export function IUCNPanel({
     setConfidence(null);
     setReasoning('');
     setVerifyReason(null);
+    setDetectError(null);
     onChange({
       iucnStatus: null,
       scientificName: null,
@@ -235,6 +240,11 @@ export function IUCNPanel({
         </div>
       )}
 
+      {detectError && (
+        <div style={{ fontSize: 10, color: '#ef4444', marginBottom: 8 }}>
+          Detection failed: {detectError}
+        </div>
+      )}
       {verifyReason === 'no-token' && (
         <div style={{ fontSize: 10, color: 'var(--adm-text-subtle)', marginBottom: 8 }}>
           Set <code>IUCN_API_TOKEN</code> in env to enable verification.
