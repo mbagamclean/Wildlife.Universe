@@ -87,6 +87,17 @@ export const IUCN_CONFIG = {
     glow: 'rgba(88,88,160,0.28)',
     rowAccent: '#404080',
   },
+  NE: {
+    code: 'NE',
+    label: 'Not Evaluated',
+    shortDesc: 'Not yet assessed against the IUCN Red List criteria',
+    longDesc: 'Not Evaluated species have not yet been assessed against the IUCN Red List criteria. Their conservation status is unknown — they may be common and secure, or they may be at risk. Formal assessment is the prerequisite for prioritisation, funding, and protection.',
+    color: '#6b7280',
+    textColor: '#9ca3af',
+    badgeBg: 'rgba(20,20,28,0.92)',
+    glow: 'rgba(107,114,128,0.22)',
+    rowAccent: '#4b5563',
+  },
 };
 
-export const IUCN_ORDER = ['EX', 'EW', 'CR', 'EN', 'VU', 'NT', 'LC', 'DD'];
+export const IUCN_ORDER = ['EX', 'EW', 'CR', 'EN', 'VU', 'NT', 'LC', 'DD', 'NE'];
