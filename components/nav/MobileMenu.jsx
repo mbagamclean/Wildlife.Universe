@@ -5,23 +5,34 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronDown, Home, PawPrint, Leaf, Feather, Bug, FileText } from 'lucide-react';
+import { ChevronDown, Home, PawPrint, Leaf, Feather, Bug, FileText, Shield } from 'lucide-react';
 import { navItems, categories, labelSlug } from '@/lib/mock/categories';
 import { categoriesDb } from '@/lib/storage/categoriesDb';
 import { ThemeToggle } from './ThemeToggle';
 import { UserButton } from '@/components/auth/UserButton';
 
+const REDLIST_NAV_ITEM = {
+  name: 'IUCN Red List',
+  href: '/redlist',
+  labels: [],
+  slug: 'redlist',
+};
+
 /* static fallback — keeps SSR and initial client render consistent */
-const STATIC_NAV = navItems.map((item) => {
-  const slug = item.href.replace('/', '');
-  const cat  = categories.find((c) => c.slug === slug);
-  return { ...item, labels: cat?.labels || [], slug };
-});
+const STATIC_NAV = [
+  ...navItems.map((item) => {
+    const slug = item.href.replace('/', '');
+    const cat  = categories.find((c) => c.slug === slug);
+    return { ...item, labels: cat?.labels || [], slug };
+  }),
+  REDLIST_NAV_ITEM,
+];
 
 function buildEnrichedNav(cats) {
   return [
     { name: 'Home', href: '/', labels: [], slug: '' },
     ...cats.map((c) => ({ name: c.name, href: `/${c.slug}`, labels: c.labels || [], slug: c.slug })),
+    REDLIST_NAV_ITEM,
   ];
 }
 
@@ -34,6 +45,7 @@ const CAT_META = {
   birds:   { Icon: Feather,  color: '#3b82f6', glow: 'rgba(59,130,246,0.28)'  },
   insects: { Icon: Bug,      color: '#eab308', glow: 'rgba(234,179,8,0.28)'   },
   posts:   { Icon: FileText, color: '#008000', glow: 'rgba(0,128,0,0.28)'     },
+  redlist: { Icon: Shield,   color: '#dc2020', glow: 'rgba(220,32,32,0.28)'   },
 };
 
 function getCatMeta(slug) {

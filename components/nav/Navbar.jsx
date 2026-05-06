@@ -13,17 +13,28 @@ import { SearchToggle } from './SearchToggle';
 import { UserButton } from '@/components/auth/UserButton';
 import { HamburgerButton, MobileMenu } from './MobileMenu';
 
+const REDLIST_NAV_ITEM = {
+  name: 'IUCN Red List',
+  href: '/redlist',
+  labels: [],
+  slug: 'redlist',
+};
+
 /* static fallback — used for SSR and initial client render */
-const STATIC_NAV = navItems.map((item) => {
-  const slug = item.href.replace('/', '');
-  const cat  = categories.find((c) => c.slug === slug);
-  return { ...item, labels: cat?.labels || [], slug };
-});
+const STATIC_NAV = [
+  ...navItems.map((item) => {
+    const slug = item.href.replace('/', '');
+    const cat  = categories.find((c) => c.slug === slug);
+    return { ...item, labels: cat?.labels || [], slug };
+  }),
+  REDLIST_NAV_ITEM,
+];
 
 function buildEnrichedNav(cats) {
   return [
     { name: 'Home', href: '/', labels: [], slug: '' },
     ...cats.map((c) => ({ name: c.name, href: `/${c.slug}`, labels: c.labels || [], slug: c.slug })),
+    REDLIST_NAV_ITEM,
   ];
 }
 
