@@ -1,4 +1,5 @@
-import { streamText } from 'ai';
+import { streamText, generateObject } from 'ai';
+import { z } from 'zod';
 import { anthropic } from '@ai-sdk/anthropic';
 import { openai } from '@ai-sdk/openai';
 
@@ -434,6 +435,29 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
 - Ready to publish, no commentary outside the article.`;
 
+const IUCN_SCHEMA = z.object({
+  iucnStatus: z.enum(['EX', 'EW', 'CR', 'EN', 'VU', 'NT', 'LC', 'DD', 'NE']),
+  scientificName: z.string().nullable(),
+  commonName: z.string().nullable(),
+  populationTrend: z.enum(['increasing', 'stable', 'decreasing', 'unknown']),
+  confidence: z.enum(['high', 'medium', 'low']),
+  reasoning: z.string(),
+});
+
+const IUCN_DETECT_SYSTEM = `You are a conservation biologist with full knowledge of the IUCN Red List of Threatened Species.
+
+Given a wildlife article title and (optionally) the article body, identify the species and return its current IUCN Red List category as JSON.
+
+Rules:
+- Return ONLY one of: EX, EW, CR, EN, VU, NT, LC, DD, NE.
+- Never invent a status. If you are not confident, return DD with confidence: 'low'.
+- If the input describes a topical / multi-species article (e.g. "Top 10 Critically Endangered Mammals") rather than a single species, return NE with confidence: 'low' and explain in reasoning.
+- scientificName must be the binomial Latin name (e.g. "Panthera tigris"). null if not derivable from the input.
+- commonName is the everyday English name. null if not derivable.
+- populationTrend must reflect the latest IUCN assessment if known, else 'unknown'.
+- confidence: 'high' for textbook/iconic species, 'medium' for lesser-known, 'low' for obscure or genus-only inputs.
+- reasoning: 1–2 sentences citing why you chose this status.`;
+
 function buildArticlesPrompt(title) {
   const t = title?.trim();
   return `Write a complete 3500–4000 word authority-level wildlife article${t ? ` titled "${t}"` : ''}.
@@ -651,6 +675,22 @@ export async function POST(req) {
       provider === 'openai'
         ? openai(process.env.OPENAI_MODEL || 'gpt-4o')
         : anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
+
+    if (task === 'iucn_detect') {
+      const bodyText = (context.body || '')
+        .replace(/<[^>]*>/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim()
+        .slice(0, 500);
+      const { object } = await generateObject({
+        model,
+        system: IUCN_DETECT_SYSTEM,
+        schema: IUCN_SCHEMA,
+        prompt: `Title: ${context.title || '(no title supplied)'}\n\nFirst 500 chars of body:\n${bodyText || '(empty)'}`,
+        temperature: 0.2,
+      });
+      return Response.json(object);
+    }
 
     // Auto-derive label from title prefix when category is Posts.
     const effectiveLabel = deriveLabelFromTitle(context.category, context.label, context.title);
