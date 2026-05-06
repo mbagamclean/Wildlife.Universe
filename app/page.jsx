@@ -7,6 +7,7 @@ import { TrendingSection } from '@/components/posts/TrendingSection';
 import { LatestPlantsSection } from '@/components/plants/LatestPlantsSection';
 import { IUCNSection } from '@/components/iucn/IUCNSection';
 import { LatestBirdsSection } from '@/components/birds/LatestBirdsSection';
+import { LatestInsectsSection } from '@/components/insects/LatestInsectsSection';
 import { WhyHowSection } from '@/components/posts/WhyHowSection';
 import { BooksSection } from '@/components/posts/BooksSection';
 import { ShortsSection } from '@/components/posts/ShortsSection';
@@ -185,6 +186,11 @@ export default function HomePage() {
       {/* ── Why / How — slide from left ───────────────────── */}
       <ScrollReveal effect="slideLeft">
         <WhyHowSection />
+      </ScrollReveal>
+
+      {/* ── Latest Insects — flip up (matches Latest Birds design) ── */}
+      <ScrollReveal effect="flipUp">
+        <LatestInsectsSection />
       </ScrollReveal>
 
       {/* ── Featured Videos (curated via /admin/configuration/homepage-videos) ── */}
