@@ -1,6 +1,7 @@
 import { HeroOrchestrator } from '@/components/hero/HeroOrchestrator';
 import { Container } from '@/components/ui/Container';
 import { ScrollReveal } from '@/components/ui/ScrollReveal';
+import { FadeOnScroll } from '@/components/ui/FadeOnScroll';
 import { LatestPostsSection } from '@/components/posts/LatestPostsSection';
 import { LatestAnimalsSection } from '@/components/animals/LatestAnimalsSection';
 import { TrendingSection } from '@/components/posts/TrendingSection';
@@ -190,10 +191,12 @@ export default function HomePage() {
         <WhyHowSection />
       </ScrollReveal>
 
-      {/* ── Latest Insects — flip up (matches Latest Birds design) ── */}
-      <ScrollReveal effect="flipUp">
-        <LatestInsectsSection />
-      </ScrollReveal>
+      {/* ── Latest Insects — flip up (matches Latest Birds design) + bidirectional fade ── */}
+      <FadeOnScroll>
+        <ScrollReveal effect="flipUp">
+          <LatestInsectsSection />
+        </ScrollReveal>
+      </FadeOnScroll>
 
       {/* ── Featured Videos (curated via /admin/configuration/homepage-videos) ── */}
       <ScrollReveal effect="fadeUp">
@@ -225,10 +228,12 @@ export default function HomePage() {
         <ShortsSection />
       </ScrollReveal>
 
-      {/* ── Latest Tourism Posts — slide right (matches Latest Plants design) ── */}
-      <ScrollReveal effect="slideRight">
-        <LatestTourismSection />
-      </ScrollReveal>
+      {/* ── Latest Tourism Posts — slide right (matches Latest Plants design) + bidirectional fade ── */}
+      <FadeOnScroll>
+        <ScrollReveal effect="slideRight">
+          <LatestTourismSection />
+        </ScrollReveal>
+      </FadeOnScroll>
 
       {/* ── Documentaries — curated when set, plus auto-derived ── */}
       <ScrollReveal effect="fadeUp">
@@ -244,10 +249,12 @@ export default function HomePage() {
         <DocumentariesSection />
       </ScrollReveal>
 
-      {/* ── Latest Conservation Posts — fade up (matches Latest Posts design) ── */}
-      <ScrollReveal effect="fadeUp">
-        <LatestConservationSection />
-      </ScrollReveal>
+      {/* ── Latest Conservation Posts — fade up (matches Latest Posts design) + bidirectional fade ── */}
+      <FadeOnScroll>
+        <ScrollReveal effect="fadeUp">
+          <LatestConservationSection />
+        </ScrollReveal>
+      </FadeOnScroll>
     </>
   );
 }
