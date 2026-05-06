@@ -35,6 +35,8 @@ import { AIWritingToolkit } from './editor/AIWritingToolkit';
 import { AISEOAssistant } from './editor/AISEOAssistant';
 import { AIImageGenerator } from './editor/AIImageGenerator';
 import { AIRewriteFloater } from './editor/AIRewriteFloater';
+import { IUCNPanel } from './editor/IUCNPanel';
+import { useAIStore } from '@/lib/stores/aiStore';
 import { useAuth } from '@/lib/auth/AuthContext';
 import { isCEO } from '@/lib/auth/ceo';
 import { SITE_URL } from '@/lib/seo';
@@ -318,6 +320,10 @@ export function PostEditor({ initial, onSave, onCancel }) {
   const [metaTitle, setMetaTitle] = useState('');
   const [metaDesc, setMetaDesc] = useState('');
   const [metaKw, setMetaKw] = useState('');
+  const [iucnStatus, setIucnStatus] = useState(initial?.iucnStatus || null);
+  const [scientificName, setScientificName] = useState(initial?.scientificName || null);
+  const [iucnVerified, setIucnVerified] = useState(initial?.iucnVerified || false);
+  const [iucnVerifiedAt, setIucnVerifiedAt] = useState(initial?.iucnVerifiedAt || null);
 
   const currentCat = useMemo(() => categories.find(c => c.slug === category), [category]);
   const labelOptions = currentCat?.labels || [];
@@ -383,6 +389,10 @@ export function PostEditor({ initial, onSave, onCancel }) {
       if (d.metaTitle !== undefined) setMetaTitle(d.metaTitle);
       if (d.metaDesc !== undefined) setMetaDesc(d.metaDesc);
       if (d.metaKw !== undefined) setMetaKw(d.metaKw);
+      if (d.iucnStatus !== undefined) setIucnStatus(d.iucnStatus);
+      if (d.scientificName !== undefined) setScientificName(d.scientificName);
+      if (d.iucnVerified !== undefined) setIucnVerified(!!d.iucnVerified);
+      if (d.iucnVerifiedAt !== undefined) setIucnVerifiedAt(d.iucnVerifiedAt);
       if (d.publishDate !== undefined) setPublishDate(d.publishDate);
       if (d.body) editor.commands.setContent(d.body);
     } catch (_) {}
@@ -396,12 +406,13 @@ export function PostEditor({ initial, onSave, onCancel }) {
           title, slug, category, label, description, excerpt, body,
           cover, palette, featured, tags,
           metaTitle, metaDesc, metaKw, publishDate,
+          iucnStatus, scientificName, iucnVerified, iucnVerifiedAt,
         }));
         setSavedAt(new Date());
       } catch (_) {}
     }, 10000);
     return () => clearInterval(autosaveRef.current);
-  }, [title, slug, category, label, description, excerpt, cover, palette, featured, tags, metaTitle, metaDesc, metaKw, publishDate]); // eslint-disable-line
+  }, [title, slug, category, label, description, excerpt, cover, palette, featured, tags, metaTitle, metaDesc, metaKw, publishDate, iucnStatus, scientificName, iucnVerified, iucnVerifiedAt]); // eslint-disable-line
 
   const seoScore = useMemo(
     () => calcSeo(title, description, slug, cover, wordCount),
@@ -473,6 +484,7 @@ export function PostEditor({ initial, onSave, onCancel }) {
       metaDesc: metaDesc.trim(),
       metaKw: metaKw.trim(),
       publishDate,
+      iucnStatus, scientificName, iucnVerified, iucnVerifiedAt,
     };
     try {
       await onSave(payload);
@@ -492,6 +504,13 @@ export function PostEditor({ initial, onSave, onCancel }) {
     if (md !== undefined) setMetaDesc(md);
     if (mk !== undefined) setMetaKw(mk);
     if (ex !== undefined) setExcerpt(ex);
+  }, []);
+
+  const onIUCNChange = useCallback((patch) => {
+    if ('iucnStatus' in patch) setIucnStatus(patch.iucnStatus);
+    if ('scientificName' in patch) setScientificName(patch.scientificName);
+    if ('iucnVerified' in patch) setIucnVerified(!!patch.iucnVerified);
+    if ('iucnVerifiedAt' in patch) setIucnVerifiedAt(patch.iucnVerifiedAt);
   }, []);
 
   return (
@@ -620,6 +639,32 @@ export function PostEditor({ initial, onSave, onCancel }) {
               <input
                 value={title}
                 onChange={e => setTitle(e.target.value)}
+                onBlur={(e) => {
+                  const ai = useAIStore.getState();
+                  if (!ai.autoDetectIUCNOnTitleBlur) return;
+                  const cat = (category || '').toLowerCase();
+                  if (!['animals', 'birds', 'insects'].includes(cat)) return;
+                  if (!/\(.+\)/.test(e.target.value)) return; // require scientific name parens
+                  fetch('/api/ai/write', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                      task: 'iucn_detect',
+                      provider: ai.provider,
+                      model: ai.getCurrentTextModel(),
+                      context: { title: e.target.value, body: editor?.getHTML() || '', category, label },
+                    }),
+                  })
+                    .then((r) => (r.ok ? r.json() : null))
+                    .then((data) => {
+                      if (!data) return;
+                      setIucnStatus(data.iucnStatus || null);
+                      setScientificName(data.scientificName || null);
+                      setIucnVerified(false);
+                      setIucnVerifiedAt(null);
+                    })
+                    .catch((err) => console.error('[PostEditor] title-blur iucn detect failed', err));
+                }}
                 placeholder="Post title..."
                 className="pe-title"
                 style={{
@@ -1062,6 +1107,18 @@ export function PostEditor({ initial, onSave, onCancel }) {
               <FlatCard title="AI SEO Assistant" icon={TrendingUp} accent="#2563eb">
                 <AISEOAssistant title={title} editor={editor} slug={slug} onFieldsInserted={handleSEOInserted} />
               </FlatCard>
+
+              <IUCNPanel
+                category={category}
+                label={label}
+                title={title}
+                body={editor?.getHTML() || ''}
+                iucnStatus={iucnStatus}
+                scientificName={scientificName}
+                iucnVerified={iucnVerified}
+                iucnVerifiedAt={iucnVerifiedAt}
+                onChange={onIUCNChange}
+              />
 
               {/* 6. AI Image Generator */}
               <FlatCard title="AI Image Generator" icon={Wand2} accent="#d4af37">
