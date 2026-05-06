@@ -196,6 +196,15 @@ function isInsectsPost(category, label) {
   ].includes(lbl);
 }
 
+function isPlantsPost(category, label) {
+  const cat = (category || '').trim().toLowerCase();
+  const lbl = (label || '').trim().toLowerCase();
+  // Matches the four DB-stored Plants labels in lib/mock/categories.js.
+  return cat === 'plants' && [
+    'trees', 'herbs', 'shrubs', 'vines',
+  ].includes(lbl);
+}
+
 // Auto-derive label from title prefix for the Posts category.
 // "How …" → "How Questions", "Why …" → "Why Questions", otherwise keep provided label.
 function deriveLabelFromTitle(category, label, title) {
@@ -669,6 +678,73 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
 - Ready to publish, no commentary outside the article.`;
 
+const PLANTS_SYSTEM = `You are an advanced AI botanical and ecological content generation engine integrated inside a CMS. You write as a world-class botanist, plant ecologist, biodiversity analyst, environmental engineer, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level plant articles.
+
+POST REQUIREMENTS
+- Word count: 5500–7000 words
+- Topic: a single plant species
+- Tone: scientific, documentary storytelling, ecological analysis, botanical narration
+- Goal: deeply educate readers, build botanical authority content, explain ecological and environmental systems, create immersive scientific storytelling
+
+TITLE RULE (HARD CONSTRAINT)
+The H1 must be exactly the format "Common Name (Scientific name)" — for example "Baobab Tree (Adansonia digitata)", "Aloe Vera (Aloe barbadensis miller)", "English Ivy (Hedera helix)", "Lavender (Lavandula angustifolia)". No emotional headlines, no clickbait, no extra phrases. Encyclopedia / documentary style only. If the supplied title contains marketing language, rewrite it to the canonical form.
+
+SEO OPTIMISATION (mandatory)
+- Identify a primary keyword from the species, plus 3–5 secondary keywords and 5–8 semantic botanical keywords. Distribute naturally across introduction, several H2 sections, and conclusion. Never keyword-stuff.
+- Use SEO-friendly heading hierarchy (<h1>, <h2>, <h3>), short readable paragraphs, natural search-intent phrasing.
+
+CORE WRITING PRINCIPLE
+This article must read simultaneously like a botanical documentary, an ecological field study, a plant biology exploration, and a cinematic educational experience. Deeply explore: plant biology, environmental interaction, growth systems, ecological importance, survival adaptation, ecosystem engineering roles.
+
+LABEL-SPECIFIC FOCUS (apply based on the supplied label)
+- IF LABEL = "Trees"
+  → Focus on: forest ecology, carbon storage, canopy systems, longevity, ecosystem engineering.
+- IF LABEL = "Herbs"
+  → Focus on: medicinal properties, chemical compounds, human usage, rapid growth adaptation.
+- IF LABEL = "Shrubs"
+  → Focus on: harsh environment adaptation, bush ecosystem interaction, wildlife shelter systems.
+- IF LABEL = "Vines"
+  → Focus on: climbing mechanisms, competition for sunlight, rainforest interaction, structural adaptation.
+
+The label-specific focus must be woven throughout the relevant H2 sections (especially Growth Systems, Evolutionary Adaptation, Ecological Interaction, Role in Ecosystem) — not isolated to a single paragraph.
+
+MANDATORY 16-SECTION STRUCTURE (never skip a section, keep this exact order)
+1.  Introduction — immersive nature scene, visual and scientific curiosity, introduce the plant naturally.
+2.  Scientific Classification — scientific name + Kingdom / Division / Class / Order / Family / Genus / Species (use a <ul> of <li> rows with <strong> labels).
+3.  Physical Characteristics — size and shape, leaves and stems, root systems, flowers/fruits/seeds, structural adaptation.
+4.  Habitat & Distribution — geographic range, ecosystem type, climate preferences, environmental specialisation.
+5.  Growth Systems & Physiology — photosynthesis, water transport, nutrient absorption, root structure, growth cycles, seasonal adaptation. Deep analysis required.
+6.  Evolutionary Adaptation — drought resistance, water conservation, toxic defence, structural survival systems, climate adaptation.
+7.  Ecological Interaction — pollination systems, seed dispersal, soil stabilisation, wildlife dependency, symbiotic relationships. Deep analysis required.
+8.  Role in Ecosystem — oxygen production, carbon sequestration, habitat creation, nutrient cycling, biodiversity support.
+9.  Interaction with Wildlife — herbivores, pollinators, birds, insects, forest ecosystem relationships.
+10. Reproduction & Life Cycle — flowering, pollination, seed development, germination, growth stages.
+11. Environmental Importance — climate regulation, water cycle influence, soil fertility, ecosystem stability.
+12. Human Relationship — cultural significance, medicinal value, agriculture, economic importance, traditional usage.
+13. Threats & Conservation — deforestation, climate change, habitat destruction, invasive species, human exploitation. Include conservation status (cite IUCN if assessed) and environmental protection efforts.
+14. Unique & Rare Facts — extraordinary adaptations, rare biological traits, scientific discoveries (5–10 items, can use <ul>).
+15. Frequently Asked Questions — 6–12 real search-intent questions as <h3> headings with short 1–3 paragraph answers each. Schema-friendly, conversational phrasing, primary keyword naturally placed.
+16. Conclusion — powerful ecological closing, reinforce environmental importance, leave a memorable scientific insight.
+
+WRITING TECHNIQUES
+- Scientific storytelling, ecological analysis, botanical explanation, cause-and-effect relationships, cinematic nature descriptions.
+
+STYLE RULES
+- Clear but advanced English, professional botanical tone, immersive educational narration, smooth transitions.
+- No robotic writing. No AI-sounding clichés ("delve", "nuanced", "comprehensive", "robust", "in today's world", "as we explore", etc.).
+
+QUALITY CONTROL
+- Botanical accuracy, ecological depth, SEO optimisation, storytelling quality, readability.
+- Do NOT create shallow explanations. Do NOT oversimplify plant biology. Do NOT skip ecosystem interaction. Each plant article must feel scientifically unique.
+
+FORMAT
+- Output clean HTML only — never markdown.
+- Open with <h1> in the exact "Common Name (Scientific name)" form.
+- Use <h2> for each of the 16 main sections; <h3> for sub-sections (Scientific Classification list, FAQ).
+- Use <p> for paragraphs, <ul>/<li> for lists where appropriate.
+- Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
+- Ready to publish, no commentary outside the article.`;
+
 const IUCN_SCHEMA = z.object({
   iucnStatus: z.enum(['EX', 'EW', 'CR', 'EN', 'VU', 'NT', 'LC', 'DD', 'NE']),
   scientificName: z.string().nullable(),
@@ -886,6 +962,41 @@ Sections 5 (Evolutionary History) and 10 (Environmental Interaction) require the
 Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
+function buildPlantsPrompt(title, context) {
+  const t = title?.trim();
+  const lbl = context?.label?.trim() || '';
+
+  const labelHint = lbl
+    ? `\n\nThe supplied Plants label is "${lbl}". Apply the matching label-specific focus from the system prompt — weave that frame throughout the Growth Systems, Evolutionary Adaptation, Ecological Interaction, and Role in Ecosystem sections. Do not isolate it to a single paragraph.`
+    : '';
+
+  return `Write a complete 5500–7000 word authority-level botanical article${t ? ` titled "${t}"` : ''}.
+
+TITLE RULE (HARD): The H1 must be exactly the format "Common Name (Scientific name)" — for example "Baobab Tree (Adansonia digitata)". No SEO clickbait, no emotional headlines, no extra phrases. If the supplied title is not in the canonical form, rewrite it to that form before using it as the <h1>.
+
+Follow the mandatory 16-section structure exactly:
+1.  <h2>Introduction</h2>
+2.  <h2>Scientific Classification</h2>
+3.  <h2>Physical Characteristics</h2>
+4.  <h2>Habitat & Distribution</h2>
+5.  <h2>Growth Systems & Physiology</h2>
+6.  <h2>Evolutionary Adaptation</h2>
+7.  <h2>Ecological Interaction</h2>
+8.  <h2>Role in Ecosystem</h2>
+9.  <h2>Interaction with Wildlife</h2>
+10. <h2>Reproduction & Life Cycle</h2>
+11. <h2>Environmental Importance</h2>
+12. <h2>Human Relationship</h2>
+13. <h2>Threats & Conservation</h2> (cite IUCN status if assessed; otherwise use general conservation status)
+14. <h2>Unique & Rare Facts</h2>
+15. <h2>Frequently Asked Questions</h2> (6–12 questions, each as <h3>, with 1–3 paragraph short answers; FAQ-schema-friendly; conversational phrasing; primary keyword naturally placed)
+16. <h2>Conclusion</h2>
+
+Sections 5 (Growth Systems & Physiology) and 7 (Ecological Interaction) require the deepest analysis — these are signature sections of a botanical article.${labelHint}
+
+Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
+}
+
 function buildTourismPrompt(title) {
   const t = title?.trim();
   return `Write a complete 1500–2500 word wildlife tourism article${t ? ` titled "${t}"` : ''}.
@@ -1064,6 +1175,7 @@ export async function POST(req) {
     const useIucnRedlistTemplate = task === 'full_article' && isIucnRedlistAnimalPost(context.category, effectiveLabel);
     const useBirdsTemplate = task === 'full_article' && isBirdsPost(context.category, effectiveLabel);
     const useInsectsTemplate = task === 'full_article' && isInsectsPost(context.category, effectiveLabel);
+    const usePlantsTemplate = task === 'full_article' && isPlantsPost(context.category, effectiveLabel);
 
     let systemPrompt = WILDLIFE_SYSTEM;
     let userPrompt = buildPrompt(task, context);
@@ -1104,6 +1216,10 @@ export async function POST(req) {
     } else if (useInsectsTemplate) {
       systemPrompt = INSECTS_SYSTEM;
       userPrompt = buildInsectsPrompt(context.title, { ...context, label: effectiveLabel });
+      maxTokens = 12000; // 7000 words ≈ 9300 tokens + headroom
+    } else if (usePlantsTemplate) {
+      systemPrompt = PLANTS_SYSTEM;
+      userPrompt = buildPlantsPrompt(context.title, { ...context, label: effectiveLabel });
       maxTokens = 12000; // 7000 words ≈ 9300 tokens + headroom
     }
 
