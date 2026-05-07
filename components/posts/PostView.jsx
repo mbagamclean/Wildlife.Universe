@@ -311,22 +311,29 @@ function MobileTocBar({ toc, activeToc, progress, visible, onNavigate }) {
                     <ol className="max-h-60 overflow-y-auto py-1.5">
                       {toc.map((item, idx) => {
                         const active = idx === activeToc;
+                        const lvl = Math.max(2, Math.min(4, item.level || 2));
+                        const extraIndent = (lvl - 2) * 14; // px on top of px-4
+                        const isSub = lvl > 2;
                         return (
                           <li key={item.id}>
                             <button
                               onClick={() => { onNavigate(idx, item.id); setOpen(false); }}
-                              className={`flex w-full items-center gap-3 px-4 py-2.5 text-left transition-colors ${
+                              style={{ paddingLeft: 16 + extraIndent }}
+                              className={`flex w-full items-center gap-3 pr-4 py-2.5 text-left transition-colors ${
                                 active
                                   ? 'bg-[#008000]/10 text-[#008000]'
-                                  : 'text-[var(--color-fg-soft)] hover:bg-[var(--glass-border)]/30 hover:text-[var(--color-fg)]'
+                                  : `${isSub ? 'text-[var(--color-fg-soft)]/80' : 'text-[var(--color-fg-soft)]'} hover:bg-[var(--glass-border)]/30 hover:text-[var(--color-fg)]`
                               }`}
                             >
-                              <span className={`flex h-5 w-5 flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors ${
+                              <span className={`flex flex-shrink-0 items-center justify-center rounded-full text-[10px] font-bold transition-colors ${
+                                isSub ? 'h-4 w-4' : 'h-5 w-5'
+                              } ${
                                 active ? 'bg-[#008000] text-white' : 'bg-[var(--glass-border)] text-[var(--color-fg-soft)]'
                               }`}>
-                                {idx + 1}
+                                {/* H3/H4 get a dot, H2 keeps the section number */}
+                                {isSub ? '•' : (idx + 1)}
                               </span>
-                              <span className={`flex-1 truncate text-sm leading-snug ${active ? 'font-semibold' : ''}`}>
+                              <span className={`flex-1 truncate ${isSub ? 'text-[12.5px]' : 'text-sm'} leading-snug ${active ? 'font-semibold' : ''}`}>
                                 {item.title}
                               </span>
                               {active && <Check className="h-3.5 w-3.5 flex-shrink-0 text-[#008000]" />}
@@ -476,19 +483,27 @@ export function PostView({ slug }) {
     return () => observer.disconnect();
   }, [loaded]);
 
-  /* active TOC — finds the heading nearest the viewport center using the
-     injected IDs on h1/h2/h3 inside the rendered article body. */
+  /* active TOC — finds the heading nearest the upper-third of the
+     viewport using the injected IDs on h1/h2/h3/h4 inside the rendered
+     article body. Picking the upper third (rather than the centre)
+     lines up with how readers actually read: the heading they're
+     reading under sits near the top of the screen, not the middle. */
   useEffect(() => {
     if (!loaded || !post) return undefined;
     const fn = () => {
       const root = articleBodyRef.current;
       if (!root) return;
-      const headings = root.querySelectorAll('h1[id], h2[id], h3[id]');
+      const headings = root.querySelectorAll('h1[id], h2[id], h3[id], h4[id]');
       if (headings.length === 0) return;
-      const mid = window.innerHeight / 2;
+      const target = window.innerHeight * 0.33;
       let best = 0, bestDist = Infinity;
       headings.forEach((el, i) => {
-        const d = Math.abs(el.getBoundingClientRect().top - mid);
+        const top = el.getBoundingClientRect().top;
+        // Prefer the last heading whose top has scrolled above the target
+        // line; if none has, fall back to the first heading by absolute
+        // distance. This avoids the "active flickers backward" issue when
+        // a sub-heading lives just below the section's H2.
+        const d = top <= target ? target - top : (top - target) * 2;
         if (d < bestDist) { bestDist = d; best = i; }
       });
       setActiveToc(best);
@@ -738,20 +753,30 @@ export function PostView({ slug }) {
                       <ChevronDown className={`h-4 w-4 transition-transform lg:hidden ${tocOpen ? 'rotate-180' : ''}`} />
                     </button>
                     <ol className={`mt-3 flex flex-col gap-0.5 lg:flex ${tocOpen ? 'flex' : 'hidden'}`}>
-                      {toc.map((item, idx) => (
-                        <li key={item.id}>
-                          <button
-                            onClick={() => { document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setActiveToc(idx); }}
-                            className={`w-full rounded-lg px-3 py-2 text-left text-sm leading-snug transition-colors ${
-                              activeToc === idx
-                                ? 'border-l-2 border-[#008000] bg-[#008000]/10 font-medium text-[#008000] pl-2'
-                                : 'text-[var(--color-fg-soft)] hover:text-[var(--color-fg)]'
-                            }`}
-                          >
-                            {item.title}
-                          </button>
-                        </li>
-                      ))}
+                      {toc.map((item, idx) => {
+                        // Indent + de-emphasise sub-headings so readers can
+                        // see article structure at a glance. H2 is baseline,
+                        // H3/H4 step in by 12px / 24px and lose a notch of
+                        // weight + size.
+                        const lvl = Math.max(2, Math.min(4, item.level || 2));
+                        const indent = (lvl - 2) * 12;
+                        const fontSize = lvl === 2 ? 'text-sm' : lvl === 3 ? 'text-[12.5px]' : 'text-xs';
+                        return (
+                          <li key={item.id}>
+                            <button
+                              onClick={() => { document.getElementById(item.id)?.scrollIntoView({ behavior: 'smooth', block: 'start' }); setActiveToc(idx); }}
+                              style={{ paddingLeft: 12 + indent }}
+                              className={`w-full rounded-lg pr-3 py-2 text-left ${fontSize} leading-snug transition-colors ${
+                                activeToc === idx
+                                  ? 'border-l-2 border-[#008000] bg-[#008000]/10 font-medium text-[#008000]'
+                                  : `${lvl > 2 ? 'text-[var(--color-fg-soft)]/85' : 'text-[var(--color-fg-soft)]'} hover:text-[var(--color-fg)]`
+                              }`}
+                            >
+                              {item.title}
+                            </button>
+                          </li>
+                        );
+                      })}
                     </ol>
                   </div>
                 )}
