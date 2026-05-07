@@ -8,7 +8,20 @@ export const runtime = 'nodejs';
 export const maxDuration = 120;
 
 const BUCKET = 'media';
-const STYLE_SUFFIX = ', Canon EOS R5 wildlife photography, 8K UHD, 16:9 cinematic aspect ratio, National Geographic documentary style, ultra-realistic fur and feathers texture, realistic animal eyes, natural environmental textures, professional safari telephoto lens, natural color grading, sharp depth of field, HDR, no AI smoothness, no plastic texture, no overprocessed look, real-life photography realism, cinematic wildlife framing';
+
+// Aggressive photorealism suffix — stacks positive cues for real DSLR
+// wildlife photography AND explicit negative prompts that suppress the
+// "AI illustration / cartoon / 3D render / plastic skin" failure modes
+// the generators fall into by default. Tuned to produce output that
+// looks like an unedited frame from a senior wildlife photographer's
+// portfolio (National Geographic / BBC Earth caliber).
+const STYLE_SUFFIX = `
+
+TECHNICAL SPECIFICATION: 8K resolution, ultra-high detail density, 16:9 widescreen cinematic aspect ratio, photorealistic, real DSLR output, NO AI smoothing, NO synthetic softness, NO upscale artefacts.
+
+PHOTOREALISTIC WILDLIFE PHOTOGRAPHY ONLY. Captured by a senior, professional wildlife photographer in the field with a Canon EOS R5 mirrorless body and a Canon RF 100-500mm f/4.5-7.1 L IS USM telephoto lens (or RF 600mm f/4 L IS USM for distant subjects). Settings: f/5.6, ISO 400, 1/1000s shutter, hand-held with image stabilization, autofocus locked on the animal's eye. Natural unmodified light — golden hour or soft diffused overcast. Razor-sharp focus on the eye with a real catchlight; subtle, natural depth-of-field falloff into a creamy bokeh background. Visible micro-detail at 8K resolution: every fur strand, every feather barb and shaft, every scale, every wrinkle, every nostril, every claw, every whisker, every skin pore. Skin and fur respond to light realistically (no plastic sheen, no airbrush). Eyes have realistic moisture, vein detail, and accurate pupil shape for the species. Subject is in its true habitat — savanna grass, acacia woodland, riverbank, rocky outcrop, dense forest understory, mud, sand, snow — whatever matches the species' actual environment. Authentic behavior and posture grounded in field observation, not stylized poses. Natural color science (slightly warm or neutral, NEVER oversaturated). Subtle film grain; no aggressive sharpening, no halo artifacts, no HDR crunch. Composition follows real wildlife photography conventions: rule of thirds, eye-level perspective when feasible, environmental context giving sense of place. Wide enough framing to show the body and habitat, not just a face crop. The output must be indistinguishable from a real RAW DSLR frame published by National Geographic, BBC Earth, or Wildlife Photographer of the Year.
+
+ABSOLUTELY DO NOT PRODUCE: cartoon, illustration, anime, painting, watercolor, sketch, line art, 3D render, CGI, Pixar style, Disney style, stylized art, fantasy lighting, AI smoothing, AI smoothness, denoised look, plastic skin, airbrushed look, glossy plastic fur, perfect symmetric features, exaggerated saturated colors, neon colors, glowing edges, halos around subject, oversharpened edges, soap-opera HDR, motion-blur fakery, fake bokeh balls, lens-flare overlays, vignette overlays, watermarks, signatures, captions, text, logos, frames, borders, multiple subjects glued together, anatomical errors (wrong number of legs, fused limbs, extra eyes, malformed beaks, twisted joints), uncanny faces, square or portrait crops.`;
 
 function getAdminClient() {
   return createClient(
@@ -94,7 +107,18 @@ async function generateWithGemini(prompt, { aspectRatio = '16:9', imageSize = '2
   const model = process.env.GEMINI_IMAGE_MODEL || 'gemini-3.1-flash-image-preview';
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent`;
 
-  const parts = [{ text: `${prompt}${STYLE_SUFFIX}` }];
+  // When a reference image is supplied, prepend an explicit instruction so
+  // the model treats it as a *species reference* rather than a starting
+  // canvas to lightly tweak. This dramatically reduces "kept the source
+  // image with minor edits" output and pushes the model to render a NEW
+  // photograph of the SAME species in a NEW scene.
+  const fullPrompt = inputImageUrl
+    ? `Reference image attached: this shows the exact species the new photograph must depict. Carefully study the species' colouring, markings, body proportions, eye shape, fur/feather/scale pattern, and distinguishing field marks. Then produce a brand-new wildlife photograph of the SAME species in a different pose and a different natural setting as described below. Do not copy the reference's pose, framing, or background — only the species' anatomy and visual identity.
+
+NEW SCENE TO PHOTOGRAPH: ${prompt}${STYLE_SUFFIX}`
+    : `${prompt}${STYLE_SUFFIX}`;
+
+  const parts = [{ text: fullPrompt }];
   if (inputImageUrl) {
     const src = await fetchAsBase64(inputImageUrl);
     parts.push({ inlineData: src });
@@ -104,8 +128,10 @@ async function generateWithGemini(prompt, { aspectRatio = '16:9', imageSize = '2
     contents: [{ parts }],
     generationConfig: {
       responseModalities: ['TEXT', 'IMAGE'],
-      // Omit imageConfig on edits to preserve composition; set it for fresh generations
-      ...(inputImageUrl ? {} : { imageConfig: { aspectRatio, imageSize } }),
+      // Always pin aspect ratio + size — even on reference-image edits we
+      // want a fresh 16:9 widescreen frame, not a re-rendered version of
+      // the source image at the source's aspect ratio.
+      imageConfig: { aspectRatio, imageSize },
       thinkingConfig: { thinkingLevel: 'minimal' },
     },
   };
@@ -140,28 +166,30 @@ async function generateImage({ prompt, provider, aspectRatio, inputImageUrl, api
   return generateWithOpenAI(prompt, apiKey);
 }
 
-async function enrichPromptWithAI(heading, context, provider) {
-  const model = provider === 'openai'
-    ? openai(process.env.OPENAI_MODEL || 'gpt-4o')
-    : anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
+async function enrichPromptWithAI(heading, context, provider, speciesContext) {
+  // Image generators are *image* models — for the prompt-enrichment
+  // step (which is a TEXT call) we always use Anthropic. Picking the
+  // image provider here would call an image API by mistake.
+  const model = anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
 
   const { text } = await generateText({
     model,
     prompt: `Create a detailed wildlife photography prompt for an image to accompany this article section.
 
-Section heading: "${heading}"
+${speciesContext ? `Article subject: ${speciesContext}\n` : ''}Section heading: "${heading}"
 Section content: ${context.slice(0, 600)}
 
 Requirements:
-- Describe exact animals, their behavior, pose
-- Specify environment, lighting, time of day
-- Include geographic setting if discernible
-- Create dramatic wildlife composition
-- Be specific (not generic) — based on the actual content
+- Name the exact species (genus + common name when possible)
+- Describe behavior, pose, body language with field-observation accuracy
+- Specify environment, micro-habitat, time of day, weather, lighting direction
+- Include geographic setting if discernible from the article
+- Frame composition as a real wildlife photographer would (eye-level, shallow DOF, environmental context)
+- Be specific and concrete, never generic
 
-Return ONLY the image description prompt (50-80 words, no preamble).`,
-    temperature: 0.6,
-    maxTokens: 200,
+Return ONLY the image description prompt (60-100 words, no preamble, no quotes).`,
+    temperature: 0.5,
+    maxOutputTokens: 250,
   });
   return text.trim();
 }
@@ -172,15 +200,28 @@ export async function POST(req) {
       prompt, mode = 'text_to_image', provider = 'openai',
       aspectRatio, inputImageUrl,
       headings, context, apiKey,
+      speciesContext,
     } = await req.json();
+
+    // If the caller supplied a featured-image reference we need a provider
+    // that can actually consume it. DALL·E 3 has no edit endpoint, so
+    // transparently route those requests to Gemini regardless of what the
+    // user picked in the UI.
+    const effectiveProvider = inputImageUrl ? 'gemini' : provider;
 
     // Bulk mode
     if (mode === 'bulk' && Array.isArray(headings)) {
       const results = [];
       for (const item of headings) {
         try {
-          const enriched = await enrichPromptWithAI(item.heading, item.context || '', provider);
-          const buffer = await generateImage({ prompt: enriched, provider, aspectRatio, apiKey });
+          const enriched = await enrichPromptWithAI(item.heading, item.context || '', effectiveProvider, speciesContext);
+          const buffer = await generateImage({
+            prompt: enriched,
+            provider: effectiveProvider,
+            aspectRatio,
+            inputImageUrl,
+            apiKey,
+          });
           const uid = `bulk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           const urls = await uploadToSupabase(buffer, uid);
           results.push({
@@ -200,12 +241,16 @@ export async function POST(req) {
       return Response.json({ success: true, results });
     }
 
-    // Single image (text_to_image or transform)
+    // Single image (text_to_image or transform). When a featured image is
+    // attached we want the generator to use it as the species reference
+    // regardless of the requested mode — that's the point of the feature.
     if (!prompt) return Response.json({ error: 'Prompt required' }, { status: 400 });
 
     const buffer = await generateImage({
-      prompt, provider, aspectRatio,
-      inputImageUrl: mode === 'transform' ? inputImageUrl : undefined,
+      prompt,
+      provider: effectiveProvider,
+      aspectRatio,
+      inputImageUrl,
       apiKey,
     });
     const uid = `img-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;

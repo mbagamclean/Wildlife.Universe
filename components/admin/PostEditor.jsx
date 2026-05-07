@@ -1199,7 +1199,14 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
 
               {/* 6. AI Image Generator */}
               <FlatCard title="AI Image Generator" icon={Wand2} accent="#d4af37">
-                <AIImageGenerator editor={editor} onCoverChange={url => setCover(url)} />
+                <AIImageGenerator
+                  editor={editor}
+                  cover={cover}
+                  category={category}
+                  label={label}
+                  title={title}
+                  onCoverChange={url => setCover(url)}
+                />
               </FlatCard>
 
               {/* 7. CEO Tools (role-gated, informational) */}

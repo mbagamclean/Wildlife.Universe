@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useEffect } from 'react';
+import { useState, useCallback, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useAIStore } from '@/lib/stores/aiStore';
 
@@ -11,6 +11,15 @@ const IMG_PROVIDERS = [
   { id: 'openai', label: 'OpenAI DALL·E 3', badge: 'DALL·E 3' },
   { id: 'gemini', label: 'Gemini 3.1 Flash Image (Nano Banana 2)', badge: 'Gemini 3.1' },
 ];
+
+// Resolve a cover value (either a string URL or a {sources: [...]} object)
+// down to a single URL we can feed to the image generator as a vision
+// reference. Returns '' when no usable URL is found.
+function resolveCoverUrl(cover) {
+  if (!cover) return '';
+  if (typeof cover === 'string') return cover;
+  return cover?.sources?.[0]?.src || '';
+}
 
 const IMAGE_TABS = ['Text to Image', 'Transform', 'Bulk'];
 
@@ -107,10 +116,21 @@ function BulkJobRow({ job, index }) {
   );
 }
 
-export function AIImageGenerator({ editor, onCoverChange }) {
+export function AIImageGenerator({ editor, cover, category, label, title, onCoverChange }) {
   const store = useAIStore();
   const [activeTab, setActiveTab] = useState('Text to Image');
   const [h2Headings, setH2Headings] = useState([]);
+
+  // Featured image flow: when the post has a cover, feed it into the
+  // generator as a *species reference* so the AI matches the same animal,
+  // markings, and proportions instead of inventing a generic specimen.
+  // OpenAI DALL·E 3 has no edit endpoint, so we transparently switch to
+  // Gemini whenever a reference image is in play — Gemini's image-to-image
+  // path actually consumes the reference.
+  const coverUrl = useMemo(() => resolveCoverUrl(cover), [cover]);
+  const useFeaturedAsReference = !!coverUrl;
+  const effectiveProvider = useFeaturedAsReference ? 'gemini' : store.imageProvider;
+  const speciesContext = [category, label, title].filter(Boolean).join(' / ');
 
   // Detect H2 headings from editor
   useEffect(() => {
@@ -137,7 +157,9 @@ export function AIImageGenerator({ editor, onCoverChange }) {
         body: JSON.stringify({
           prompt: store.imagePrompt,
           mode: 'text_to_image',
-          provider: store.imageProvider,
+          provider: effectiveProvider,
+          inputImageUrl: useFeaturedAsReference ? coverUrl : undefined,
+          speciesContext,
         }),
       });
       const json = await res.json();
@@ -148,7 +170,7 @@ export function AIImageGenerator({ editor, onCoverChange }) {
     } finally {
       store.setIsGeneratingImage(false);
     }
-  }, [store]);
+  }, [store, effectiveProvider, useFeaturedAsReference, coverUrl, speciesContext]);
 
   const generateTransform = useCallback(async () => {
     if (store.isGeneratingImage || !store.transformPrompt.trim() || !store.transformSourceUrl.trim()) return;
@@ -213,8 +235,10 @@ export function AIImageGenerator({ editor, onCoverChange }) {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             mode: 'bulk',
-            provider: store.imageProvider,
+            provider: effectiveProvider,
             headings: [headingData[i]],
+            inputImageUrl: useFeaturedAsReference ? coverUrl : undefined,
+            speciesContext,
           }),
         });
         const json = await res.json();
@@ -246,7 +270,7 @@ export function AIImageGenerator({ editor, onCoverChange }) {
     }
 
     store.setIsBulkRunning(false);
-  }, [editor, h2Headings, store]);
+  }, [editor, h2Headings, store, effectiveProvider, useFeaturedAsReference, coverUrl, speciesContext]);
 
   const insertImage = useCallback((image, mode) => {
     if (mode === 'cover') {
@@ -311,12 +335,41 @@ export function AIImageGenerator({ editor, onCoverChange }) {
       {/* Text to Image */}
       {activeTab === 'Text to Image' && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {/* Featured-image reference banner — visible whenever a cover is set.
+              Switches the generator to Gemini's image-to-image path so the AI
+              actually copies the species visible in the cover instead of
+              inventing a generic specimen. */}
+          {useFeaturedAsReference && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 9,
+              padding: '8px 10px', borderRadius: 9,
+              background: 'rgba(124,58,237,0.08)',
+              border: '1px solid rgba(124,58,237,0.25)',
+            }}>
+              <img
+                src={coverUrl}
+                alt=""
+                style={{ width: 38, height: 38, borderRadius: 6, objectFit: 'cover', flexShrink: 0, border: '1px solid var(--adm-border)' }}
+              />
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 10, fontWeight: 800, color: PURPLE, textTransform: 'uppercase', letterSpacing: '0.08em' }}>
+                  Species reference active
+                </div>
+                <div style={{ fontSize: 10, color: 'var(--adm-text-muted)', lineHeight: 1.4, marginTop: 2 }}>
+                  Featured image is being read by Gemini as the visual species reference. New images will match this animal&apos;s real appearance.
+                </div>
+              </div>
+            </div>
+          )}
+
           <div>
             <div style={{ fontSize: 11, fontWeight: 700, color: 'var(--adm-text)', marginBottom: 6 }}>Describe the image</div>
             <textarea
               value={store.imagePrompt}
               onChange={e => store.setImagePrompt(e.target.value)}
-              placeholder="e.g. A pride of lions resting under an acacia tree at sunset on the Serengeti plains, golden hour lighting"
+              placeholder={useFeaturedAsReference
+                ? 'e.g. The same animal walking through tall savanna grass at golden hour, dust kicked up around its feet'
+                : 'e.g. A pride of lions resting under an acacia tree at sunset on the Serengeti plains, golden hour lighting'}
               rows={3}
               style={{
                 width: '100%', resize: 'none', borderRadius: 9, fontSize: 11,
@@ -326,7 +379,7 @@ export function AIImageGenerator({ editor, onCoverChange }) {
               }}
             />
             <div style={{ fontSize: 10, color: 'var(--adm-text-subtle)', marginTop: 5 }}>
-              Image style auto-applied: 8K UHD, Canon EOS R5, 16:9, no AI smoothing.
+              Auto-applied: Canon EOS R5 telephoto, golden hour, fine fur/feather detail, real DSLR realism, no AI smoothing.
             </div>
           </div>
 
