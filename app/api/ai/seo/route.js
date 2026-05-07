@@ -54,7 +54,7 @@ Return JSON with:
 
 export async function POST(req) {
   try {
-    const { title, body, provider = 'claude', task = 'generate' } = await req.json();
+    const { title, body, provider = 'claude', model, task = 'generate' } = await req.json();
     const bodyText = (body || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
 
     if (!title && !bodyText) {
@@ -68,7 +68,7 @@ export async function POST(req) {
       system: SEO_SYSTEM,
       prompt: buildSEOPrompt(title || '', bodyText, task),
       temperature: 0.3,
-      maxTokens: 1000,
+      maxOutputTokens: 1000,
     });
 
     const jsonMatch = text.match(/\{[\s\S]*\}/);
