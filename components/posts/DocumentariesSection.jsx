@@ -1,9 +1,8 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
-import Link from 'next/link';
+import { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { ChevronLeft, ChevronRight, Play, Film, X } from 'lucide-react';
+import { ChevronLeft, ChevronRight, Play, Film } from 'lucide-react';
 import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
 import { VideoPlayer } from '@/components/ui/VideoPlayer';
@@ -20,9 +19,10 @@ export function DocumentariesSection() {
   const [docs, setDocs] = useState([]);
   const [activeIndex, setActiveIndex] = useState(0);
   const [loading, setLoading] = useState(true);
-  
-  // Immersive viewer state
-  const [viewerOpen, setViewerOpen] = useState(false);
+  // True once the user has clicked the centred card to start playback.
+  // Reset whenever the active card changes — neighbouring cards never
+  // play while peeking at the edges.
+  const [isPlayingCenter, setIsPlayingCenter] = useState(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -67,20 +67,11 @@ export function DocumentariesSection() {
     else if (info.offset.x < -swipeThreshold) handleNext();
   };
 
-  const openPlayer = () => setViewerOpen(true);
-  const closePlayer = () => setViewerOpen(false);
-
+  // Stop playback whenever the user navigates to a different card so
+  // the previously-playing video releases its decoder + audio track.
   useEffect(() => {
-    document.body.style.overflow = viewerOpen ? 'hidden' : '';
-    return () => { document.body.style.overflow = ''; };
-  }, [viewerOpen]);
-
-  useEffect(() => {
-    if (!viewerOpen) return;
-    const onKey = (e) => { if (e.key === 'Escape') closePlayer(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [viewerOpen]);
+    setIsPlayingCenter(false);
+  }, [activeIndex]);
 
   if (loading || docs.length === 0) return null;
 
@@ -155,18 +146,22 @@ export function DocumentariesSection() {
 
               const coverSrc = resolveCoverSrc(doc.cover);
 
+              const isPlayingHere = isCenter && isPlayingCenter;
               return (
                 <motion.div
                   key={doc.id}
-                  drag="x"
+                  drag={isPlayingHere ? false : 'x'}
                   dragConstraints={{ left: 0, right: 0 }}
                   dragElastic={0.4}
                   onDragEnd={handleDragEnd}
                   onClick={() => {
-                    if (!isCenter) setActiveIndex(index);
-                    else openPlayer();
+                    if (isPlayingHere) return;            // let player controls handle clicks
+                    if (!isCenter) setActiveIndex(index); // bring this card to centre
+                    else if (doc.sourceUrl) setIsPlayingCenter(true); // play in place
                   }}
-                  className={`absolute flex cursor-pointer flex-col overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl ${isCenter ? 'ring-2 ring-[var(--color-primary)]/50' : ''}`}
+                  className={`absolute flex flex-col overflow-hidden rounded-2xl md:rounded-[2rem] shadow-2xl ${
+                    isPlayingHere ? '' : 'cursor-pointer'
+                  } ${isCenter ? 'ring-2 ring-[var(--color-primary)]/50' : ''}`}
                   style={{
                     width: 'clamp(300px, 75vw, 800px)',
                     aspectRatio: '16/9',
@@ -177,50 +172,75 @@ export function DocumentariesSection() {
                     scale: 1 - absOffset * 0.12,
                     opacity: 1 - absOffset * 0.35,
                     zIndex: 30 - absOffset,
-                    filter: `blur(${absOffset * 1.5}px) brightness(${isCenter ? 1 : 0.4})`,
+                    // While a card is playing don't blur it; the inline
+                    // player needs full clarity. Neighbours still get the
+                    // peek treatment.
+                    filter: `blur(${isPlayingHere ? 0 : absOffset * 1.5}px) brightness(${isCenter ? 1 : 0.4})`,
                   }}
                   transition={{ type: 'spring', stiffness: 200, damping: 25, mass: 1 }}
                 >
                   <div className="relative h-full w-full group">
-                    {/* Media Cover */}
-                    {coverSrc ? (
-                      <img src={coverSrc} alt={doc.title} className="h-full w-full object-cover transition-transform duration-[1500ms] group-hover:scale-105" />
-                    ) : (
-                      <div className="h-full w-full bg-slate-800" />
-                    )}
-
-                    {/* Dark gradient overlay so text is readable */}
-                    <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10" />
-
-                    {/* Play Icon Pulse in center */}
-                    {isCenter && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                         <div className="flex flex-col items-center gap-3 transition-transform duration-300 group-hover:scale-110">
-                           <div className="flex h-16 w-16 md:h-24 md:w-24 items-center justify-center rounded-full bg-black/40 backdrop-blur-md shadow-[0_0_30px_rgba(255,255,255,0.15)] ring-1 ring-white/20">
-                             <Play className="ml-1 md:ml-2 h-8 w-8 md:h-12 md:w-12 text-white" fill="white" />
-                           </div>
-                           <span className="bg-black/60 px-3 py-1 rounded backdrop-blur text-[10px] uppercase font-bold text-white tracking-widest leading-none">
-                             Watch Now
-                           </span>
-                         </div>
+                    {isPlayingHere ? (
+                      // Inline player swap — card content becomes the video.
+                      // stopPropagation so play/pause/mute clicks don't
+                      // bubble up to the card-level onClick.
+                      <div
+                        className="absolute inset-0 bg-black"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <VideoPlayer
+                          src={doc.sourceUrl}
+                          poster={coverSrc || null}
+                          aspectRatio="16/9"
+                          autoplay
+                          muted
+                          rounded={false}
+                          showBadge={false}
+                        />
                       </div>
-                    )}
+                    ) : (
+                      <>
+                        {/* Media Cover */}
+                        {coverSrc ? (
+                          <img src={coverSrc} alt={doc.title} className="h-full w-full object-cover transition-transform duration-[1500ms] group-hover:scale-105" />
+                        ) : (
+                          <div className="h-full w-full bg-slate-800" />
+                        )}
 
-                    {/* Content Layer at bottom */}
-                    <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-end p-4 md:p-8 text-center">
-                       <h3 className="font-display text-xl md:text-4xl font-black leading-tight text-white mb-2 line-clamp-1 md:line-clamp-2" style={{ textShadow: '0 4px 12px rgba(0,0,0,0.8)' }}>
-                         {doc.title}
-                       </h3>
-                       {isCenter && (
-                         <motion.p 
-                           initial={{ opacity: 0, y: 10 }}
-                           animate={{ opacity: 1, y: 0 }}
-                           className="hidden md:block text-sm text-gray-300 line-clamp-2 max-w-[80%]"
-                         >
-                           {doc.description}
-                         </motion.p>
-                       )}
-                    </div>
+                        {/* Dark gradient overlay so text is readable */}
+                        <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/90 via-black/30 to-black/10" />
+
+                        {/* Play Icon Pulse in center */}
+                        {isCenter && (
+                          <div className="absolute inset-0 flex items-center justify-center">
+                             <div className="flex flex-col items-center gap-3 transition-transform duration-300 group-hover:scale-110">
+                               <div className="flex h-16 w-16 md:h-24 md:w-24 items-center justify-center rounded-full bg-black/40 backdrop-blur-md shadow-[0_0_30px_rgba(255,255,255,0.15)] ring-1 ring-white/20">
+                                 <Play className="ml-1 md:ml-2 h-8 w-8 md:h-12 md:w-12 text-white" fill="white" />
+                               </div>
+                               <span className="bg-black/60 px-3 py-1 rounded backdrop-blur text-[10px] uppercase font-bold text-white tracking-widest leading-none">
+                                 Watch Now
+                               </span>
+                             </div>
+                          </div>
+                        )}
+
+                        {/* Content Layer at bottom */}
+                        <div className="absolute inset-x-0 bottom-0 flex flex-col items-center justify-end p-4 md:p-8 text-center">
+                           <h3 className="font-display text-xl md:text-4xl font-black leading-tight text-white mb-2 line-clamp-1 md:line-clamp-2" style={{ textShadow: '0 4px 12px rgba(0,0,0,0.8)' }}>
+                             {doc.title}
+                           </h3>
+                           {isCenter && (
+                             <motion.p
+                               initial={{ opacity: 0, y: 10 }}
+                               animate={{ opacity: 1, y: 0 }}
+                               className="hidden md:block text-sm text-gray-300 line-clamp-2 max-w-[80%]"
+                             >
+                               {doc.description}
+                             </motion.p>
+                           )}
+                        </div>
+                      </>
+                    )}
                   </div>
                 </motion.div>
               );
@@ -228,81 +248,6 @@ export function DocumentariesSection() {
           </AnimatePresence>
         </div>
       </div>
-
-      {/* Video Player Modal */}
-      <AnimatePresence>
-        {viewerOpen && (
-           <motion.div
-             initial={{ opacity: 0 }}
-             animate={{ opacity: 1 }}
-             exit={{ opacity: 0 }}
-             transition={{ duration: 0.25, ease: 'easeOut' }}
-             className="fixed inset-0 z-[200] flex items-center justify-center bg-[var(--color-bg)]/95 backdrop-blur-2xl p-4 sm:p-8"
-             onClick={closePlayer}
-           >
-              <button onClick={closePlayer} className="absolute right-6 top-6 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-black/20 dark:bg-white/10 text-[var(--color-fg)] transition-all hover:scale-110 active:scale-95">
-                 <X className="h-6 w-6" />
-              </button>
-
-              <motion.div
-                initial={{ scale: 0.92, opacity: 0, y: 40 }}
-                animate={{ scale: 1, opacity: 1, y: 0 }}
-                exit={{ scale: 0.92, opacity: 0, y: 40 }}
-                transition={{ type: 'spring', damping: 28, stiffness: 220 }}
-                className="relative w-full max-w-[1200px]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                {(() => {
-                  const doc = docs[activeIndex];
-                  if (!doc) return null;
-                  // Primary source: sourceUrl from homepage_videos row.
-                  // VideoPlayer.detectSource handles every supported host
-                  // (YouTube, YouTube shorts, Vimeo, TikTok, Instagram,
-                  // Facebook, X, plus direct .mp4/.webm).
-                  if (doc.sourceUrl) {
-                    return (
-                      <VideoPlayer
-                        src={doc.sourceUrl}
-                        poster={resolveCoverSrc(doc.cover)}
-                        rounded
-                        showBadge
-                      />
-                    );
-                  }
-                  // Back-compat: a video uploaded as a post cover
-                  // (cover.type === 'video'). Won't normally fire here now
-                  // that we read from homepage_videos but keeps the
-                  // component shape-tolerant.
-                  if (doc.cover && typeof doc.cover === 'object' && doc.cover.type === 'video' && doc.cover.sources?.length) {
-                    return (
-                      <VideoPlayer
-                        src={doc.cover}
-                        poster={resolveCoverSrc(doc.cover)}
-                        rounded
-                        showBadge
-                      />
-                    );
-                  }
-                  return null;
-                })() || (
-                  <div
-                    className="overflow-hidden rounded-2xl bg-black shadow-[0_0_60px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
-                    style={{ aspectRatio: '16/9' }}
-                  >
-                    {resolveCoverSrc(docs[activeIndex]?.cover) && (
-                      <img src={resolveCoverSrc(docs[activeIndex].cover)} alt="" className="absolute inset-0 h-full w-full object-cover blur-sm brightness-[0.25]" />
-                    )}
-                    <div className="absolute inset-0 flex flex-col items-center justify-center p-8 text-center z-10">
-                      <Play className="mb-6 h-20 w-20 text-white/50" fill="currentColor" />
-                      <h2 className="text-2xl font-bold text-white mb-2">{docs[activeIndex]?.title}</h2>
-                      <p className="text-gray-400 text-sm">No video URL set — add a videoUrl field to this post</p>
-                    </div>
-                  </div>
-                )}
-              </motion.div>
-           </motion.div>
-        )}
-      </AnimatePresence>
 
     </section>
   );
