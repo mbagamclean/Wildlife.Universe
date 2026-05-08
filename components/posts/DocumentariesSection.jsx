@@ -237,14 +237,37 @@ export function DocumentariesSection() {
                 className="relative w-full max-w-[1200px]"
                 onClick={(e) => e.stopPropagation()}
               >
-                {docs[activeIndex]?.videoUrl || docs[activeIndex]?.video ? (
-                  <VideoPlayer
-                    src={docs[activeIndex].videoUrl || docs[activeIndex].video}
-                    poster={resolveCoverSrc(docs[activeIndex].cover)}
-                    rounded
-                    showBadge
-                  />
-                ) : (
+                {(() => {
+                  const doc = docs[activeIndex];
+                  if (!doc) return null;
+                  // Video uploaded as the post cover (cover.type === 'video')
+                  // — pass the whole cover object; VideoPlayer's detectSource
+                  // handles upload-result objects via { sources }.
+                  if (doc.cover && typeof doc.cover === 'object' && doc.cover.type === 'video' && doc.cover.sources?.length) {
+                    return (
+                      <VideoPlayer
+                        src={doc.cover}
+                        poster={resolveCoverSrc(doc.cover)}
+                        rounded
+                        showBadge
+                      />
+                    );
+                  }
+                  // Legacy / external URL fields (kept for back-compat with
+                  // any post seeded with a videoUrl/video string).
+                  const url = doc.videoUrl || doc.video;
+                  if (url) {
+                    return (
+                      <VideoPlayer
+                        src={url}
+                        poster={resolveCoverSrc(doc.cover)}
+                        rounded
+                        showBadge
+                      />
+                    );
+                  }
+                  return null;
+                })() || (
                   <div
                     className="overflow-hidden rounded-2xl bg-black shadow-[0_0_60px_rgba(0,0,0,0.5)] ring-1 ring-white/10"
                     style={{ aspectRatio: '16/9' }}

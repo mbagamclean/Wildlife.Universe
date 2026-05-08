@@ -16,6 +16,7 @@ import { WhyHowSection } from '@/components/posts/WhyHowSection';
 import { BooksSection } from '@/components/posts/BooksSection';
 import { HomepageVideosSection } from '@/components/posts/HomepageVideosSection';
 import { ShortsSection } from '@/components/posts/ShortsSection';
+import { DocumentariesSection } from '@/components/posts/DocumentariesSection';
 import { categories } from '@/lib/mock/categories';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
@@ -238,15 +239,9 @@ export default function HomePage() {
         </ScrollReveal>
       </FadeOnScroll>
 
-      {/* ── Documentaries — curated only (admin-managed via /admin/configuration/homepage-videos) ── */}
+      {/* ── Documentaries — cinematic cover-flow carousel ── */}
       <ScrollReveal effect="fadeUp">
-        <HomepageVideosSection
-          section="documentaries"
-          heading="Documentaries"
-          subheading="Long-form features and feature-length films"
-          accent="#2563eb"
-          maxItems={4}
-        />
+        <DocumentariesSection />
       </ScrollReveal>
 
       {/* ── Latest Conservation Posts — fade up (matches Latest Posts design) + bidirectional fade ── */}
