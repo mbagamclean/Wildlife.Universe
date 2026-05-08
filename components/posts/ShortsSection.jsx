@@ -162,6 +162,7 @@ export function ShortsSection({
   const [shorts, setShorts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(null);
+  const [dismissed, setDismissed] = useState(false);
   const trackRef = useRef(null);
 
   // Three-tier fallback so the section is never empty:
@@ -242,7 +243,7 @@ export function ShortsSection({
     return () => document.removeEventListener('keydown', onKey);
   }, [activeIndex, closeViewer, goNext, goPrev]);
 
-  if (loading || shorts.length === 0) return null;
+  if (loading || shorts.length === 0 || dismissed) return null;
 
   return (
     <section className="relative py-16 md:py-24" style={{ background: 'var(--color-bg)' }}>
@@ -260,22 +261,33 @@ export function ShortsSection({
               {subheading}
             </p>
           </div>
-          <div className="hidden gap-3 md:flex">
+          <div className="flex items-center gap-3">
+            <div className="hidden gap-3 md:flex">
+              <button
+                type="button"
+                aria-label="Scroll left"
+                onClick={() => trackRef.current?.scrollBy({ left: -320, behavior: 'smooth' })}
+                className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
+              >
+                <ChevronLeft className="h-5 w-5 text-[var(--color-fg)]" />
+              </button>
+              <button
+                type="button"
+                aria-label="Scroll right"
+                onClick={() => trackRef.current?.scrollBy({ left: 320, behavior: 'smooth' })}
+                className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
+              >
+                <ChevronRight className="h-5 w-5 text-[var(--color-fg)]" />
+              </button>
+            </div>
             <button
               type="button"
-              aria-label="Scroll left"
-              onClick={() => trackRef.current?.scrollBy({ left: -320, behavior: 'smooth' })}
-              className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
+              aria-label="Hide shorts section"
+              title="Hide shorts"
+              onClick={() => setDismissed(true)}
+              className="glass flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-fg)] transition-all hover:scale-110 hover:text-pink-500 active:scale-95"
             >
-              <ChevronLeft className="h-5 w-5 text-[var(--color-fg)]" />
-            </button>
-            <button
-              type="button"
-              aria-label="Scroll right"
-              onClick={() => trackRef.current?.scrollBy({ left: 320, behavior: 'smooth' })}
-              className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
-            >
-              <ChevronRight className="h-5 w-5 text-[var(--color-fg)]" />
+              <X className="h-5 w-5" />
             </button>
           </div>
         </div>
@@ -421,6 +433,11 @@ function ShortsViewer({ shorts, index, onClose, onPrev, onNext, onSelect }) {
         style={{
           paddingTop: 'calc(env(safe-area-inset-top) + 4rem)',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)',
+          // Hard cap on the video frame height so a 4K monitor doesn't render
+          // a 1500px tall card. Width follows from the 9:16 aspect ratio
+          // applied on ShortFrame, then max-w clamps it to the viewport on
+          // narrow phones (where height becomes the constrained dimension).
+          ['--short-h']: 'min(calc(100dvh - 7rem), 760px)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -484,7 +501,13 @@ function ShortFrame({ short, isMuted, setIsMuted, onToggleMute, onPrev, onNext }
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.18}
       onDragEnd={handleDragEnd}
-      className="relative flex h-full w-full max-w-[min(100%,calc(100dvh*9/16))] items-stretch justify-center overflow-hidden"
+      style={{
+        height: 'var(--short-h, 100%)',
+        maxHeight: '100%',
+        maxWidth: '100%',
+        aspectRatio: '9 / 16',
+      }}
+      className="relative flex items-stretch justify-center overflow-hidden"
     >
       {short?.kind === 'embed'
         ? <EmbedVideoFrame short={short} onToggleMute={onToggleMute} isMuted={isMuted} />
