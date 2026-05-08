@@ -250,6 +250,39 @@ function ImageLayer({ slide, onColorSample }) {
 
 // ─── Video media layer ────────────────────────────────────────────────────────
 
+/**
+ * Coalesce the several poster shapes the hero pipeline produces down to
+ * a single string URL suitable for the HTML <video poster="..."> attr.
+ *
+ * Possible inputs:
+ *   - undefined / null / ''                           → no poster
+ *   - 'https://…/frame.jpg'                           → already a URL
+ *   - { sources: [{src, type}, …] }                   → image upload
+ *       (admin uploaded a poster image; pick the LAST source which is
+ *       WebP, the broadest-support format the pipeline emits)
+ *   - { type: 'video', sources: [...], poster: '…' }  → video upload
+ *       (the auto-generated transcode poster lives at .poster)
+ */
+function pickPosterUrl(p) {
+  if (!p) return '';
+  if (typeof p === 'string') return p;
+  if (typeof p === 'object') {
+    if (typeof p.poster === 'string' && p.poster) return p.poster;
+    const sources = Array.isArray(p.sources) ? p.sources : null;
+    if (sources && sources.length > 0) {
+      // Last source is WebP for image uploads; for video uploads it's
+      // the original mp4 (and we'd never want a video URL as a poster
+      // anyway — those callers go through the .poster branch above).
+      const last = sources[sources.length - 1];
+      const url = last && typeof last.src === 'string' ? last.src : '';
+      // Only treat as a poster URL if it looks like an image. Video src
+      // URLs end in .mp4 / .webm — those are not posters.
+      if (url && !/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)) return url;
+    }
+  }
+  return '';
+}
+
 function VideoLayer({ slide, onPlay, onPause, onEnded }) {
   const videoRef = useRef(null);
 
@@ -257,6 +290,12 @@ function VideoLayer({ slide, onPlay, onPause, onEnded }) {
     const v = videoRef.current;
     if (v) v.play().catch(() => {});
   }, []);
+
+  // Prefer the admin-uploaded poster; fall back to the auto-generated
+  // poster baked into the video upload result by the transcode pipeline.
+  // Without this, the video element shows nothing while it buffers.
+  const posterUrl =
+    pickPosterUrl(slide.poster) || pickPosterUrl(slide.src) || '';
 
   return (
     <>
@@ -272,6 +311,7 @@ function VideoLayer({ slide, onPlay, onPause, onEnded }) {
         playsInline
         preload="auto"
         loop
+        {...(posterUrl ? { poster: posterUrl } : {})}
         className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 data-[loaded=true]:opacity-100"
         onLoadedData={(e) => {
           if (e.currentTarget.videoWidth > 0) e.currentTarget.dataset.loaded = 'true';

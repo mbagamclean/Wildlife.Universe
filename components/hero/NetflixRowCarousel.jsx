@@ -82,8 +82,20 @@ function CornerBrackets({ cardWidth }) {
 function CardThumb({ slide }) {
   const { from = '#0c4a1a', via = '#3aa15a', to = '#a8e0c0' } = slide.palette ?? {};
 
-  // Video slides use the poster image; image slides use src directly.
-  const mediaRef = slide.type === 'video' ? slide.poster : slide.src;
+  // Video slides use a poster image; image slides use src directly.
+  // Posters can come from two places (in priority order):
+  //   1. slide.poster — what the admin explicitly uploaded in the hero
+  //      editor's "Video poster" field. Shape: a {sources: [...]} image
+  //      upload object with AVIF + WebP variants, OR a plain string URL.
+  //   2. slide.src.poster — the JPEG poster the video transcode pipeline
+  //      auto-generates from the first frame of the video. Shape: a
+  //      plain string URL. Always present once transcode finishes, so
+  //      it's a clean fallback when the admin skipped the optional
+  //      separate poster upload.
+  const mediaRef =
+    slide.type === 'video'
+      ? (slide.poster || slide.src?.poster || null)
+      : slide.src;
 
   const sharedImgProps = {
     alt: slide.title,
