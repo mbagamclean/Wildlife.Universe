@@ -162,6 +162,7 @@ export function ShortsSection({
   const [shorts, setShorts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(null);
+  const [originRect, setOriginRect] = useState(null);
   const [dismissed, setDismissed] = useState(false);
   const trackRef = useRef(null);
 
@@ -210,10 +211,26 @@ export function ShortsSection({
     return () => { cancelled = true; };
   }, [section, maxItems]);
 
-  const openViewer = useCallback((i) => {
+  const openViewer = useCallback((i, event) => {
     if (shorts[i]?.kind === 'static') {
       if (shorts[i].slug) router.push(`/posts/${shorts[i].slug}`);
       return;
+    }
+    // Capture the clicked card's centre + size so the viewer can morph
+    // out from that exact point instead of appearing dead-centred. If
+    // openViewer was called without an event (e.g., from the progress
+    // dots), originRect stays null and the viewer falls back to the
+    // standard centred fade-in.
+    if (event?.currentTarget?.getBoundingClientRect) {
+      const r = event.currentTarget.getBoundingClientRect();
+      setOriginRect({
+        cx: r.left + r.width / 2,
+        cy: r.top + r.height / 2,
+        w: r.width,
+        h: r.height,
+      });
+    } else {
+      setOriginRect(null);
     }
     setActiveIndex(i);
   }, [shorts, router]);
@@ -308,7 +325,7 @@ export function ShortsSection({
               >
                 <button
                   type="button"
-                  onClick={() => openViewer(i)}
+                  onClick={(e) => openViewer(i, e)}
                   aria-label={short.kind === 'static' ? `Open post: ${short.title}` : `Play short: ${short.title}`}
                   className="group relative block aspect-[9/16] w-full overflow-hidden rounded-[1.5rem] shadow-lg transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
                 >
@@ -348,6 +365,7 @@ export function ShortsSection({
           <ShortsViewer
             shorts={shorts}
             index={activeIndex}
+            originRect={originRect}
             onClose={closeViewer}
             onPrev={goPrev}
             onNext={goNext}
@@ -361,7 +379,7 @@ export function ShortsSection({
 
 // ── ShortsViewer — full-screen modal ─────────────────────────────────────────
 
-function ShortsViewer({ shorts, index, onClose, onPrev, onNext, onSelect }) {
+function ShortsViewer({ shorts, index, originRect, onClose, onPrev, onNext, onSelect }) {
   const short = shorts[index];
   const hasPrev = index > 0;
   const hasNext = index < shorts.length - 1;
@@ -372,6 +390,17 @@ function ShortsViewer({ shorts, index, onClose, onPrev, onNext, onSelect }) {
   // blocks, the frame will flip this back to true via setIsMuted(true).
   const [isMuted, setIsMuted] = useState(false);
   const toggleMute = useCallback(() => setIsMuted((m) => !m), []);
+
+  // The morph-from-thumbnail animation only applies on the first frame —
+  // after the modal is open, navigating prev/next via chevrons or swipe
+  // shouldn't fly back to the original click point. Drop the rect once
+  // the open animation is done.
+  const [openRect, setOpenRect] = useState(originRect);
+  useEffect(() => {
+    const t = setTimeout(() => setOpenRect(null), 420);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <motion.div
@@ -447,6 +476,7 @@ function ShortsViewer({ shorts, index, onClose, onPrev, onNext, onSelect }) {
           isMuted={isMuted}
           setIsMuted={setIsMuted}
           onToggleMute={toggleMute}
+          originRect={openRect}
           onPrev={hasPrev ? onPrev : null}
           onNext={hasNext ? onNext : null}
         />
@@ -478,7 +508,7 @@ function ProgressDots({ total, active, onSelect }) {
   );
 }
 
-function ShortFrame({ short, isMuted, setIsMuted, onToggleMute, onPrev, onNext }) {
+function ShortFrame({ short, isMuted, setIsMuted, onToggleMute, originRect, onPrev, onNext }) {
   const handleDragEnd = (_, info) => {
     const dx = info.offset.x;
     const dy = info.offset.y;
@@ -491,12 +521,33 @@ function ShortFrame({ short, isMuted, setIsMuted, onToggleMute, onPrev, onNext }
     }
   };
 
+  // Compute the transform that places the modal frame exactly where the
+  // user clicked the carousel card. Animating from those values to
+  // {x:0,y:0,scale:1} morphs the thumbnail into the centred viewer card.
+  // Falls back to a quiet centred zoom when no rect is supplied (e.g.
+  // when the viewer is opened from the progress dots).
+  const fromRect = (() => {
+    if (!originRect || typeof window === 'undefined') {
+      return { x: 0, y: 0, scale: 0.96, opacity: 0 };
+    }
+    const vw = window.innerWidth;
+    const vh = window.innerHeight;
+    return {
+      x: originRect.cx - vw / 2,
+      y: originRect.cy - vh / 2,
+      // Scale relative to a typical resting card width (~430px). Clamp so
+      // we never collapse to invisibly tiny on huge thumbnails.
+      scale: Math.max(0.18, Math.min(1, originRect.w / 430)),
+      opacity: 0,
+    };
+  })();
+
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.96 }}
-      animate={{ opacity: 1, scale: 1 }}
-      exit={{ opacity: 0, scale: 0.96 }}
-      transition={{ type: 'spring', stiffness: 320, damping: 32 }}
+      initial={fromRect}
+      animate={{ x: 0, y: 0, scale: 1, opacity: 1 }}
+      exit={fromRect}
+      transition={{ type: 'spring', stiffness: 280, damping: 30, mass: 0.8 }}
       drag
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.18}
@@ -506,6 +557,9 @@ function ShortFrame({ short, isMuted, setIsMuted, onToggleMute, onPrev, onNext }
         maxHeight: '100%',
         maxWidth: '100%',
         aspectRatio: '9 / 16',
+        // Anchor the spring around the centre of the resting frame so the
+        // scale animation visually pivots on its own middle.
+        transformOrigin: '50% 50%',
       }}
       className="relative flex items-stretch justify-center overflow-hidden"
     >
