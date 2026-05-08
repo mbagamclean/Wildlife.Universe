@@ -187,12 +187,18 @@ export function MediaUpload({ value, onChange, label = 'Cover media', accept = '
     );
   };
 
+  // Render the preview EAGERLY so we can detect the case where `value` is
+  // truthy but the resolver can't produce a usable URL (legacy/bad data).
+  // In that case we fall through to the dropzone so the admin can always
+  // re-upload — never an invisible empty card with just a stray X button.
+  const previewEl = renderPreview();
+
   return (
     <div className="flex flex-col gap-2">
       <label className="text-sm font-medium text-[var(--color-fg)]">{label}</label>
-      {value ? (
+      {previewEl ? (
         <div className="relative overflow-hidden rounded-xl border border-[var(--glass-border)]">
-          {renderPreview()}
+          {previewEl}
           <button
             type="button"
             onClick={() => onChange('')}
