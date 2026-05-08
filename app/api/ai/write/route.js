@@ -13,7 +13,7 @@ export const maxDuration = 120;
 // styles each pattern in both light and dark mode. These elements DO NOT
 // count toward the article's word target.
 // ────────────────────────────────────────────────────────────────────────────
-const RICH_FORMATTING_TOOLKIT = `
+export const RICH_FORMATTING_TOOLKIT = `
 
 RICH FORMATTING TOOLKIT (use throughout the article — these elements DO NOT count toward the word-count target)
 
@@ -222,7 +222,7 @@ function isArticlesPost(category, label) {
   return cat === 'posts' && (lbl === 'article' || lbl === 'articles');
 }
 
-function isAnimalsPost(category, label) {
+export function isAnimalsPost(category, label) {
   const cat = (category || '').trim().toLowerCase();
   const lbl = (label || '').trim().toLowerCase();
   // ANIMALS_SYSTEM is for single-species natural-history articles.
@@ -463,7 +463,7 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only
 - Ready to publish, no commentary outside the article`;
 
-const ANIMALS_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You are simultaneously a world-class wildlife scientist, documentary storyteller, ecological analyst, and SEO strategist. You produce deeply immersive, scientifically accurate, emotionally engaging, authority-level wildlife species articles.
+export const ANIMALS_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You are simultaneously a world-class wildlife scientist, documentary storyteller, ecological analyst, and SEO strategist. You produce deeply immersive, scientifically accurate, emotionally engaging, authority-level wildlife species articles.
 
 POST REQUIREMENTS
 - Word count: 6500+ words
@@ -855,7 +855,7 @@ Follow the mandatory 14-section structure exactly:
 Distribute the primary keyword and semantic variations naturally across the introduction, two H2 sections, and the conclusion. Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
-function buildAnimalsPrompt(title, context) {
+export function buildAnimalsPrompt(title, context) {
   const t = title?.trim();
   const sci = context?.scientificName?.trim();
   const status = context?.iucnStatus;
