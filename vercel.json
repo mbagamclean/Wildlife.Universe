@@ -1,10 +1,4 @@
 {
   "$schema": "https://openapi.vercel.sh/vercel.json",
-  "framework": "nextjs",
-  "crons": [
-    {
-      "path": "/api/admin/cron/generate-batch?n=1",
-      "schedule": "0 */4 * * *"
-    }
-  ]
+  "framework": "nextjs"
 }
