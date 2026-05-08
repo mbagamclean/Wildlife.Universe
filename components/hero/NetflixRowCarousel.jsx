@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { ChevronLeft, ChevronRight, ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useHero } from './HeroContext';
+import { resolveImageUrl, pickHeroPosterUrl } from '@/lib/media/pickUrl';
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 
@@ -82,20 +83,25 @@ function CornerBrackets({ cardWidth }) {
 function CardThumb({ slide }) {
   const { from = '#0c4a1a', via = '#3aa15a', to = '#a8e0c0' } = slide.palette ?? {};
 
-  // Video slides use a poster image; image slides use src directly.
-  // Posters can come from two places (in priority order):
-  //   1. slide.poster — what the admin explicitly uploaded in the hero
-  //      editor's "Video poster" field. Shape: a {sources: [...]} image
-  //      upload object with AVIF + WebP variants, OR a plain string URL.
-  //   2. slide.src.poster — the JPEG poster the video transcode pipeline
-  //      auto-generates from the first frame of the video. Shape: a
-  //      plain string URL. Always present once transcode finishes, so
-  //      it's a clean fallback when the admin skipped the optional
-  //      separate poster upload.
-  const mediaRef =
+  // Resolve the right thumbnail URL via the shared helper. For video
+  // slides this prefers the admin-uploaded poster, falls back to the
+  // transcode-generated poster, then nothing. For image slides it
+  // walks slide.src's sources for the first usable image URL. We
+  // GUARD against empty/invalid URLs — never render <img src="">.
+  const url =
     slide.type === 'video'
-      ? (slide.poster || slide.src?.poster || null)
-      : slide.src;
+      ? pickHeroPosterUrl(slide)
+      : resolveImageUrl(slide.src);
+
+  // For multi-variant uploads we still want the picture/source upgrade
+  // path (AVIF first, WebP fallback) — but only when valid sources
+  // exist. The src URL above already excludes video URLs.
+  const variantSources =
+    slide.type !== 'video' &&
+    slide.src && typeof slide.src === 'object' &&
+    Array.isArray(slide.src.sources)
+      ? slide.src.sources.filter(s => s && typeof s.src === 'string' && s.src)
+      : null;
 
   const sharedImgProps = {
     alt: slide.title,
@@ -109,18 +115,19 @@ function CardThumb({ slide }) {
   };
 
   let mediaEl = null;
-  if (typeof mediaRef === 'string' && mediaRef) {
-    mediaEl = <img src={mediaRef} {...sharedImgProps} />;
-  } else if (mediaRef?.sources?.length) {
-    const sources = mediaRef.sources;
-    mediaEl = (
-      <picture>
-        {sources.slice(0, -1).map((s, i) => (
-          <source key={i} srcSet={s.src} type={s.type} />
-        ))}
-        <img src={sources.at(-1)?.src ?? ''} {...sharedImgProps} />
-      </picture>
-    );
+  if (url) {
+    if (variantSources && variantSources.length > 1) {
+      mediaEl = (
+        <picture>
+          {variantSources.slice(0, -1).map((s, i) => (
+            <source key={i} srcSet={s.src} type={s.type} />
+          ))}
+          <img src={url} {...sharedImgProps} />
+        </picture>
+      );
+    } else {
+      mediaEl = <img src={url} {...sharedImgProps} />;
+    }
   }
 
   return (

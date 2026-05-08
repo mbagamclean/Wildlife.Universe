@@ -5,45 +5,7 @@ import { Plus, Pencil, Trash2, Eye, EyeOff, GripVertical } from 'lucide-react';
 import { db } from '@/lib/storage/db';
 import { HERO_MODE, MAX_HEROES } from '@/lib/storage/keys';
 import { HeroEditor } from './HeroEditor';
-
-/**
- * Pull a single string URL out of any of the shapes hero.src / hero.poster
- * can take post-migration-009. The columns are JSONB and accept either:
- *   - a plain string URL (legacy)
- *   - an image upload-result object: { type:'image', sources:[{avif},{webp}] }
- *   - a video upload-result object: { type:'video', sources:[{webm/mp4}], poster:'…' }
- *
- * Rejects video URLs (.mp4 / .webm / etc.) — those must never end up in an
- * <img src=…>, which is the symptom that produced the "broken image" icon
- * in the hero list after save.
- */
-function resolveImageUrl(v) {
-  if (!v) return '';
-  if (typeof v === 'string') {
-    return /\.(mp4|webm|mov|m4v|ogg|m3u8)(\?|#|$)/i.test(v) ? '' : v;
-  }
-  if (typeof v === 'object') {
-    if (typeof v.poster === 'string' && v.poster) return v.poster; // video upload object
-    const sources = Array.isArray(v.sources) ? v.sources : null;
-    if (sources && sources.length > 0) {
-      const last = sources[sources.length - 1];
-      const url  = last && typeof last.src === 'string' ? last.src : '';
-      if (url && !/\.(mp4|webm|mov|m4v|ogg|m3u8)(\?|#|$)/i.test(url)) return url;
-    }
-  }
-  return '';
-}
-
-/** Pick the right preview thumbnail for a hero in the admin list. */
-function thumbUrlForHero(h) {
-  if (!h) return '';
-  if (h.type === 'video') {
-    // Admin's explicitly-uploaded poster wins; transcode auto-poster is the
-    // fallback. Never the video file itself — that would render as broken.
-    return resolveImageUrl(h.poster) || resolveImageUrl(h.src) || '';
-  }
-  return resolveImageUrl(h.src) || resolveImageUrl(h.poster);
-}
+import { pickHeroThumbUrl } from '@/lib/media/pickUrl';
 
 export function HeroList() {
   const [heroes, setHeroes] = useState([]);

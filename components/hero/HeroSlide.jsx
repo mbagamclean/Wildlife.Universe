@@ -6,6 +6,7 @@ import { ArrowRight } from 'lucide-react';
 import Link from 'next/link';
 import { useTheme } from 'next-themes';
 import { HeroPlaceholder } from './HeroPlaceholder';
+import { resolveImageUrl, pickHeroPosterUrl } from '@/lib/media/pickUrl';
 
 // Plain, undecorated styles for light mode — black text. We give it a soft
 // white aura (a single multi-radius white blur) so the text stays legible
@@ -213,6 +214,14 @@ function ImageLayer({ slide, onColorSample }) {
 
   const handleError = useCallback((e) => { e.currentTarget.style.display = 'none'; }, []);
 
+  // Resolve a guaranteed-good URL via the shared helper. If empty,
+  // we render only the HeroPlaceholder gradient — never <img src="">.
+  const url = resolveImageUrl(slide.src);
+  const variantSources =
+    slide.src && typeof slide.src === 'object' && Array.isArray(slide.src.sources)
+      ? slide.src.sources.filter((s) => s && typeof s.src === 'string' && s.src)
+      : null;
+
   return (
     <>
       <HeroPlaceholder
@@ -220,68 +229,35 @@ function ImageLayer({ slide, onColorSample }) {
         accent={slide.accent}
         subject={slide.subject}
       />
-      {typeof slide.src === 'string' ? (
-        <img
-          src={slide.src}
-          alt=""
-          crossOrigin="anonymous"
-          className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 data-[loaded=true]:opacity-100"
-          onLoad={handleLoad}
-          onError={handleError}
-        />
-      ) : (
-        <picture>
-          {(slide.src?.sources || []).slice(0, -1).map((s, i) => (
-            <source key={i} srcSet={s.src} type={s.type} />
-          ))}
+      {url ? (
+        variantSources && variantSources.length > 1 ? (
+          <picture>
+            {variantSources.slice(0, -1).map((s, i) => (
+              <source key={i} srcSet={s.src} type={s.type} />
+            ))}
+            <img
+              src={url}
+              alt=""
+                            className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 data-[loaded=true]:opacity-100"
+              onLoad={handleLoad}
+              onError={handleError}
+            />
+          </picture>
+        ) : (
           <img
-            src={slide.src?.sources?.[Math.max(0, (slide.src.sources?.length || 1) - 1)]?.src || ''}
+            src={url}
             alt=""
-            crossOrigin="anonymous"
-            className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 data-[loaded=true]:opacity-100"
+                        className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 data-[loaded=true]:opacity-100"
             onLoad={handleLoad}
             onError={handleError}
           />
-        </picture>
-      )}
+        )
+      ) : null}
     </>
   );
 }
 
 // ─── Video media layer ────────────────────────────────────────────────────────
-
-/**
- * Coalesce the several poster shapes the hero pipeline produces down to
- * a single string URL suitable for the HTML <video poster="..."> attr.
- *
- * Possible inputs:
- *   - undefined / null / ''                           → no poster
- *   - 'https://…/frame.jpg'                           → already a URL
- *   - { sources: [{src, type}, …] }                   → image upload
- *       (admin uploaded a poster image; pick the LAST source which is
- *       WebP, the broadest-support format the pipeline emits)
- *   - { type: 'video', sources: [...], poster: '…' }  → video upload
- *       (the auto-generated transcode poster lives at .poster)
- */
-function pickPosterUrl(p) {
-  if (!p) return '';
-  if (typeof p === 'string') return p;
-  if (typeof p === 'object') {
-    if (typeof p.poster === 'string' && p.poster) return p.poster;
-    const sources = Array.isArray(p.sources) ? p.sources : null;
-    if (sources && sources.length > 0) {
-      // Last source is WebP for image uploads; for video uploads it's
-      // the original mp4 (and we'd never want a video URL as a poster
-      // anyway — those callers go through the .poster branch above).
-      const last = sources[sources.length - 1];
-      const url = last && typeof last.src === 'string' ? last.src : '';
-      // Only treat as a poster URL if it looks like an image. Video src
-      // URLs end in .mp4 / .webm — those are not posters.
-      if (url && !/\.(mp4|webm|mov|m4v)(\?|$)/i.test(url)) return url;
-    }
-  }
-  return '';
-}
 
 function VideoLayer({ slide, onPlay, onPause, onEnded }) {
   const videoRef = useRef(null);
@@ -291,11 +267,9 @@ function VideoLayer({ slide, onPlay, onPause, onEnded }) {
     if (v) v.play().catch(() => {});
   }, []);
 
-  // Prefer the admin-uploaded poster; fall back to the auto-generated
-  // poster baked into the video upload result by the transcode pipeline.
-  // Without this, the video element shows nothing while it buffers.
-  const posterUrl =
-    pickPosterUrl(slide.poster) || pickPosterUrl(slide.src) || '';
+  // Resolve poster via the shared helper. Prefers admin upload, falls
+  // back to the transcode auto-poster.
+  const posterUrl = pickHeroPosterUrl(slide);
 
   return (
     <>
@@ -305,13 +279,30 @@ function VideoLayer({ slide, onPlay, onPause, onEnded }) {
         subject={slide.subject}
         animate
       />
+
+      {/* Poster as a SEPARATE always-visible <img> layered between the
+          placeholder gradient and the video. Previously the poster was
+          set as the <video poster="…"> attribute, but the <video>
+          element starts at opacity:0 and only fades in once data has
+          loaded — which hid its own poster. Rendering the poster
+          independently means it shows immediately while the video
+          buffers, then the video fades in on top once ready. */}
+      {posterUrl && (
+        <img
+          src={posterUrl}
+          alt=""
+          aria-hidden
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        />
+      )}
+
       <video
         ref={videoRef}
         muted
         playsInline
         preload="auto"
         loop
-        {...(posterUrl ? { poster: posterUrl } : {})}
         className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 data-[loaded=true]:opacity-100"
         onLoadedData={(e) => {
           if (e.currentTarget.videoWidth > 0) e.currentTarget.dataset.loaded = 'true';

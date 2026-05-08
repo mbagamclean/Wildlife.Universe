@@ -4,6 +4,7 @@ import { useRef, useState, useEffect } from 'react';
 import { Upload, X, Link as LinkIcon } from 'lucide-react';
 import { VideoPlayer } from '@/components/ui/VideoPlayer';
 import { uploadMedia, uploadFromUrl } from '@/lib/upload/client';
+import { resolveImageUrl } from '@/lib/media/pickUrl';
 
 const MAX_IMAGE_BYTES = 20 * 1024 * 1024; // 20 MB
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024; // 200 MB
@@ -144,32 +145,46 @@ export function MediaUpload({ value, onChange, label = 'Cover media', accept = '
   const renderPreview = () => {
     if (!value) return null;
 
-    // Legacy support (Base64 string or simple URL string)
-    if (typeof value === 'string') {
-      return <img src={value} alt="" className="h-40 w-full object-cover" />;
-    }
-
-    if (value.type === 'video') {
+    // Video upload-result object — render the player so the admin can
+    // verify the clip plays. The player handles its own poster.
+    if (value && typeof value === 'object' && value.type === 'video') {
       return <VideoPlayer src={value} rounded={false} showBadge={false} muted autoplay />;
     }
 
-    if (value.type === 'image') {
-      const sources = value.sources || [];
+    // Everything else (string URL, image upload-result object, legacy
+    // shapes) gets routed through the shared resolver so we never end
+    // up with <img src=""> producing the broken-image icon.
+    const url = resolveImageUrl(value);
+    if (!url) return null;
+
+    if (value && typeof value === 'object' && Array.isArray(value.sources)) {
+      // Multiple variants available (AVIF + WebP) — let the browser pick.
+      const sources = value.sources;
       return (
         <picture>
-          {sources.slice(0, -1).map((s, i) => (
-            <source key={i} srcSet={s.src} type={s.type} />
-          ))}
-          <img 
-            src={sources[Math.max(0, sources.length - 1)]?.src || ''} 
-            alt="" 
-            className="h-40 w-full object-cover" 
+          {sources.slice(0, -1).map((s, i) =>
+            s && typeof s.src === 'string' && s.src
+              ? <source key={i} srcSet={s.src} type={s.type} />
+              : null
+          )}
+          <img
+            src={url}
+            alt=""
+            className="h-40 w-full object-cover"
+            onError={(e) => { e.currentTarget.style.display = 'none'; }}
           />
         </picture>
       );
     }
 
-    return null;
+    return (
+      <img
+        src={url}
+        alt=""
+        className="h-40 w-full object-cover"
+        onError={(e) => { e.currentTarget.style.display = 'none'; }}
+      />
+    );
   };
 
   return (
