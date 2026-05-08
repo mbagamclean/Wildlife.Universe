@@ -15,6 +15,7 @@ import { LatestArticlesSection } from '@/components/posts/LatestArticlesSection'
 import { WhyHowSection } from '@/components/posts/WhyHowSection';
 import { BooksSection } from '@/components/posts/BooksSection';
 import { HomepageVideosSection } from '@/components/posts/HomepageVideosSection';
+import { ShortsSection } from '@/components/posts/ShortsSection';
 import { categories } from '@/lib/mock/categories';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
@@ -220,14 +221,13 @@ export default function HomePage() {
         </ScrollReveal>
       </FadeOnScroll>
 
-      {/* ── Shorts — curated only (admin-managed via /admin/configuration/homepage-videos) ── */}
+      {/* ── Shorts — Instagram-style modal viewer over a horizontal carousel ── */}
       <ScrollReveal effect="bounceUp">
-        <HomepageVideosSection
+        <ShortsSection
           section="shorts"
           heading="Shorts"
           subheading="Vertical wildlife moments from creators around the world"
-          accent="#7c3aed"
-          maxItems={8}
+          maxItems={12}
         />
       </ScrollReveal>
 
