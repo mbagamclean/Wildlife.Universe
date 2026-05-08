@@ -6,6 +6,45 @@ import { db } from '@/lib/storage/db';
 import { HERO_MODE, MAX_HEROES } from '@/lib/storage/keys';
 import { HeroEditor } from './HeroEditor';
 
+/**
+ * Pull a single string URL out of any of the shapes hero.src / hero.poster
+ * can take post-migration-009. The columns are JSONB and accept either:
+ *   - a plain string URL (legacy)
+ *   - an image upload-result object: { type:'image', sources:[{avif},{webp}] }
+ *   - a video upload-result object: { type:'video', sources:[{webm/mp4}], poster:'…' }
+ *
+ * Rejects video URLs (.mp4 / .webm / etc.) — those must never end up in an
+ * <img src=…>, which is the symptom that produced the "broken image" icon
+ * in the hero list after save.
+ */
+function resolveImageUrl(v) {
+  if (!v) return '';
+  if (typeof v === 'string') {
+    return /\.(mp4|webm|mov|m4v|ogg|m3u8)(\?|#|$)/i.test(v) ? '' : v;
+  }
+  if (typeof v === 'object') {
+    if (typeof v.poster === 'string' && v.poster) return v.poster; // video upload object
+    const sources = Array.isArray(v.sources) ? v.sources : null;
+    if (sources && sources.length > 0) {
+      const last = sources[sources.length - 1];
+      const url  = last && typeof last.src === 'string' ? last.src : '';
+      if (url && !/\.(mp4|webm|mov|m4v|ogg|m3u8)(\?|#|$)/i.test(url)) return url;
+    }
+  }
+  return '';
+}
+
+/** Pick the right preview thumbnail for a hero in the admin list. */
+function thumbUrlForHero(h) {
+  if (!h) return '';
+  if (h.type === 'video') {
+    // Admin's explicitly-uploaded poster wins; transcode auto-poster is the
+    // fallback. Never the video file itself — that would render as broken.
+    return resolveImageUrl(h.poster) || resolveImageUrl(h.src) || '';
+  }
+  return resolveImageUrl(h.src) || resolveImageUrl(h.poster);
+}
+
 export function HeroList() {
   const [heroes, setHeroes] = useState([]);
   const [mode, setMode] = useState(HERO_MODE.DEFAULT);
@@ -171,15 +210,30 @@ export function HeroList() {
                   >
                     {(h.position ?? 0) + 1}
                   </span>
-                  <div
-                    className="h-16 w-24 shrink-0 overflow-hidden rounded-xl"
-                    style={{ background: `linear-gradient(135deg, ${h.palette?.from || '#0c4a1a'}, ${h.palette?.to || '#d4af37'})` }}
-                  >
-                    {h.src && (
-                      /* eslint-disable-next-line @next/next/no-img-element */
-                      <img src={h.src} alt="" className="h-full w-full object-cover" />
-                    )}
-                  </div>
+                  {(() => {
+                    const thumbUrl = thumbUrlForHero(h);
+                    return (
+                      <div
+                        className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl"
+                        style={{ background: `linear-gradient(135deg, ${h.palette?.from || '#0c4a1a'}, ${h.palette?.to || '#d4af37'})` }}
+                      >
+                        {thumbUrl ? (
+                          /* eslint-disable-next-line @next/next/no-img-element */
+                          <img
+                            src={thumbUrl}
+                            alt=""
+                            className="h-full w-full object-cover"
+                            onError={(e) => { e.currentTarget.style.display = 'none'; }}
+                          />
+                        ) : null}
+                        {h.type === 'video' && (
+                          <span className="absolute bottom-1 right-1 rounded bg-black/60 px-1 py-px text-[8px] font-bold uppercase tracking-wider text-white">
+                            Video
+                          </span>
+                        )}
+                      </div>
+                    );
+                  })()}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">
                       {h.title}
