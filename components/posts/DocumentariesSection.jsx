@@ -25,17 +25,32 @@ export function DocumentariesSection() {
   const [viewerOpen, setViewerOpen] = useState(false);
 
   useEffect(() => {
-    db.posts.list().then((all) => {
-      // Mock documentary data
-      const filtered = [...all].sort((a, b) => new Date(a.createdAt) - new Date(b.createdAt));
-      const mapped = filtered.slice(0, 8).map((p, i) => ({
-        ...p,
-        id: `doc_${p.id}`
-      }));
-      setDocs(mapped);
-      if (mapped.length > 0) setActiveIndex(Math.floor(mapped.length / 2));
-      setLoading(false);
-    });
+    let cancelled = false;
+    db.homepageVideos
+      .list({ section: 'documentaries' })
+      .then((rows) => {
+        if (cancelled) return;
+        // Map homepage_videos row shape into the field names the
+        // existing cover-flow carousel + modal already consume:
+        //   thumbnail  → cover  (string URL, handled by resolveCoverSrc)
+        //   sourceUrl  → kept on the row for the modal player
+        //   description / title pass through unchanged.
+        const mapped = (rows || []).slice(0, 8).map((r) => ({
+          id: r.id,
+          title: r.title || 'Untitled documentary',
+          description: r.description || '',
+          cover: r.thumbnail || null,
+          coverPalette: null,
+          sourceUrl: r.sourceUrl || null,
+          sourceType: r.sourceType || null,
+          durationSec: r.durationSec || null,
+        }));
+        setDocs(mapped);
+        if (mapped.length > 0) setActiveIndex(Math.floor(mapped.length / 2));
+        setLoading(false);
+      })
+      .catch(() => { if (!cancelled) setLoading(false); });
+    return () => { cancelled = true; };
   }, []);
 
   const handleNext = () => {
@@ -240,26 +255,28 @@ export function DocumentariesSection() {
                 {(() => {
                   const doc = docs[activeIndex];
                   if (!doc) return null;
-                  // Video uploaded as the post cover (cover.type === 'video')
-                  // — pass the whole cover object; VideoPlayer's detectSource
-                  // handles upload-result objects via { sources }.
-                  if (doc.cover && typeof doc.cover === 'object' && doc.cover.type === 'video' && doc.cover.sources?.length) {
+                  // Primary source: sourceUrl from homepage_videos row.
+                  // VideoPlayer.detectSource handles every supported host
+                  // (YouTube, YouTube shorts, Vimeo, TikTok, Instagram,
+                  // Facebook, X, plus direct .mp4/.webm).
+                  if (doc.sourceUrl) {
                     return (
                       <VideoPlayer
-                        src={doc.cover}
+                        src={doc.sourceUrl}
                         poster={resolveCoverSrc(doc.cover)}
                         rounded
                         showBadge
                       />
                     );
                   }
-                  // Legacy / external URL fields (kept for back-compat with
-                  // any post seeded with a videoUrl/video string).
-                  const url = doc.videoUrl || doc.video;
-                  if (url) {
+                  // Back-compat: a video uploaded as a post cover
+                  // (cover.type === 'video'). Won't normally fire here now
+                  // that we read from homepage_videos but keeps the
+                  // component shape-tolerant.
+                  if (doc.cover && typeof doc.cover === 'object' && doc.cover.type === 'video' && doc.cover.sources?.length) {
                     return (
                       <VideoPlayer
-                        src={url}
+                        src={doc.cover}
                         poster={resolveCoverSrc(doc.cover)}
                         rounded
                         showBadge
