@@ -125,6 +125,7 @@ async function processOne(sb, row) {
     },
     body: result.post.body,
     category: row.category,
+    excludePostId: result.post.id,
   });
   if (dup.isDuplicate) {
     await markFailed(sb, row.id, `dedup: ${dup.reason} (matched ${dup.matchedPostId})`);
