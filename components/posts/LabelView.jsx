@@ -1,35 +1,19 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
-import { ArrowLeft } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
-import { db } from '@/lib/storage/db';
 import { PostGrid } from './PostGrid';
+import { Pagination } from './Pagination';
 import { labelSlug } from '@/lib/mock/categories';
 
-export function LabelView({ category, categoryName, label, allLabels }) {
-  const [posts, setPosts] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const all = await db.posts.listByCategory(category);
-      if (!cancelled) {
-        setPosts(all.filter((p) => p.label === label));
-        setLoaded(true);
-      }
-    };
-    load();
-    const onChange = () => load();
-    window.addEventListener('wu:storage-changed', onChange);
-    return () => {
-      cancelled = true;
-      window.removeEventListener('wu:storage-changed', onChange);
-    };
-  }, [category, label]);
-
+export function LabelView({
+  category,
+  categoryName,
+  label,
+  allLabels,
+  posts,
+  page = 1,
+  totalPages = 1,
+}) {
+  const basePath = `/${category}/${labelSlug(label)}`;
   return (
     <>
       {/* ── Hero banner ── */}
@@ -91,15 +75,12 @@ export function LabelView({ category, categoryName, label, allLabels }) {
       {/* ── Posts grid ── */}
       <section className="pb-24">
         <Container>
-          {!loaded ? (
-            <p className="text-center text-sm text-[var(--color-fg-soft)]">Loading…</p>
-          ) : (
-            <PostGrid
-              posts={posts}
-              emptyTitle={`No ${label} posts yet`}
-              emptyMessage="Sign in as the CEO and create posts in the admin panel — they will appear here immediately."
-            />
-          )}
+          <PostGrid
+            posts={posts}
+            emptyTitle={`No ${label} posts yet`}
+            emptyMessage="Sign in as the CEO and create posts in the admin panel — they will appear here immediately."
+          />
+          <Pagination basePath={basePath} page={page} totalPages={totalPages} />
         </Container>
       </section>
     </>

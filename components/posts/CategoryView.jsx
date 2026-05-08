@@ -1,34 +1,19 @@
-'use client';
-
-import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { Container } from '@/components/ui/Container';
-import { db } from '@/lib/storage/db';
 import { PostGrid } from './PostGrid';
+import { Pagination } from './Pagination';
 import { labelSlug } from '@/lib/mock/categories';
 
-export function CategoryView({ category, name, blurb, labels }) {
-  const [posts, setPosts] = useState([]);
-  const [loaded, setLoaded] = useState(false);
-
-  useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
-      const list = await db.posts.listByCategory(category);
-      if (!cancelled) {
-        setPosts(list);
-        setLoaded(true);
-      }
-    };
-    load();
-    const onChange = () => load();
-    window.addEventListener('wu:storage-changed', onChange);
-    return () => {
-      cancelled = true;
-      window.removeEventListener('wu:storage-changed', onChange);
-    };
-  }, [category]);
-
+export function CategoryView({
+  category,
+  name,
+  blurb,
+  labels,
+  posts,
+  page = 1,
+  totalPages = 1,
+}) {
+  const basePath = `/${category}`;
   return (
     <>
       <section className="relative flex h-[88vh] min-h-[640px] items-center justify-center overflow-hidden">
@@ -76,15 +61,12 @@ export function CategoryView({ category, name, blurb, labels }) {
 
       <section className="pb-24">
         <Container>
-          {!loaded ? (
-            <p className="text-center text-sm text-[var(--color-fg-soft)]">Loading…</p>
-          ) : (
-            <PostGrid
-              posts={posts}
-              emptyTitle={`No ${name.toLowerCase()} posts yet`}
-              emptyMessage="Sign in as the CEO and create one in the admin panel — it will show up here right away."
-            />
-          )}
+          <PostGrid
+            posts={posts}
+            emptyTitle={`No ${name.toLowerCase()} posts yet`}
+            emptyMessage="Sign in as the CEO and create one in the admin panel — it will show up here right away."
+          />
+          <Pagination basePath={basePath} page={page} totalPages={totalPages} />
         </Container>
       </section>
     </>
