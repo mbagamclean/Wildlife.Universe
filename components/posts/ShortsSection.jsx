@@ -163,7 +163,6 @@ export function ShortsSection({
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(null);
   const [originRect, setOriginRect] = useState(null);
-  const [dismissed, setDismissed] = useState(false);
   const trackRef = useRef(null);
 
   // Three-tier fallback so the section is never empty:
@@ -260,7 +259,7 @@ export function ShortsSection({
     return () => document.removeEventListener('keydown', onKey);
   }, [activeIndex, closeViewer, goNext, goPrev]);
 
-  if (loading || shorts.length === 0 || dismissed) return null;
+  if (loading || shorts.length === 0) return null;
 
   return (
     <section className="relative py-16 md:py-24" style={{ background: 'var(--color-bg)' }}>
@@ -278,33 +277,22 @@ export function ShortsSection({
               {subheading}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            <div className="hidden gap-3 md:flex">
-              <button
-                type="button"
-                aria-label="Scroll left"
-                onClick={() => trackRef.current?.scrollBy({ left: -320, behavior: 'smooth' })}
-                className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
-              >
-                <ChevronLeft className="h-5 w-5 text-[var(--color-fg)]" />
-              </button>
-              <button
-                type="button"
-                aria-label="Scroll right"
-                onClick={() => trackRef.current?.scrollBy({ left: 320, behavior: 'smooth' })}
-                className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
-              >
-                <ChevronRight className="h-5 w-5 text-[var(--color-fg)]" />
-              </button>
-            </div>
+          <div className="hidden gap-3 md:flex">
             <button
               type="button"
-              aria-label="Hide shorts section"
-              title="Hide shorts"
-              onClick={() => setDismissed(true)}
-              className="glass flex h-11 w-11 items-center justify-center rounded-full text-[var(--color-fg)] transition-all hover:scale-110 hover:text-pink-500 active:scale-95"
+              aria-label="Scroll left"
+              onClick={() => trackRef.current?.scrollBy({ left: -320, behavior: 'smooth' })}
+              className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
             >
-              <X className="h-5 w-5" />
+              <ChevronLeft className="h-5 w-5 text-[var(--color-fg)]" />
+            </button>
+            <button
+              type="button"
+              aria-label="Scroll right"
+              onClick={() => trackRef.current?.scrollBy({ left: 320, behavior: 'smooth' })}
+              className="glass flex h-11 w-11 items-center justify-center rounded-full transition-all hover:scale-110 active:scale-95"
+            >
+              <ChevronRight className="h-5 w-5 text-[var(--color-fg)]" />
             </button>
           </div>
         </div>
