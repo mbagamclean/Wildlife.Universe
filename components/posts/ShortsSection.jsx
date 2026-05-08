@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import {
   ChevronLeft,
   ChevronRight,
@@ -15,26 +15,20 @@ import {
   Heart,
   Share2,
   MessageCircle,
-  ArrowRight,
 } from 'lucide-react';
 import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
-import { VideoPlayer } from '@/components/ui/VideoPlayer';
 
 // ── helpers ───────────────────────────────────────────────────────────────────
 
 const HTML5_EXT = /\.(mp4|webm|mov|m4v|ogv)(\?|#|$)/i;
 
 function isHtml5Url(url) {
-  if (!url || typeof url !== 'string') return false;
-  if (HTML5_EXT.test(url)) return true;
-  // Supabase public storage urls won't always have extensions in the path
-  // (signed urls etc.), but the static-asset shape usually does.
-  return false;
+  return typeof url === 'string' && HTML5_EXT.test(url);
 }
 
 function isEmbedUrl(url) {
-  if (!url || typeof url !== 'string') return false;
+  if (typeof url !== 'string') return false;
   return /youtube\.com|youtu\.be|vimeo\.com|tiktok\.com|instagram\.com|facebook\.com|twitter\.com|x\.com/.test(url);
 }
 
@@ -49,30 +43,74 @@ function pickPosterFromCover(cover) {
     if (typeof cover.poster === 'string') return cover.poster;
     if (cover.poster.sources?.length) return cover.poster.sources[cover.poster.sources.length - 1]?.src || null;
   }
+  if (cover.sources?.length) return cover.sources[cover.sources.length - 1]?.src || null;
+  return null;
+}
+
+function pickPosterFromAnyCover(cover) {
+  if (!cover) return null;
+  if (typeof cover === 'string') return cover;
+  if (cover.sources?.length) return cover.sources[cover.sources.length - 1]?.src || null;
   return null;
 }
 
 /**
- * Normalise homepage_videos rows (preferred source for curated shorts) and
- * post rows (fallback when an admin uploaded a vertical video as a post
- * cover) into a single shape the viewer can consume.
+ * Parse an embed URL into the iframe src that maximises in-modal sound +
+ * loop. Returns null if we don't recognise the host (caller falls back to
+ * the static card variant — no broken iframes).
  */
-function normaliseSources(rows = []) {
+function parseEmbed(url) {
+  if (typeof url !== 'string') return null;
+  const u = url.trim();
+
+  const ytId =
+    u.match(/youtube\.com\/shorts\/([A-Za-z0-9_-]{11})/)?.[1]
+    || u.match(/[?&]v=([A-Za-z0-9_-]{11})/)?.[1]
+    || u.match(/youtu\.be\/([A-Za-z0-9_-]{11})/)?.[1]
+    || u.match(/youtube\.com\/embed\/([A-Za-z0-9_-]{11})/)?.[1];
+  if (ytId) {
+    return {
+      provider: 'youtube',
+      src:
+        `https://www.youtube.com/embed/${ytId}` +
+        // mute=1 is required for autoplay to actually start; user can unmute
+        // via the in-iframe controls. loop+playlist trick required for loop.
+        `?autoplay=1&mute=1&controls=1&modestbranding=1&loop=1&playlist=${ytId}&playsinline=1&rel=0`,
+    };
+  }
+
+  const ttId = u.match(/tiktok\.com\/.*\/video\/(\d+)/)?.[1];
+  if (ttId) return { provider: 'tiktok', src: `https://www.tiktok.com/embed/v2/${ttId}` };
+
+  const vmId = u.match(/vimeo\.com\/(?:video\/)?(\d+)/)?.[1];
+  if (vmId) return { provider: 'vimeo', src: `https://player.vimeo.com/video/${vmId}?autoplay=1&muted=1&loop=1&background=0&playsinline=1` };
+
+  return null;
+}
+
+/**
+ * Normalise a row from any source (homepage_videos or posts) into the
+ * single shape the carousel and viewer consume.
+ *
+ * kind:
+ *   'html5'  — <video> with mp4/webm/mov sources, full custom controls
+ *   'embed'  — third-party iframe (YouTube/TikTok/Vimeo), iframe controls
+ *   'static' — no playable source, image card that links to the post page
+ */
+function normaliseRows(rows = []) {
   const out = [];
   for (const r of rows) {
     if (!r) continue;
-    // homepage_videos shape: { id, title, description, thumbnail, sourceUrl, sourceType }
+
+    // homepage_videos shape
     if (r.sourceUrl) {
       const url = String(r.sourceUrl).trim();
       if (!url) continue;
       const html5 = isHtml5Url(url);
       const embed = !html5 && isEmbedUrl(url);
-      // If it's neither a recognised embed nor a recognised file extension we
-      // still pass it to VideoPlayer (which will treat it as html5 by default).
       out.push({
         id: r.id,
         title: r.title || 'Wildlife short',
-        excerpt: r.description || '',
         slug: r.postSlug || null,
         poster: r.thumbnail || null,
         kind: html5 ? 'html5' : (embed ? 'embed' : 'html5'),
@@ -81,18 +119,32 @@ function normaliseSources(rows = []) {
       });
       continue;
     }
-    // post shape (cover.type==='video' fallback)
+
+    // post shape
     if (isVideoCover(r.cover)) {
       out.push({
         id: r.id,
         title: r.title || 'Wildlife short',
-        excerpt: r.excerpt || r.description || '',
         slug: r.slug || null,
         poster: pickPosterFromCover(r.cover),
         kind: 'html5',
         sources: r.cover.sources.filter((s) => s?.src),
         embedUrl: null,
       });
+    } else if (r.cover) {
+      // Static fallback — no playable video, poster only. Card links to post.
+      const poster = pickPosterFromAnyCover(r.cover);
+      if (poster) {
+        out.push({
+          id: r.id,
+          title: r.title || 'Wildlife post',
+          slug: r.slug || null,
+          poster,
+          kind: 'static',
+          sources: null,
+          embedUrl: null,
+        });
+      }
     }
   }
   return out;
@@ -100,58 +152,70 @@ function normaliseSources(rows = []) {
 
 // ── ShortsSection ────────────────────────────────────────────────────────────
 
-/**
- * Carousel of vertical short-form videos plus an Instagram-style modal viewer.
- *
- * Default data source is the curated homepage_videos table (admin-managed via
- * /admin/configuration/homepage-videos with section='shorts'). If that table
- * has no rows for the requested section, we fall back to recent posts that
- * have a vertical video cover so the section never goes empty when there's
- * organic content.
- */
 export function ShortsSection({
   section = 'shorts',
   heading = 'Wildlife Universe Shorts',
   subheading = 'Watch quick, immersive wildlife moments.',
   maxItems = 12,
-  fallbackToPosts = true,
 } = {}) {
+  const router = useRouter();
   const [shorts, setShorts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [activeIndex, setActiveIndex] = useState(null);
   const trackRef = useRef(null);
 
+  // Three-tier fallback so the section is never empty:
+  //   1. Admin-curated homepage_videos for this section
+  //   2. Recent posts that have a vertical video cover
+  //   3. Recent posts (any cover) — static cards that deep-link to the post
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      let curated = [];
+      let items = [];
+
       try {
-        curated = await db.homepageVideos.list({ section });
+        const curated = await db.homepageVideos.list({ section });
+        items = normaliseRows(curated);
       } catch {
-        curated = [];
+        items = [];
       }
-      let normalised = normaliseSources(curated).slice(0, maxItems);
-      if (normalised.length === 0 && fallbackToPosts) {
+
+      if (items.length === 0) {
         try {
           const posts = await db.posts.list();
-          const videoPosts = (posts || [])
-            .filter((p) => p?.status !== 'draft' && isVideoCover(p.cover))
-            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
-            .slice(0, maxItems);
-          normalised = normaliseSources(videoPosts);
+          const live = (posts || []).filter((p) => p?.status !== 'draft');
+          const videoPosts = live
+            .filter((p) => isVideoCover(p.cover))
+            .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
+          items = normaliseRows(videoPosts);
+
+          if (items.length === 0) {
+            const recent = live
+              .filter((p) => p.cover)
+              .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
+              .slice(0, maxItems);
+            items = normaliseRows(recent);
+          }
         } catch {
-          // ignore — fall through with empty list
+          items = [];
         }
       }
+
       if (!cancelled) {
-        setShorts(normalised);
+        setShorts(items.slice(0, maxItems));
         setLoading(false);
       }
     })();
     return () => { cancelled = true; };
-  }, [section, maxItems, fallbackToPosts]);
+  }, [section, maxItems]);
 
-  const openViewer = useCallback((i) => setActiveIndex(i), []);
+  const openViewer = useCallback((i) => {
+    if (shorts[i]?.kind === 'static') {
+      if (shorts[i].slug) router.push(`/posts/${shorts[i].slug}`);
+      return;
+    }
+    setActiveIndex(i);
+  }, [shorts, router]);
   const closeViewer = useCallback(() => setActiveIndex(null), []);
   const goPrev = useCallback(() => {
     setActiveIndex((i) => (i === null || i === 0 ? i : i - 1));
@@ -160,7 +224,6 @@ export function ShortsSection({
     setActiveIndex((i) => (i === null || i >= shorts.length - 1 ? i : i + 1));
   }, [shorts.length]);
 
-  // Lock body scroll while viewer is open
   useEffect(() => {
     if (activeIndex === null) return;
     const prev = document.body.style.overflow;
@@ -168,7 +231,6 @@ export function ShortsSection({
     return () => { document.body.style.overflow = prev; };
   }, [activeIndex]);
 
-  // Keyboard nav + close
   useEffect(() => {
     if (activeIndex === null) return;
     const onKey = (e) => {
@@ -218,7 +280,6 @@ export function ShortsSection({
           </div>
         </div>
 
-        {/* ── Carousel ── */}
         <div className="relative -mx-4 px-4 sm:mx-0 sm:px-0">
           <div className="pointer-events-none absolute inset-y-0 left-0 z-10 w-12 bg-gradient-to-r from-[var(--color-bg)] to-transparent sm:w-20" />
           <div className="pointer-events-none absolute inset-y-0 right-0 z-10 w-12 bg-gradient-to-l from-[var(--color-bg)] to-transparent sm:w-20" />
@@ -236,7 +297,7 @@ export function ShortsSection({
                 <button
                   type="button"
                   onClick={() => openViewer(i)}
-                  aria-label={`Play short: ${short.title}`}
+                  aria-label={short.kind === 'static' ? `Open post: ${short.title}` : `Play short: ${short.title}`}
                   className="group relative block aspect-[9/16] w-full overflow-hidden rounded-[1.5rem] shadow-lg transition-transform duration-300 hover:-translate-y-2 hover:shadow-xl focus:outline-none focus-visible:ring-2 focus-visible:ring-white/80"
                 >
                   {short.poster ? (
@@ -249,15 +310,17 @@ export function ShortsSection({
                   ) : (
                     <div className="absolute inset-0 bg-gradient-to-br from-zinc-700 to-zinc-900" />
                   )}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-md transition-transform duration-300 group-hover:scale-110">
-                      <Play className="ml-1 h-6 w-6 text-white" fill="white" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/10 to-transparent" />
+                  {short.kind !== 'static' && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <div className="flex h-14 w-14 items-center justify-center rounded-full bg-white/20 backdrop-blur-md transition-transform duration-300 group-hover:scale-110">
+                        <Play className="ml-1 h-6 w-6 text-white" fill="white" />
+                      </div>
                     </div>
-                  </div>
+                  )}
                   <h3
                     className="absolute inset-x-0 bottom-0 line-clamp-2 p-4 text-left text-sm font-bold text-white md:text-base"
-                    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.8)' }}
+                    style={{ textShadow: '0 2px 8px rgba(0,0,0,0.85)' }}
                   >
                     {short.title}
                   </h3>
@@ -291,6 +354,13 @@ function ShortsViewer({ shorts, index, onClose, onPrev, onNext, onSelect }) {
   const hasPrev = index > 0;
   const hasNext = index < shorts.length - 1;
 
+  // Mute preference is held at the viewer level so it persists across short
+  // changes. Default false (try with sound — modal opens after a user click,
+  // which is a valid user gesture for autoplay-with-sound). If the browser
+  // blocks, the frame will flip this back to true via setIsMuted(true).
+  const [isMuted, setIsMuted] = useState(false);
+  const toggleMute = useCallback(() => setIsMuted((m) => !m), []);
+
   return (
     <motion.div
       role="dialog"
@@ -301,7 +371,7 @@ function ShortsViewer({ shorts, index, onClose, onPrev, onNext, onSelect }) {
       exit={{ opacity: 0 }}
       transition={{ duration: 0.2 }}
       onClick={onClose}
-      className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-xl"
+      className="wu-no-scrollbar fixed inset-0 z-[100] overflow-hidden bg-black/95 backdrop-blur-xl"
       style={{
         height: '100dvh',
         paddingLeft: 'env(safe-area-inset-left)',
@@ -325,7 +395,6 @@ function ShortsViewer({ shorts, index, onClose, onPrev, onNext, onSelect }) {
         </button>
       </div>
 
-      {/* Desktop prev/next chevrons (hidden < md) */}
       {hasPrev && (
         <button
           type="button"
@@ -347,10 +416,8 @@ function ShortsViewer({ shorts, index, onClose, onPrev, onNext, onSelect }) {
         </button>
       )}
 
-      {/* Stage — video frame fills available height; safe-area + top bar
-          subtracted so chrome (mobile address bar, notches) never overlap. */}
       <div
-        className="flex h-full w-full items-center justify-center px-3 pb-3 sm:px-6 sm:pb-6"
+        className="flex h-full w-full items-center justify-center overflow-hidden px-3 pb-3 sm:px-6 sm:pb-6"
         style={{
           paddingTop: 'calc(env(safe-area-inset-top) + 4rem)',
           paddingBottom: 'calc(env(safe-area-inset-bottom) + 0.75rem)',
@@ -360,6 +427,9 @@ function ShortsViewer({ shorts, index, onClose, onPrev, onNext, onSelect }) {
         <ShortFrame
           key={short.id}
           short={short}
+          isMuted={isMuted}
+          setIsMuted={setIsMuted}
+          onToggleMute={toggleMute}
           onPrev={hasPrev ? onPrev : null}
           onNext={hasNext ? onNext : null}
         />
@@ -370,7 +440,7 @@ function ShortsViewer({ shorts, index, onClose, onPrev, onNext, onSelect }) {
 
 function ProgressDots({ total, active, onSelect }) {
   return (
-    <div className="flex flex-1 items-center gap-1.5 overflow-hidden" role="tablist" aria-label="Shorts progress">
+    <div className="wu-no-scrollbar flex flex-1 items-center gap-1.5 overflow-hidden" role="tablist" aria-label="Shorts progress">
       {Array.from({ length: total }, (_, i) => {
         const isActive = i === active;
         return (
@@ -391,10 +461,7 @@ function ProgressDots({ total, active, onSelect }) {
   );
 }
 
-function ShortFrame({ short, onPrev, onNext }) {
-  const isHtml5 = short?.kind === 'html5';
-
-  // Swipe-to-nav gesture (works on mobile + with mouse drag)
+function ShortFrame({ short, isMuted, setIsMuted, onToggleMute, onPrev, onNext }) {
   const handleDragEnd = (_, info) => {
     const dx = info.offset.x;
     const dy = info.offset.y;
@@ -417,33 +484,62 @@ function ShortFrame({ short, onPrev, onNext }) {
       dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
       dragElastic={0.18}
       onDragEnd={handleDragEnd}
-      className="relative flex h-full w-full max-w-[min(100%,calc(100dvh*9/16))] items-stretch justify-center"
+      className="relative flex h-full w-full max-w-[min(100%,calc(100dvh*9/16))] items-stretch justify-center overflow-hidden"
     >
-      {isHtml5 ? <Html5VideoFrame short={short} /> : <EmbedVideoFrame short={short} />}
+      {short?.kind === 'embed'
+        ? <EmbedVideoFrame short={short} onToggleMute={onToggleMute} isMuted={isMuted} />
+        : <Html5VideoFrame short={short} isMuted={isMuted} setIsMuted={setIsMuted} onToggleMute={onToggleMute} />}
     </motion.div>
   );
 }
 
-function Html5VideoFrame({ short }) {
+function Html5VideoFrame({ short, isMuted, setIsMuted, onToggleMute }) {
   const videoRef = useRef(null);
   const [isPlaying, setIsPlaying] = useState(false);
-  const [isMuted, setIsMuted] = useState(true);
   const [progress, setProgress] = useState(0);
   const [showCue, setShowCue] = useState(false);
 
-  // Reset + autoplay on every short id change
+  // Reset on every short change. Try unmuted first; on browser block, fall
+  // back to muted and keep playing — this preserves "sound by default" on
+  // browsers that allow it (most desktop, recent Chrome/Edge after gesture)
+  // without permanently muting the rest of the queue.
   useEffect(() => {
     const el = videoRef.current;
     if (!el) return;
+    let alive = true;
     el.currentTime = 0;
     setProgress(0);
-    el.muted = true;
-    setIsMuted(true);
-    const p = el.play();
-    if (p && typeof p.then === 'function') {
-      p.then(() => setIsPlaying(true)).catch(() => setIsPlaying(false));
-    }
+
+    const tryPlay = async () => {
+      el.muted = isMuted;
+      try {
+        await el.play();
+        if (alive) setIsPlaying(true);
+        return;
+      } catch {
+        // Likely NotAllowedError — autoplay-with-sound blocked. Mute + retry.
+      }
+      el.muted = true;
+      if (alive) setIsMuted(true);
+      try {
+        await el.play();
+        if (alive) setIsPlaying(true);
+      } catch {
+        if (alive) setIsPlaying(false);
+      }
+    };
+
+    tryPlay();
+    return () => { alive = false; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [short?.id]);
+
+  // Honour external mute toggles (the action-rail Mute button)
+  useEffect(() => {
+    const el = videoRef.current;
+    if (!el) return;
+    el.muted = isMuted;
+  }, [isMuted]);
 
   const togglePlay = () => {
     const el = videoRef.current;
@@ -452,13 +548,6 @@ function Html5VideoFrame({ short }) {
     else { el.pause(); setIsPlaying(false); }
     setShowCue(true);
     setTimeout(() => setShowCue(false), 500);
-  };
-
-  const toggleMute = () => {
-    const el = videoRef.current;
-    if (!el) return;
-    el.muted = !el.muted;
-    setIsMuted(el.muted);
   };
 
   const onTimeUpdate = () => {
@@ -473,7 +562,6 @@ function Html5VideoFrame({ short }) {
         ref={videoRef}
         poster={short?.poster || undefined}
         autoPlay
-        muted
         playsInline
         loop
         preload="metadata"
@@ -481,14 +569,13 @@ function Html5VideoFrame({ short }) {
         onPause={() => setIsPlaying(false)}
         onTimeUpdate={onTimeUpdate}
         onClick={togglePlay}
-        className="h-full w-full bg-black object-contain"
+        className="absolute inset-0 h-full w-full bg-black object-cover"
       >
         {(short?.sources || []).map((s, i) => (
           <source key={i} src={s.src} type={s.type} />
         ))}
       </video>
 
-      {/* Tap cue */}
       <AnimatePresence>
         {showCue && (
           <motion.div
@@ -510,35 +597,55 @@ function Html5VideoFrame({ short }) {
       </AnimatePresence>
 
       <ProgressBar progress={progress} />
-      <Caption short={short} />
-      <ActionRail isMuted={isMuted} onToggleMute={toggleMute} />
+      <ActionRail isMuted={isMuted} onToggleMute={onToggleMute} />
     </div>
   );
 }
 
-function EmbedVideoFrame({ short }) {
-  // For YT/Vimeo/TikTok/IG: hand off to VideoPlayer (Plyr/iframe) and let the
-  // platform's own controls drive playback. We still overlay the caption +
-  // close stays in the parent. Mute / Like buttons remain so the chrome is
-  // visually consistent — Mute on embeds is a no-op decoration since iframe
-  // policies don't expose volume.
+function EmbedVideoFrame({ short, isMuted, onToggleMute }) {
+  // Inline iframe so we control the wrapper sizing — VideoPlayer's per-
+  // provider maxWidth (400px for shorts/reels) caps the embed at 400px,
+  // which leaves dead space inside our 9:16 stage on larger viewports.
+  const parsed = parseEmbed(short?.embedUrl);
+
+  if (!parsed) {
+    // Unknown host — show the poster as a static splash, no broken iframe.
+    return (
+      <div className="relative h-full w-full overflow-hidden rounded-2xl bg-black shadow-[0_0_60px_rgba(0,0,0,0.5)] sm:rounded-3xl">
+        {short?.poster && (
+          <img
+            src={short.poster}
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover"
+          />
+        )}
+        {short?.embedUrl && (
+          <a
+            href={short.embedUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="absolute inset-0 flex items-center justify-center bg-black/40 text-white text-sm font-semibold"
+          >
+            Open video ↗
+          </a>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="relative h-full w-full overflow-hidden rounded-2xl bg-black shadow-[0_0_60px_rgba(0,0,0,0.5)] sm:rounded-3xl">
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="h-full w-full">
-          <VideoPlayer
-            src={short.embedUrl}
-            poster={short.poster || null}
-            aspectRatio="9/16"
-            autoplay
-            muted
-            rounded={false}
-            showBadge
-            className="h-full w-full"
-          />
-        </div>
-      </div>
-      <Caption short={short} />
+      <iframe
+        src={parsed.src}
+        title={short?.title || 'Wildlife short'}
+        loading="lazy"
+        allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
+        allowFullScreen
+        className="absolute inset-0 h-full w-full border-0"
+        scrolling="no"
+        referrerPolicy="strict-origin-when-cross-origin"
+      />
+      <ActionRail isMuted={isMuted} onToggleMute={onToggleMute} />
     </div>
   );
 }
@@ -554,46 +661,9 @@ function ProgressBar({ progress }) {
   );
 }
 
-function Caption({ short }) {
-  if (!short) return null;
-  return (
-    <div className="pointer-events-none absolute inset-x-0 bottom-0 z-10 px-4 pb-4 pt-12 text-white sm:px-6 sm:pb-6">
-      <div
-        className="pointer-events-none absolute inset-x-0 bottom-0 h-3/4 bg-gradient-to-t from-black/85 via-black/45 to-transparent"
-        aria-hidden
-      />
-      <div className="relative pr-16">
-        <h3
-          className="line-clamp-2 text-base font-bold leading-tight sm:text-lg"
-          style={{ textShadow: '0 2px 8px rgba(0,0,0,0.6)' }}
-        >
-          {short.title}
-        </h3>
-        {short.excerpt && (
-          <p
-            className="mt-1 line-clamp-2 text-xs text-white/85 sm:text-sm"
-            style={{ textShadow: '0 1px 4px rgba(0,0,0,0.6)' }}
-          >
-            {short.excerpt}
-          </p>
-        )}
-        {short.slug && (
-          <Link
-            href={`/posts/${short.slug}`}
-            className="pointer-events-auto mt-2 inline-flex items-center gap-1 rounded-full bg-white/20 px-3 py-1 text-xs font-semibold text-white backdrop-blur transition-colors hover:bg-white/30"
-          >
-            Read article
-            <ArrowRight className="h-3.5 w-3.5" />
-          </Link>
-        )}
-      </div>
-    </div>
-  );
-}
-
 function ActionRail({ isMuted, onToggleMute }) {
   return (
-    <div className="absolute bottom-20 right-3 z-20 flex flex-col items-center gap-3 sm:bottom-24 sm:right-4">
+    <div className="absolute bottom-4 right-3 z-20 flex flex-col items-center gap-3 sm:bottom-6 sm:right-4">
       <ActionButton icon={Heart} label="Like" />
       <ActionButton icon={MessageCircle} label="Comments" />
       <ActionButton icon={Share2} label="Share" />
@@ -612,7 +682,7 @@ function ActionButton({ icon: Icon, label, onClick }) {
       type="button"
       onClick={(e) => { e.stopPropagation(); onClick?.(); }}
       aria-label={label}
-      className="flex h-11 w-11 items-center justify-center rounded-full bg-black/40 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-black/60 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
+      className="flex h-11 w-11 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md transition-all hover:scale-110 hover:bg-black/70 active:scale-95 focus:outline-none focus-visible:ring-2 focus-visible:ring-white"
     >
       <Icon className="h-5 w-5" />
     </button>
