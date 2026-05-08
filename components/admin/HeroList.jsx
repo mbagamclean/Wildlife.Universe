@@ -173,7 +173,7 @@ export function HeroList() {
                     {(h.position ?? 0) + 1}
                   </span>
                   {(() => {
-                    const thumbUrl = thumbUrlForHero(h);
+                    const thumbUrl = pickHeroThumbUrl(h);
                     return (
                       <div
                         className="relative h-16 w-24 shrink-0 overflow-hidden rounded-xl"
