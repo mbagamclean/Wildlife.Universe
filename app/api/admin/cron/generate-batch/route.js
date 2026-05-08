@@ -13,9 +13,12 @@
  */
 
 import { createClient } from '@supabase/supabase-js';
-import { generateAndInsertPost } from '@/lib/content-pipeline/generate';
-import { validateGeneratedPost } from '@/lib/content-pipeline/quality';
-import { isDuplicateOfExisting } from '@/lib/content-pipeline/dedup';
+import { createClient as createSSRClient } from '@/lib/supabase/server';
+import { generateAndInsertPost } from '@/lib/content-pipeline/generate.mjs';
+import { validateGeneratedPost } from '@/lib/content-pipeline/quality.mjs';
+import { isDuplicateOfExisting } from '@/lib/content-pipeline/dedup.mjs';
+
+const STAFF_ROLES = new Set(['ceo', 'editor', 'writer', 'moderator', 'admin']);
 
 export const runtime = 'nodejs';
 export const maxDuration = 300; // up to 5 minutes per invocation
@@ -39,15 +42,29 @@ function unauthorized(reason) {
   });
 }
 
-function checkAuth(req) {
+async function checkAuth(req) {
+  // First try the Bearer CRON_SECRET (used by Vercel cron + GitHub Actions).
   const expected = process.env.CRON_SECRET;
-  if (!expected) {
-    // Don't run unprotected. If CRON_SECRET isn't configured, refuse.
-    return { ok: false, reason: 'cron-secret-not-configured' };
+  if (expected) {
+    const got = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
+    if (got === expected) return { ok: true, mode: 'bearer' };
   }
-  const got = (req.headers.get('authorization') || '').replace(/^Bearer\s+/i, '');
-  if (got !== expected) return { ok: false, reason: 'invalid-token' };
-  return { ok: true };
+  // Fall back to admin Supabase session (used by the admin queue page
+  // when an editor clicks "Generate next N now"). Same staff-role gate
+  // as the rest of /api/admin/*.
+  try {
+    const ssr = await createSSRClient();
+    const { data: { user } } = await ssr.auth.getUser();
+    if (user) {
+      const { data: profile } = await ssr.from('profiles').select('role').eq('id', user.id).single();
+      if (profile && STAFF_ROLES.has(profile.role)) {
+        return { ok: true, mode: 'admin', userId: user.id };
+      }
+    }
+  } catch {
+    // Fall through to unauthorized
+  }
+  return { ok: false, reason: 'unauthorized' };
 }
 
 async function countLast24h(sb) {
@@ -167,7 +184,7 @@ async function processOne(sb, row) {
 }
 
 export async function POST(req) {
-  const auth = checkAuth(req);
+  const auth = await checkAuth(req);
   if (!auth.ok) return unauthorized(auth.reason);
 
   const url = new URL(req.url);

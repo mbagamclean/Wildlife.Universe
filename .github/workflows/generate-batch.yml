@@ -1,0 +1,66 @@
+name: Generate batch articles
+
+# Drips wildlife articles into the site by polling the content_queue
+# table and running each row through the shared content pipeline.
+#
+# Cron: every 4 hours (00:00, 04:00, 08:00, 12:00, 16:00, 20:00 UTC) →
+# 6 runs/day × n=1 = 6 articles/day. Stays under MAX_DAILY_ARTICLES=8
+# so a manual workflow_dispatch run can squeeze in 2 extra without
+# blowing the cap.
+#
+# Manual: trigger from the Actions tab with optional `n` input
+# (1-4). Useful for "generate 4 mammals right now."
+#
+# Secrets required (Settings → Secrets and variables → Actions):
+#   ANTHROPIC_API_KEY
+#   OPENAI_API_KEY
+#   NEXT_PUBLIC_SUPABASE_URL
+#   SUPABASE_SERVICE_ROLE_KEY
+#   ANTHROPIC_MODEL          (optional, defaults to claude-opus-4-7)
+#   MAX_DAILY_ARTICLES       (optional, defaults to 8)
+
+on:
+  schedule:
+    - cron: '0 */4 * * *'
+  workflow_dispatch:
+    inputs:
+      n:
+        description: 'How many articles to generate this run (1-4)'
+        required: false
+        default: '1'
+        type: choice
+        options:
+          - '1'
+          - '2'
+          - '3'
+          - '4'
+
+concurrency:
+  group: generate-batch
+  cancel-in-progress: false
+
+jobs:
+  generate:
+    name: Generate ${{ github.event.inputs.n || '1' }} article(s)
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run batch worker
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
+          MAX_DAILY_ARTICLES: ${{ secrets.MAX_DAILY_ARTICLES }}
+        run: node scripts/cron-batch.mjs ${{ github.event.inputs.n || '1' }}

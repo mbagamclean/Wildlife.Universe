@@ -35,6 +35,7 @@ const NAV = [
       { href: '/admin/content/insects',  label: 'Insects',  icon: Bug },
       { href: '/admin/content/pages',    label: 'Pages',    icon: Globe },
       { href: '/admin/content/comments', label: 'Comments', icon: MessageSquare },
+      { href: '/admin/content/queue',    label: 'Batch Queue', icon: Sparkles },
     ],
   },
   {
