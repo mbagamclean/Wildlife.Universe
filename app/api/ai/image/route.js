@@ -166,18 +166,37 @@ async function generateImage({ prompt, provider, aspectRatio, inputImageUrl, api
   return generateWithOpenAI(prompt, apiKey);
 }
 
+/**
+ * Build a safe baseline prompt without an LLM call. Used as the fallback
+ * inside enrichPromptWithAI() when the Anthropic enrichment fails or
+ * exceeds its time budget — bulk generation should never abort because
+ * Anthropic was momentarily slow or rate-limited.
+ */
+function basicPromptFor(heading, context, speciesContext) {
+  return [
+    speciesContext ? `Wildlife photograph of ${speciesContext}.` : 'Wildlife photograph.',
+    heading ? `Subject section: ${heading}.` : '',
+    context ? `Scene context: ${String(context).slice(0, 240)}` : '',
+  ].filter(Boolean).join(' ');
+}
+
 async function enrichPromptWithAI(heading, context, provider, speciesContext) {
   // Image generators are *image* models — for the prompt-enrichment
   // step (which is a TEXT call) we always use Anthropic. Picking the
   // image provider here would call an image API by mistake.
   const model = anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
 
-  const { text } = await generateText({
+  // Race the enrichment call against a 6s deadline. On Hobby plans the
+  // entire route is capped at 60s and image generation alone routinely
+  // eats 30-50s, so we can't afford to let a slow enrichment swallow
+  // the budget — we'd rather ship the basic prompt and still produce
+  // an image than time out with nothing.
+  const enrichPromise = generateText({
     model,
     prompt: `Create a detailed wildlife photography prompt for an image to accompany this article section.
 
 ${speciesContext ? `Article subject: ${speciesContext}\n` : ''}Section heading: "${heading}"
-Section content: ${context.slice(0, 600)}
+Section content: ${String(context || '').slice(0, 600)}
 
 Requirements:
 - Name the exact species (genus + common name when possible)
@@ -188,10 +207,23 @@ Requirements:
 - Be specific and concrete, never generic
 
 Return ONLY the image description prompt (60-100 words, no preamble, no quotes).`,
-    temperature: 0.5,
     maxOutputTokens: 250,
   });
-  return text.trim();
+
+  try {
+    const result = await Promise.race([
+      enrichPromise,
+      new Promise((_, reject) => setTimeout(() => reject(new Error('enrich-timeout')), 6000)),
+    ]);
+    const text = (result?.text || '').trim();
+    if (text.length > 20) return text;
+    return basicPromptFor(heading, context, speciesContext);
+  } catch (err) {
+    // Soft-fail: log and fall back. Bulk generation continues for the
+    // remaining headings instead of aborting the whole batch.
+    console.warn('[ai/image] enrich fallback:', err?.message || err);
+    return basicPromptFor(heading, context, speciesContext);
+  }
 }
 
 export async function POST(req) {
@@ -209,12 +241,28 @@ export async function POST(req) {
     // user picked in the UI.
     const effectiveProvider = inputImageUrl ? 'gemini' : provider;
 
-    // Bulk mode
+    // Bulk mode — process each heading independently. Each entry tracks
+    // a `phase` label so an error message points to the failing step
+    // (enrich / generate / upload) instead of returning a generic
+    // "Failed". Each entry's failure is local: the rest of the batch
+    // still runs.
     if (mode === 'bulk' && Array.isArray(headings)) {
       const results = [];
       for (const item of headings) {
+        const heading = String(item?.heading || '').trim();
+        const context = String(item?.context || '').trim();
+
+        // Skip headings with no usable label rather than burning an
+        // image-gen call on an empty prompt.
+        if (!heading) {
+          results.push({ heading: '', status: 'error', error: 'empty-heading' });
+          continue;
+        }
+
+        let phase = 'enrich';
         try {
-          const enriched = await enrichPromptWithAI(item.heading, item.context || '', effectiveProvider, speciesContext);
+          const enriched = await enrichPromptWithAI(heading, context, effectiveProvider, speciesContext);
+          phase = 'generate';
           const buffer = await generateImage({
             prompt: enriched,
             provider: effectiveProvider,
@@ -222,20 +270,27 @@ export async function POST(req) {
             inputImageUrl,
             apiKey,
           });
+          phase = 'upload';
           const uid = `bulk-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
           const urls = await uploadToSupabase(buffer, uid);
           results.push({
-            heading: item.heading,
+            heading,
             imageUrl: urls.primary,
             webp: urls.webp,
             avif: urls.avif,
-            altText: `${item.heading} — wildlife photography`,
-            caption: item.heading,
+            altText: `${heading} — wildlife photography`,
+            caption: heading,
             prompt: enriched,
             status: 'done',
           });
         } catch (err) {
-          results.push({ heading: item.heading, status: 'error', error: err.message });
+          const message = err?.message || String(err);
+          console.error(`[ai/image bulk:${phase}] "${heading}":`, message);
+          results.push({
+            heading,
+            status: 'error',
+            error: `${phase}: ${message}`,
+          });
         }
       }
       return Response.json({ success: true, results });
