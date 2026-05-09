@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import {
   Plus, X, Pencil, Trash2, Check, Folder, Tag, AlertTriangle,
-  Loader2, AlertCircle, Save,
+  Loader2, AlertCircle, Save, FilePenLine,
 } from 'lucide-react';
 import { categoriesDb } from '@/lib/storage/categoriesDb';
 import { labelSlug } from '@/lib/mock/categories';
@@ -386,6 +387,14 @@ function CategorySection({
                         </>
                       ) : (
                         <>
+                          <Link
+                            href={`/admin/organization/labels/${cat.slug}/${labelSlug(label)}`}
+                            title="Edit details (descriptions, hero, SEO, AI)"
+                            className="rounded-lg p-1.5 transition-colors hover:bg-[var(--adm-surface-3)]"
+                            aria-label={`Edit details for ${label}`}
+                          >
+                            <FilePenLine size={14} style={{ color: '#d4af37' }} />
+                          </Link>
                           <button onClick={() => onStartEdit(label)} title="Rename" className="rounded-lg p-1.5">
                             <Pencil size={14} style={{ color: 'var(--adm-text-muted)' }} />
                           </button>
