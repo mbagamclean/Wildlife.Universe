@@ -1,7 +1,8 @@
 'use client';
 import { useState, useEffect } from 'react';
+import Link from 'next/link';
 import { categoriesDb } from '@/lib/storage/categoriesDb';
-import { Plus, Trash2 } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 
 const ICONS = { animals: '🦁', plants: '🌿', birds: '🐦', insects: '🦋', posts: '📝' };
 
@@ -79,9 +80,18 @@ export default function AdminCategoriesPage() {
               <p className="text-[13px] font-bold" style={{ color: 'var(--adm-text)' }}>{c.name}</p>
               <p className="text-[11px]" style={{ color: 'var(--adm-text-subtle)' }}>{c.labels?.length || 0} labels · /{c.slug}</p>
             </div>
+            <Link
+              href={`/admin/organization/categories/${c.slug}`}
+              className="flex h-9 items-center gap-1.5 rounded-lg px-3 text-xs font-semibold transition-colors hover:bg-[var(--adm-surface-3)]"
+              style={{ color: 'var(--adm-text)', border: '1px solid var(--adm-border)' }}
+              aria-label={`Edit ${c.name}`}
+            >
+              <Pencil className="h-3.5 w-3.5" /> Edit
+            </Link>
             <button
               onClick={() => remove(c.slug)}
-              className="text-[#ccc] hover:text-red-400 transition-colors"
+              className="text-[#ccc] transition-colors hover:text-red-400"
+              aria-label={`Delete ${c.name}`}
             >
               <Trash2 className="h-4 w-4" />
             </button>
