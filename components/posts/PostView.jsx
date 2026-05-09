@@ -308,8 +308,11 @@ function MobileTocBar({ toc, activeToc, progress, visible, onNavigate }) {
               />
             </div>
 
-            {/* main bar */}
-            <div className="border-b border-[var(--glass-border)] bg-[var(--color-bg-deep)]/96 shadow-lg backdrop-blur-xl">
+            {/* main bar — matches the scrolled navbar's glassmorphism so
+                this sticky strip blends into the same translucent panel
+                the nav becomes once scrolling starts. lg:hidden on the
+                outer wrapper keeps the effect mobile-only. */}
+            <div className="glass border-b border-[var(--glass-border)] shadow-lg shadow-black/5">
               <div className="flex items-stretch">
 
                 {/* ≡ TOC button */}
