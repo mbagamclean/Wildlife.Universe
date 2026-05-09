@@ -8,7 +8,11 @@ import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
 import { LatestPostCard } from './LatestPostCard';
 
-const POSTS_PER_PAGE = 8;
+// Mobile (< sm) shows up to 8 posts per page. Tablet and desktop revert
+// to the original 6-post / 3-column layout. Pagination only renders when
+// the total exceeds whichever page size is currently active.
+const PAGE_SIZE_MOBILE = 8;
+const PAGE_SIZE_DESKTOP = 6;
 
 function SkeletonCard({ index }) {
   return (
@@ -59,6 +63,18 @@ export function LatestPostsSection() {
   const [posts, setPosts] = useState([]);
   const [status, setStatus] = useState('loading');
   const [page, setPage] = useState(1);
+  // SSR-safe default: assume desktop. After mount the matchMedia listener
+  // bumps this to 8 on phones. Resizing between viewports updates live.
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_DESKTOP);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const mq = window.matchMedia('(max-width: 639px)');
+    const update = () => setPageSize(mq.matches ? PAGE_SIZE_MOBILE : PAGE_SIZE_DESKTOP);
+    update();
+    mq.addEventListener('change', update);
+    return () => mq.removeEventListener('change', update);
+  }, []);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -77,16 +93,17 @@ export function LatestPostsSection() {
     return () => window.removeEventListener('wu:storage-changed', loadPosts);
   }, [loadPosts]);
 
-  const totalPages = Math.max(1, Math.ceil(posts.length / POSTS_PER_PAGE));
-  // Clamp page if posts shrink (e.g., admin deletes a post on the last page)
+  const totalPages = Math.max(1, Math.ceil(posts.length / pageSize));
+  // Clamp page if posts shrink (admin deletes) or pageSize changes
+  // (resizing from mobile to desktop on a high-numbered page).
   useEffect(() => {
     if (page > totalPages) setPage(totalPages);
   }, [page, totalPages]);
 
   const visiblePosts = useMemo(() => {
-    const start = (page - 1) * POSTS_PER_PAGE;
-    return posts.slice(start, start + POSTS_PER_PAGE);
-  }, [posts, page]);
+    const start = (page - 1) * pageSize;
+    return posts.slice(start, start + pageSize);
+  }, [posts, page, pageSize]);
 
   const handlePageChange = useCallback((next) => {
     setPage(next);
@@ -135,8 +152,8 @@ export function LatestPostsSection() {
         {/* ─── GRID ─────────────────────────────── */}
         <div id="latest-posts-grid" className="scroll-mt-24">
           {status === 'loading' ? (
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-              {Array.from({ length: POSTS_PER_PAGE }, (_, i) => (
+            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: pageSize }, (_, i) => (
                 <SkeletonCard key={i} index={i} />
               ))}
             </div>
@@ -150,7 +167,7 @@ export function LatestPostsSection() {
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -8 }}
                 transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-                className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4"
+                className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3"
               >
                 {visiblePosts.map((post, i) => (
                   <LatestPostCard key={post.id} post={post} index={i} />
