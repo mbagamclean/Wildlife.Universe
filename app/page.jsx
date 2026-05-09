@@ -17,6 +17,7 @@ import { BooksSection } from '@/components/posts/BooksSection';
 import { HomepageVideosSection } from '@/components/posts/HomepageVideosSection';
 import { ShortsSection } from '@/components/posts/ShortsSection';
 import { DocumentariesSection } from '@/components/posts/DocumentariesSection';
+import { fetchAllCategoriesRich } from '@/lib/seo-data';
 import { categories } from '@/lib/mock/categories';
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
@@ -58,7 +59,13 @@ const CAT_META = {
   },
 };
 
-export default function HomePage() {
+export default async function HomePage() {
+  // Pull the rich category rows once on render so the Explore Our
+  // Categories cards can paint the admin-uploaded thumbnails with
+  // graceful fallback to the static gradient look.
+  const richCategories = await fetchAllCategoriesRich();
+  const richBySlug = new Map(richCategories.map((c) => [c.slug, c]));
+
   return (
     <>
       <div className="-mt-16">
@@ -88,6 +95,12 @@ export default function HomePage() {
             <div className="flex flex-wrap justify-center gap-5">
               {categories.map((c) => {
                 const meta = CAT_META[c.slug] || CAT_META.posts;
+                const rich = richBySlug.get(c.slug);
+                // Prefer the admin-uploaded hero (high-res banner) for
+                // the larger 16:10 card; fall back to the thumbnail or
+                // the gradient stack when nothing is uploaded yet.
+                const cardImage = rich?.heroImageUrl || rich?.thumbnailUrl || null;
+                const description = rich?.shortDescription?.trim() || meta.description;
                 return (
                   <Link
                     key={c.slug}
@@ -95,22 +108,33 @@ export default function HomePage() {
                     className="wu-stagger-item group relative block w-full overflow-hidden rounded-2xl sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
                     style={{ aspectRatio: '16/10' }}
                   >
-                    {/* Background gradient */}
-                    <div
-                      className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.06]"
-                      style={{ background: meta.gradient }}
-                    />
+                    {cardImage ? (
+                      <img
+                        src={cardImage}
+                        alt=""
+                        loading="lazy"
+                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
+                      />
+                    ) : (
+                      <>
+                        {/* Background gradient */}
+                        <div
+                          className="absolute inset-0 transition-transform duration-700 group-hover:scale-[1.06]"
+                          style={{ background: meta.gradient }}
+                        />
 
-                    {/* Radial highlight */}
-                    <div
-                      className="absolute inset-0 opacity-60 transition-opacity duration-500 group-hover:opacity-40"
-                      style={{
-                        backgroundImage: `
-                          radial-gradient(ellipse at 25% 20%, rgba(255,255,255,0.22) 0%, transparent 50%),
-                          radial-gradient(ellipse at 75% 80%, ${meta.highlight} 0%, transparent 50%)
-                        `,
-                      }}
-                    />
+                        {/* Radial highlight */}
+                        <div
+                          className="absolute inset-0 opacity-60 transition-opacity duration-500 group-hover:opacity-40"
+                          style={{
+                            backgroundImage: `
+                              radial-gradient(ellipse at 25% 20%, rgba(255,255,255,0.22) 0%, transparent 50%),
+                              radial-gradient(ellipse at 75% 80%, ${meta.highlight} 0%, transparent 50%)
+                            `,
+                          }}
+                        />
+                      </>
+                    )}
 
                     {/* Cinematic bottom scrim */}
                     <div
@@ -132,7 +156,7 @@ export default function HomePage() {
                       >
                         {c.name}
                       </h3>
-                      <p className="mt-1 text-sm text-white/70">{meta.description}</p>
+                      <p className="mt-1 text-sm text-white/70">{description}</p>
 
                       <div className="mt-4">
                         <span
