@@ -18,6 +18,7 @@ name: Generate batch articles
 #   SUPABASE_SERVICE_ROLE_KEY
 #   ANTHROPIC_MODEL          (optional, defaults to claude-opus-4-7)
 #   MAX_DAILY_ARTICLES       (optional, defaults to 8)
+#   INDEXNOW_KEY             (optional — enables Bing/Yandex auto-ping)
 
 on:
   schedule:
@@ -63,4 +64,5 @@ jobs:
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
           ANTHROPIC_MODEL: ${{ secrets.ANTHROPIC_MODEL }}
           MAX_DAILY_ARTICLES: ${{ secrets.MAX_DAILY_ARTICLES }}
+          INDEXNOW_KEY: ${{ secrets.INDEXNOW_KEY }}
         run: node scripts/cron-batch.mjs ${{ github.event.inputs.n || '1' }}

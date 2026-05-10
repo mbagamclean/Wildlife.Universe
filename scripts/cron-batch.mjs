@@ -24,6 +24,33 @@ const MAX_ATTEMPTS = 3;
 const MAX_BATCH_SIZE = 4;
 const MAX_DAILY_ARTICLES = Number.parseInt(process.env.MAX_DAILY_ARTICLES, 10) || 8;
 
+const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.wildlifeuniverse.org').replace(/\/$/, '');
+const INDEXNOW_KEY = process.env.INDEXNOW_KEY || '';
+
+// Fire-and-forget — IndexNow tells Bing / Yandex / Naver / Seznam about
+// freshly published URLs. Google retired its public ping endpoint in
+// 2023; for Google we still rely on Search Console + sitemap crawl.
+async function pingIndexNow(slug) {
+  if (!INDEXNOW_KEY || !slug) return;
+  const host = SITE_URL.replace(/^https?:\/\//, '');
+  const url = `${SITE_URL}/posts/${slug}`;
+  try {
+    const res = await fetch('https://api.indexnow.org/IndexNow', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        host,
+        key: INDEXNOW_KEY,
+        keyLocation: `${SITE_URL}/${INDEXNOW_KEY}.txt`,
+        urlList: [url],
+      }),
+    });
+    console.log(`[batch] indexnow ${url} → HTTP ${res.status}`);
+  } catch (err) {
+    console.warn(`[batch] indexnow ping failed for ${url}: ${err.message}`);
+  }
+}
+
 function admin() {
   return createClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -136,6 +163,7 @@ async function processOne(sb, row) {
   await sb.from('posts').update({ status: 'published' }).eq('id', result.post.id);
   await markGenerated(sb, row.id, result.post.id);
   console.log(`[batch] PUBLISHED https://www.wildlifeuniverse.org/posts/${result.post.slug}`);
+  await pingIndexNow(result.post.slug);
 
   return { ok: true, queueId: row.id, postId: result.post.id, slug: result.post.slug };
 }
