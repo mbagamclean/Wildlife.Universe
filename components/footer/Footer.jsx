@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import Image from 'next/image';
 import Link from 'next/link';
 import { ArrowRight, Mail, Rss } from 'lucide-react';
@@ -124,7 +124,10 @@ function FootLink({ href, children }) {
 
 /* ── main component ─────────────────────────────────────── */
 export function Footer() {
-  const year = new Date().getFullYear();
+  // Render a stable string on SSR + first client paint, then upgrade to
+  // the live year after mount so hydration matches deterministically.
+  const [year, setYear] = useState(2026);
+  useEffect(() => { setYear(new Date().getFullYear()); }, []);
   const [email, setEmail] = useState('');
   const [status, setStatus] = useState('idle');
   const [logoOk, setLogoOk] = useState(true);

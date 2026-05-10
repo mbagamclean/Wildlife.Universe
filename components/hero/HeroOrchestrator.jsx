@@ -33,11 +33,17 @@ function postToSlide(post, idx) {
   };
 }
 
-export function HeroOrchestrator() {
+export function HeroOrchestrator({ initialSlides = null, initialMode = null } = {}) {
+  // When the server pre-fetches hero data we hydrate ready=true so the
+  // green-gradient placeholder never paints. The placeholder showing in
+  // the initial HTML was the primary cause of the "blank-screen until
+  // 5-6 refreshes" symptom — users were watching the carousel pop in
+  // after Supabase resolved client-side.
+  const hasInitial = Array.isArray(initialSlides) && initialSlides.length > 0;
   const [state, setState] = useState({
-    ready: false,
-    mode: HERO_MODE.DEFAULT,
-    slides: [],
+    ready: hasInitial,
+    mode: initialMode || HERO_MODE.DEFAULT,
+    slides: hasInitial ? initialSlides : [],
   });
 
   useEffect(() => {

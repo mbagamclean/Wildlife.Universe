@@ -10,6 +10,9 @@ export const metadata = {
   alternates: { canonical: '/redlist' },
 };
 
+// ISR — admin saves call revalidatePath for instant invalidation.
+export const revalidate = 300;
+
 export default async function RedListPage() {
   const posts = await db.posts.listAllForRedlist();
 

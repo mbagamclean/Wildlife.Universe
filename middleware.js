@@ -39,8 +39,11 @@ export async function middleware(request) {
   return supabaseResponse;
 }
 
+// Only run middleware on routes that need authenticated session checks.
+// Public routes (homepage, category pages, post detail, RSS, sitemaps)
+// skip middleware so the edge cache can serve them with no Supabase
+// auth round-trip — this is the primary cause of slow TTFB on cold
+// requests and the "feels stuck loading" perception users reported.
 export const config = {
-  matcher: [
-    '/((?!_next/static|_next/image|favicon\\.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
-  ],
+  matcher: ['/admin/:path*'],
 };

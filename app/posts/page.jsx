@@ -19,6 +19,9 @@ export async function generateMetadata({ searchParams }) {
   return buildCategoryMetadata(cat, null, { page });
 }
 
+// ISR — admin saves call revalidatePath for instant invalidation.
+export const revalidate = 60;
+
 export default async function PostsPage({ searchParams }) {
   const sp = await searchParams;
   const page = readPage(sp);

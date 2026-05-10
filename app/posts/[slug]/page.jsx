@@ -42,6 +42,11 @@ export async function generateMetadata({ params, searchParams }) {
   return buildPostMetadata(post);
 }
 
+// ISR — refresh post detail every 5 min. Admin save endpoints call
+// revalidatePath('/posts/[slug]') for instant invalidation when the
+// editor publishes or updates a post.
+export const revalidate = 300;
+
 export default async function PostDetailPage({ params, searchParams }) {
   const { slug } = await params;
   const sp = await searchParams;

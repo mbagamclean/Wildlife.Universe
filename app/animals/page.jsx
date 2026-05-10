@@ -20,6 +20,11 @@ export async function generateMetadata({ searchParams }) {
   return buildCategoryMetadata(cat, null, { page });
 }
 
+// ISR — refresh once a minute. Admin save endpoints call
+// revalidatePath('/<slug>') for instant invalidation when an editor
+// updates the category metadata or publishes a post.
+export const revalidate = 60;
+
 export default async function AnimalsPage({ searchParams }) {
   const sp = await searchParams;
   const page = readPage(sp);

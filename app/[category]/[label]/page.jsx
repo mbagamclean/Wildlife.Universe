@@ -24,6 +24,9 @@ export async function generateMetadata({ params, searchParams }) {
   return buildCategoryMetadata(cat, { label, slug: lblSlug }, { page });
 }
 
+// ISR — admin saves call revalidatePath for instant invalidation.
+export const revalidate = 60;
+
 export default async function LabelPage({ params, searchParams }) {
   const { category: catSlug, label: lblSlug } = await params;
   const sp = await searchParams;

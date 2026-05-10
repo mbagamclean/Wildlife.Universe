@@ -17,9 +17,10 @@ import { BooksSection } from '@/components/posts/BooksSection';
 import { HomepageVideosSection } from '@/components/posts/HomepageVideosSection';
 import { ShortsSection } from '@/components/posts/ShortsSection';
 import { DocumentariesSection } from '@/components/posts/DocumentariesSection';
-import { fetchAllCategoriesRich } from '@/lib/seo-data';
+import { fetchAllCategoriesRich, fetchActiveHeroSlides, fetchHeroMode } from '@/lib/seo-data';
 import { categories } from '@/lib/mock/categories';
 import Link from 'next/link';
+import Image from 'next/image';
 import { ArrowRight } from 'lucide-react';
 import { buildHomeMetadata } from '@/lib/seo';
 
@@ -65,16 +66,21 @@ const CAT_META = {
 };
 
 export default async function HomePage() {
-  // Pull the rich category rows once on render so the Explore Our
-  // Categories cards can paint the admin-uploaded thumbnails with
-  // graceful fallback to the static gradient look.
-  const richCategories = await fetchAllCategoriesRich();
+  // Server-render the homepage's data so the LCP element (hero) and
+  // the category grid are present in the initial HTML payload. This
+  // eliminates the green-gradient placeholder that previously painted
+  // until Supabase resolved client-side.
+  const [richCategories, heroSlides, heroMode] = await Promise.all([
+    fetchAllCategoriesRich(),
+    fetchActiveHeroSlides(),
+    fetchHeroMode(),
+  ]);
   const richBySlug = new Map(richCategories.map((c) => [c.slug, c]));
 
   return (
     <>
       <div className="-mt-16">
-        <HeroOrchestrator />
+        <HeroOrchestrator initialSlides={heroSlides} initialMode={heroMode} />
       </div>
 
       {/* ── Latest Posts — fade up ─────────────────────────── */}
@@ -98,7 +104,7 @@ export default async function HomePage() {
 
             {/* Cards — stagger in via CSS once parent is revealed */}
             <div className="flex flex-wrap justify-center gap-5">
-              {categories.map((c) => {
+              {categories.map((c, idx) => {
                 const meta = CAT_META[c.slug] || CAT_META.posts;
                 const rich = richBySlug.get(c.slug);
                 // Prefer the admin-uploaded hero (high-res banner) for
@@ -110,15 +116,18 @@ export default async function HomePage() {
                   <Link
                     key={c.slug}
                     href={`/${c.slug}`}
+                    prefetch
                     className="wu-stagger-item group relative block w-full overflow-hidden rounded-2xl sm:w-[calc(50%-10px)] lg:w-[calc(33.333%-14px)]"
                     style={{ aspectRatio: '16/10' }}
                   >
                     {cardImage ? (
-                      <img
+                      <Image
                         src={cardImage}
-                        alt=""
-                        loading="lazy"
-                        className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-[1.06]"
+                        alt={rich?.imageAlt || c.name}
+                        fill
+                        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                        priority={idx < 2}
+                        className="object-cover transition-transform duration-700 group-hover:scale-[1.06]"
                       />
                     ) : (
                       <>
