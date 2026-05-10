@@ -25,6 +25,11 @@ import { buildHomeMetadata } from '@/lib/seo';
 
 export const metadata = buildHomeMetadata();
 
+// Re-render the homepage at most once a minute so admin-uploaded
+// category hero images surface without a redeploy. Admin saves call
+// revalidatePath('/') for instant updates; this is the safety net.
+export const revalidate = 60;
+
 /* Per-category visual identity */
 const CAT_META = {
   animals: {

@@ -13,6 +13,7 @@
  */
 
 import { NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { createClient as createSSRClient } from '@/lib/supabase/server';
 import { createClient } from '@supabase/supabase-js';
 import { categories as STATIC } from '@/lib/mock/categories';
@@ -166,6 +167,8 @@ export async function PUT(req, { params }) {
   if (updErr) return NextResponse.json({ error: updErr.message }, { status: 500 });
 
   if (updated) {
+    revalidatePath('/');
+    revalidatePath(`/${slug}`);
     return NextResponse.json(mapRow(updated));
   }
 
@@ -186,5 +189,7 @@ export async function PUT(req, { params }) {
     .select()
     .single();
   if (insErr) return NextResponse.json({ error: insErr.message }, { status: 500 });
+  revalidatePath('/');
+  revalidatePath(`/${slug}`);
   return NextResponse.json(mapRow(inserted));
 }
