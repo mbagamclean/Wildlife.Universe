@@ -5,7 +5,6 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { usePathname } from 'next/navigation';
 import { ChevronDown } from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { navItems, categories, labelSlug } from '@/lib/mock/categories';
 import { categoriesDb } from '@/lib/storage/categoriesDb';
 import { ThemeToggle } from './ThemeToggle';
@@ -125,45 +124,42 @@ export function Navbar() {
                       <ChevronDown className={`h-3.5 w-3.5 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
                     )}
                     {active && (
-                      <motion.span
-                        layoutId="nav-underline"
-                        className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-[var(--color-primary)]"
-                        transition={{ type: 'spring', stiffness: 380, damping: 30 }}
+                      <span
+                        aria-hidden
+                        className="absolute inset-x-3 -bottom-0.5 h-0.5 rounded-full bg-[var(--color-primary)] transition-opacity duration-200"
                       />
                     )}
                   </Link>
 
-                  {/* Dropdown */}
-                  <AnimatePresence>
-                    {hasLabels && isOpen && (
-                      <motion.div
-                        initial={{ opacity: 0, y: 6, scale: 0.97 }}
-                        animate={{ opacity: 1, y: 0, scale: 1 }}
-                        exit={{ opacity: 0, y: 6, scale: 0.97 }}
-                        transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
-                        onMouseEnter={() => clearTimeout(closeTimer.current)}
-                        onMouseLeave={scheduleClose}
-                        className="glass absolute left-0 top-full mt-2 min-w-[180px] rounded-2xl border border-[var(--glass-border)] p-2 shadow-xl shadow-black/10"
+                  {/* Dropdown — CSS transition replaces framer-motion */}
+                  {hasLabels && (
+                    <div
+                      onMouseEnter={() => clearTimeout(closeTimer.current)}
+                      onMouseLeave={scheduleClose}
+                      className={`glass absolute left-0 top-full mt-2 min-w-[180px] origin-top rounded-2xl border border-[var(--glass-border)] p-2 shadow-xl shadow-black/10 transition-[opacity,transform] duration-200 ease-out ${
+                        isOpen
+                          ? 'pointer-events-auto translate-y-0 scale-100 opacity-100'
+                          : 'pointer-events-none -translate-y-1 scale-[0.97] opacity-0'
+                      }`}
+                    >
+                      <Link
+                        href={item.href}
+                        className="block rounded-xl px-3 py-2 text-sm font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors"
                       >
+                        All {item.name}
+                      </Link>
+                      <div className="my-1.5 border-t border-[var(--glass-border)]" />
+                      {item.labels.map((label) => (
                         <Link
-                          href={item.href}
-                          className="block rounded-xl px-3 py-2 text-sm font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors"
+                          key={label}
+                          href={`/${item.slug}/${labelSlug(label)}`}
+                          className="block rounded-xl px-3 py-2 text-sm text-[var(--color-fg)] hover:bg-[var(--color-primary)]/8 hover:text-[var(--color-primary)] transition-colors"
                         >
-                          All {item.name}
+                          {label}
                         </Link>
-                        <div className="my-1.5 border-t border-[var(--glass-border)]" />
-                        {item.labels.map((label) => (
-                          <Link
-                            key={label}
-                            href={`/${item.slug}/${labelSlug(label)}`}
-                            className="block rounded-xl px-3 py-2 text-sm text-[var(--color-fg)] hover:bg-[var(--color-primary)]/8 hover:text-[var(--color-primary)] transition-colors"
-                          >
-                            {label}
-                          </Link>
-                        ))}
-                      </motion.div>
-                    )}
-                  </AnimatePresence>
+                      ))}
+                    </div>
+                  )}
                 </div>
               );
             })}

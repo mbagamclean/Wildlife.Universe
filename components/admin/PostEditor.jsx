@@ -49,13 +49,36 @@ import {
   FileText, Clock, Check, TrendingUp, Wand2, Crown,
 } from 'lucide-react';
 
+import dynamic from 'next/dynamic';
 import { categories } from '@/lib/mock/categories';
 import { MediaUpload } from './MediaUpload';
-import { TiptapEditor } from './editor/TiptapEditor';
-import { AIWritingToolkit } from './editor/AIWritingToolkit';
-import { AISEOAssistant } from './editor/AISEOAssistant';
-import { AIImageGenerator } from './editor/AIImageGenerator';
-import { AIRewriteFloater } from './editor/AIRewriteFloater';
+
+// Tiptap pulls ~250 KB of editor + extensions. Defer it until the
+// PostEditor actually mounts (which only happens inside /admin) so
+// the admin list / dashboard doesn't pay for the editor up front.
+const TiptapEditor = dynamic(
+  () => import('./editor/TiptapEditor').then((m) => m.TiptapEditor),
+  { ssr: false, loading: () => <div className="h-[420px] animate-pulse rounded-xl bg-[var(--color-fg)]/5" /> },
+);
+
+// AI panels are heavy and mostly idle. Lazy-load each so the editor
+// shell paints first.
+const AIWritingToolkit = dynamic(
+  () => import('./editor/AIWritingToolkit').then((m) => m.AIWritingToolkit),
+  { ssr: false },
+);
+const AISEOAssistant = dynamic(
+  () => import('./editor/AISEOAssistant').then((m) => m.AISEOAssistant),
+  { ssr: false },
+);
+const AIImageGenerator = dynamic(
+  () => import('./editor/AIImageGenerator').then((m) => m.AIImageGenerator),
+  { ssr: false },
+);
+const AIRewriteFloater = dynamic(
+  () => import('./editor/AIRewriteFloater').then((m) => m.AIRewriteFloater),
+  { ssr: false },
+);
 import { IUCNPanel } from './editor/IUCNPanel';
 import { useAIStore } from '@/lib/stores/aiStore';
 import { useAuth } from '@/lib/auth/AuthContext';
