@@ -8,6 +8,7 @@ import {
   fetchPostBySlug,
   fetchPostsForLabelPage,
   fetchRelatedPosts,
+  fetchPublishedPosts,
 } from '@/lib/seo-data';
 import {
   buildPostMetadata,
@@ -46,6 +47,20 @@ export async function generateMetadata({ params, searchParams }) {
 // revalidatePath('/posts/[slug]') for instant invalidation when the
 // editor publishes or updates a post.
 export const revalidate = 300;
+
+// Pre-render every published post at build time so they ship as
+// proper static HTML with edge caching (Cache-Control: public). Pages
+// not in this list (label landings, drafts) are still dynamic-rendered
+// on demand. Failures here must not break the build — return [] and
+// rely on dynamic rendering as a fallback.
+export async function generateStaticParams() {
+  try {
+    const posts = await fetchPublishedPosts();
+    return (posts || []).map((p) => ({ slug: p.slug })).filter((p) => p.slug);
+  } catch {
+    return [];
+  }
+}
 
 export default async function PostDetailPage({ params, searchParams }) {
   const { slug } = await params;

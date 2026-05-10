@@ -54,6 +54,32 @@ const nextConfig = {
         ],
       },
       {
+        // Public listing routes — these read searchParams (page=N)
+        // which forces Next.js to dynamic-render and emit
+        // Cache-Control: private. Google reads `private` as
+        // "user-specific, do not index broadly" — the single biggest
+        // indexing blocker. Override with public + s-maxage so the
+        // Vercel edge can serve identical bytes to crawlers and users.
+        source: '/:cat(animals|birds|insects|plants|posts|redlist)',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=60, stale-while-revalidate=300' },
+        ],
+      },
+      {
+        source: '/:cat(animals|birds|insects|plants|posts)/:label',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=60, stale-while-revalidate=300' },
+        ],
+      },
+      {
+        // Post detail — same problem. Override per-post Cache-Control
+        // so search engines and the edge see "public, cacheable".
+        source: '/posts/:slug',
+        headers: [
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400' },
+        ],
+      },
+      {
         // Standard hardening + DNS prefetch on every response.
         source: '/:path*',
         headers: [
