@@ -715,10 +715,7 @@ export function PostView({ slug }) {
       <div aria-hidden className="fixed left-0 top-0 z-[60] h-1 origin-left bg-[#008000] transition-[width] duration-100" style={{ width: `${progress}%` }} />
 
       {/* ── Hero ── */}
-      {/* Mobile: shorter so the wildlife photo isn't reduced to a narrow
-          vertical slice (88vh on a phone shows ~10% of a 16:9 image,
-          centred). Desktop keeps the cinematic full-bleed. */}
-      <header className="relative -mt-16 flex h-[64vh] min-h-[420px] items-end overflow-hidden sm:h-[88vh] sm:min-h-[640px]">
+      <header className="relative -mt-16 flex h-[88vh] min-h-[640px] items-end overflow-hidden">
         {/* background: cover image or palette gradient */}
         <div aria-hidden className="absolute inset-0"
           style={{ background: post.cover ? undefined : `linear-gradient(135deg, ${palette.from} 0%, ${palette.via} 55%, ${palette.to} 100%)` }}
