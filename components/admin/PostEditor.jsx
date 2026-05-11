@@ -682,7 +682,20 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
     } catch (err) {
       // Surface a real error so the user doesn't keep hitting Publish into the void.
       console.error('[PostEditor] save failed:', err);
-      setSaveError(err?.message || 'Save failed. Check your connection and try again.');
+      const raw = String(err?.message || '');
+      let friendly = raw || 'Save failed. Check your connection and try again.';
+      // Translate raw Postgres unique-key violations into actionable
+      // copy. db.posts.update + insertGeneratedPost already dedupe
+      // server-side, so this fires only on a true collision the loop
+      // couldn't resolve (extremely rare).
+      if (/posts_slug_key|duplicate key.*slug/i.test(raw)) {
+        friendly = `Another post already uses the URL slug "${slug}". Edit the Slug field to something unique and try again.`;
+      } else if (/duplicate key.*posts/i.test(raw)) {
+        friendly = `Save blocked by a uniqueness constraint on the posts table. Underlying error: ${raw}`;
+      } else if (/timed out/i.test(raw)) {
+        friendly = raw; // Already friendly from the Promise.race helper
+      }
+      setSaveError(friendly);
     } finally {
       setSaving(false);
     }
