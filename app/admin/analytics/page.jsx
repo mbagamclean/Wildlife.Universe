@@ -18,15 +18,10 @@ import { useEffect, useMemo, useState } from 'react';
 import {
   BarChart3, Globe, Smartphone, MousePointerClick, Users, Eye,
   Activity, FileText, ChevronDown, ArrowUp, ArrowDown,
+  Filter, MoreVertical,
 } from 'lucide-react';
 import { WorldMap } from '@/components/admin/analytics/WorldMap';
-
-const RANGES = [
-  { id: '24h', label: 'Today' },
-  { id: '7d', label: 'Last 7 days' },
-  { id: '30d', label: 'Last 30 days' },
-  { id: '90d', label: 'Last 90 days' },
-];
+import { DateRangePicker } from '@/components/admin/analytics/DateRangePicker';
 
 function fmtNumber(n) {
   if (n == null) return '—';
@@ -278,9 +273,19 @@ function TimeseriesChart({ data, hours }) {
 
 export default function AnalyticsDashboardPage() {
   const [range, setRange] = useState('7d');
+  const [customStart, setCustomStart] = useState(null);
+  const [customEnd, setCustomEnd] = useState(null);
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  // Build the query string fresh whenever any of the range knobs change.
+  const queryString = useMemo(() => {
+    const params = new URLSearchParams({ range });
+    if (range === 'custom' && customStart) params.set('start', customStart);
+    if (range === 'custom' && customEnd) params.set('end', customEnd);
+    return params.toString();
+  }, [range, customStart, customEnd]);
 
   // Initial load + range change
   useEffect(() => {
@@ -289,7 +294,7 @@ export default function AnalyticsDashboardPage() {
     setError(null);
     (async () => {
       try {
-        const res = await fetch(`/api/admin/analytics/dashboard?range=${range}`, { cache: 'no-store' });
+        const res = await fetch(`/api/admin/analytics/dashboard?${queryString}`, { cache: 'no-store' });
         const json = await res.json();
         if (cancelled) return;
         if (!res.ok || !json.ok) {
@@ -305,7 +310,7 @@ export default function AnalyticsDashboardPage() {
       }
     })();
     return () => { cancelled = true; };
-  }, [range]);
+  }, [queryString]);
 
   // Live count poll — every 10 s, only refreshes the live number
   useEffect(() => {
@@ -349,21 +354,50 @@ export default function AnalyticsDashboardPage() {
             {data?.live ?? 0} live now
           </div>
 
-          {/* Range picker */}
-          <div style={{ display: 'flex', gap: 4, padding: 3, borderRadius: 9, background: 'var(--adm-surface)', border: '1px solid var(--adm-border)' }}>
-            {RANGES.map((r) => (
-              <button
-                key={r.id}
-                onClick={() => setRange(r.id)}
-                style={{
-                  padding: '6px 12px', borderRadius: 6, border: 'none',
-                  background: range === r.id ? 'var(--color-primary)' : 'transparent',
-                  color: range === r.id ? '#fff' : 'var(--adm-text-muted)',
-                  fontSize: 11, fontWeight: 700, cursor: 'pointer',
-                }}
-              >{r.label}</button>
-            ))}
-          </div>
+          {/* Filter button — placeholder for the saved-segments feature.
+              Wired up only as visual parity with the screenshot. */}
+          <button
+            type="button"
+            disabled
+            title="Filtering & segments coming soon"
+            style={{
+              display: 'inline-flex', alignItems: 'center', gap: 6,
+              padding: '7px 10px', borderRadius: 8,
+              border: '1px solid var(--adm-border)', background: 'var(--adm-surface)',
+              color: 'var(--adm-text-muted)', fontSize: 12, fontWeight: 700,
+              cursor: 'not-allowed', opacity: 0.7,
+            }}
+          >
+            <Filter size={13} strokeWidth={2} aria-hidden /> Filter
+          </button>
+
+          {/* Date range picker — Plausible-style dropdown with full preset list */}
+          <DateRangePicker
+            range={range}
+            customStart={customStart}
+            customEnd={customEnd}
+            onChange={({ range: r, start, end }) => {
+              setRange(r);
+              setCustomStart(start ?? null);
+              setCustomEnd(end ?? null);
+            }}
+          />
+
+          {/* 3-dot menu — placeholder for export / share / settings */}
+          <button
+            type="button"
+            disabled
+            title="More options coming soon"
+            style={{
+              display: 'inline-flex', alignItems: 'center', justifyContent: 'center',
+              width: 30, height: 30, borderRadius: 8,
+              border: '1px solid var(--adm-border)', background: 'var(--adm-surface)',
+              color: 'var(--adm-text-muted)',
+              cursor: 'not-allowed', opacity: 0.7,
+            }}
+          >
+            <MoreVertical size={14} strokeWidth={2} aria-hidden />
+          </button>
         </div>
       </div>
 

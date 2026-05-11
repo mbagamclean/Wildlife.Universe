@@ -30,23 +30,80 @@ function adminClient() {
   );
 }
 
-const RANGE_HOURS = { '24h': 24, '7d': 168, '30d': 720, '90d': 2160 };
-
-function rangeWindow(range) {
-  const hours = RANGE_HOURS[range] || RANGE_HOURS['7d'];
+// Resolve any Plausible-style preset (or a custom range) into a
+// concrete [start, end] window plus a granularity for time-series
+// bucketing. Server uses UTC consistently — timezone-aware
+// "today" / "yesterday" is a future refinement.
+function rangeWindow(rangeName, customStart, customEnd) {
   const now = new Date();
-  const start = new Date(now.getTime() - hours * 60 * 60 * 1000);
-  return { start: start.toISOString(), end: now.toISOString(), hours };
+  const utc = (year, monthIdx, day, hour = 0, min = 0, sec = 0) =>
+    new Date(Date.UTC(year, monthIdx, day, hour, min, sec));
+
+  const startOfTodayUtc = utc(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate());
+  let start, end;
+
+  switch (rangeName) {
+    case 'realtime':
+      start = new Date(now.getTime() - 30 * 60 * 1000); end = now; break;
+    case '24h':
+      start = new Date(now.getTime() - 24 * 60 * 60 * 1000); end = now; break;
+    case 'today':
+      start = startOfTodayUtc; end = now; break;
+    case 'yesterday':
+      end = startOfTodayUtc; start = new Date(end.getTime() - 24 * 60 * 60 * 1000); break;
+    case '7d':
+      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); end = now; break;
+    case '28d':
+      start = new Date(now.getTime() - 28 * 24 * 60 * 60 * 1000); end = now; break;
+    case '30d':
+      start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); end = now; break;
+    case '90d':
+    case '91d':
+      start = new Date(now.getTime() - 91 * 24 * 60 * 60 * 1000); end = now; break;
+    case 'mtd':
+      start = utc(now.getUTCFullYear(), now.getUTCMonth(), 1); end = now; break;
+    case 'last_month': {
+      const firstOfThis = utc(now.getUTCFullYear(), now.getUTCMonth(), 1);
+      end = firstOfThis;
+      start = utc(now.getUTCFullYear(), now.getUTCMonth() - 1, 1);
+      break;
+    }
+    case 'ytd':
+      start = utc(now.getUTCFullYear(), 0, 1); end = now; break;
+    case '12mo':
+      start = utc(now.getUTCFullYear() - 1, now.getUTCMonth(), now.getUTCDate()); end = now; break;
+    case 'all':
+      start = utc(2020, 0, 1); end = now; break;
+    case 'custom':
+      start = customStart ? new Date(customStart) : new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+      end = customEnd ? new Date(customEnd) : now;
+      break;
+    default:
+      // Default: last 7 days
+      start = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000); end = now;
+  }
+
+  const diffMs = end.getTime() - start.getTime();
+  const hours = diffMs / (60 * 60 * 1000);
+  let granularity;
+  if (hours <= 2) granularity = 'minute';        // Realtime
+  else if (hours <= 48) granularity = 'hour';    // Today, Yesterday, Last 24h
+  else if (hours <= 92 * 24) granularity = 'day'; // up to ~91 days
+  else if (hours <= 366 * 24) granularity = 'week';
+  else granularity = 'month';
+
+  return { start: start.toISOString(), end: end.toISOString(), hours, granularity };
 }
 
-// Previous-period window of the same length, ending where the current
-// window starts. Powers the ▲/▼ comparison deltas on each KPI.
-function previousWindow(range) {
-  const hours = RANGE_HOURS[range] || RANGE_HOURS['7d'];
-  const now = new Date();
-  const start = new Date(now.getTime() - hours * 2 * 60 * 60 * 1000);
-  const end = new Date(now.getTime() - hours * 60 * 60 * 1000);
-  return { start: start.toISOString(), end: end.toISOString(), hours };
+// Previous-period window — same DURATION immediately before the
+// current start. Used for the KPI deltas.
+function previousWindow(curr) {
+  const start = new Date(curr.start);
+  const end = new Date(curr.end);
+  const dur = end.getTime() - start.getTime();
+  const prevEnd = start;
+  const prevStart = new Date(start.getTime() - dur);
+  return { start: prevStart.toISOString(), end: prevEnd.toISOString() };
 }
 
 // ─── UA parser — tiny regex-based heuristic, zero dependency ─────
@@ -159,45 +216,71 @@ function topN(values, n = 8) {
     .map(([name, count]) => ({ name, count }));
 }
 
-function bucketKey(date, hours) {
-  // Hourly buckets for 24h, daily for everything longer.
+function bucketKey(date, granularity) {
   const d = new Date(date);
-  if (hours <= 24) {
-    d.setMinutes(0, 0, 0);
+  if (granularity === 'minute') {
+    d.setUTCSeconds(0, 0);
     return d.toISOString();
   }
+  if (granularity === 'hour') {
+    d.setUTCMinutes(0, 0, 0);
+    return d.toISOString();
+  }
+  if (granularity === 'week') {
+    // Bucket by ISO week start (Monday)
+    d.setUTCHours(0, 0, 0, 0);
+    const day = d.getUTCDay() || 7;
+    d.setUTCDate(d.getUTCDate() - day + 1);
+    return d.toISOString().slice(0, 10);
+  }
+  if (granularity === 'month') {
+    return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}`;
+  }
+  // day
   d.setUTCHours(0, 0, 0, 0);
   return d.toISOString().slice(0, 10);
 }
 
-function fillTimeseries(rows, start, end, hours) {
+function stepMs(granularity) {
+  switch (granularity) {
+    case 'minute': return 60 * 1000;
+    case 'hour': return 60 * 60 * 1000;
+    case 'week': return 7 * 24 * 60 * 60 * 1000;
+    case 'month': return 30 * 24 * 60 * 60 * 1000; // approximate — buckets snap on the 1st anyway
+    default: return 24 * 60 * 60 * 1000;
+  }
+}
+
+function fillTimeseries(rows, start, end, granularity) {
   const counts = new Map();
-  const visitors = new Map();
   const sessionsPerBucket = new Map();
 
   for (const r of rows) {
-    const k = bucketKey(r.viewed_at, hours);
+    const k = bucketKey(r.viewed_at, granularity);
     counts.set(k, (counts.get(k) || 0) + 1);
     if (r.session_id) {
       if (!sessionsPerBucket.has(k)) sessionsPerBucket.set(k, new Set());
       sessionsPerBucket.get(k).add(r.session_id);
     }
   }
+  const visitors = new Map();
   for (const [k, set] of sessionsPerBucket) visitors.set(k, set.size);
 
-  // Build a continuous series so the chart never has gaps.
+  // Continuous series so the chart never has gaps.
   const series = [];
   const cursor = new Date(start);
   const last = new Date(end);
-  const stepMs = hours <= 24 ? 60 * 60 * 1000 : 24 * 60 * 60 * 1000;
-  while (cursor.getTime() <= last.getTime()) {
-    const k = bucketKey(cursor.toISOString(), hours);
+  const step = stepMs(granularity);
+  // Cap iterations as a safety belt — 4000 covers ~11 years of daily.
+  let guard = 4000;
+  while (cursor.getTime() <= last.getTime() && guard-- > 0) {
+    const k = bucketKey(cursor.toISOString(), granularity);
     series.push({
       bucket: k,
       pageviews: counts.get(k) || 0,
       visitors: visitors.get(k) || 0,
     });
-    cursor.setTime(cursor.getTime() + stepMs);
+    cursor.setTime(cursor.getTime() + step);
   }
   return series;
 }
@@ -213,8 +296,11 @@ export async function GET(req) {
 
   const url = new URL(req.url);
   const range = url.searchParams.get('range') || '7d';
-  const { start, end, hours } = rangeWindow(range);
-  const prevW = previousWindow(range);
+  const customStart = url.searchParams.get('start');
+  const customEnd = url.searchParams.get('end');
+  const window = rangeWindow(range, customStart, customEnd);
+  const { start, end, hours, granularity } = window;
+  const prevW = previousWindow(window);
   const sb = adminClient();
 
   let ownHost = 'wildlifeuniverse.org';
@@ -319,7 +405,7 @@ export async function GET(req) {
   };
 
   // ── Time-series
-  const timeseries = fillTimeseries(rows, start, end, hours);
+  const timeseries = fillTimeseries(rows, start, end, granularity);
 
   // ── Top pages (prefer pathname; fall back to /posts/<slug>)
   const pageOf = (r) => r.pathname || (r.post_slug ? `/posts/${r.post_slug}` : null);
@@ -383,7 +469,7 @@ export async function GET(req) {
   return NextResponse.json({
     ok: true,
     range,
-    window: { start, end, hours },
+    window: { start, end, hours, granularity },
     totals: {
       pageviews,
       uniqueVisitors,
