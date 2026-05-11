@@ -93,34 +93,38 @@ export function CategoryView({
         />
       </section>
 
-      <section className="py-6 border-b border-[var(--glass-border)]">
-        <Container>
-          <div className="flex flex-wrap gap-2">
-            <span className="cursor-default rounded-full bg-[#008000] px-5 py-2 text-sm font-semibold text-white">
+      {/* Label chip strip — full-width on mobile, scrolls horizontally if
+          the label list overflows so the chips don't wrap into a tall
+          stack on a narrow phone. */}
+      <section className="py-4 sm:py-6 border-b border-[var(--glass-border)]">
+        <div className="mx-auto w-full max-w-[1560px] sm:w-[90%] lg:w-[85%]">
+          <div className="flex flex-nowrap gap-2 overflow-x-auto px-4 sm:px-0 sm:flex-wrap">
+            <span className="cursor-default flex-shrink-0 rounded-full bg-[#008000] px-5 py-2 text-sm font-semibold text-white">
               All Posts
             </span>
             {labels.map((label) => (
               <Link
                 key={label}
                 href={`/${category}/${labelSlug(label)}`}
-                className="rounded-full bg-[var(--color-bg-deep)] border border-[var(--glass-border)] px-5 py-2 text-sm font-medium text-[var(--color-fg)] transition-colors hover:bg-[var(--glass-border)] hover:text-[var(--color-fg)]"
+                className="flex-shrink-0 rounded-full bg-[var(--color-bg-deep)] border border-[var(--glass-border)] px-5 py-2 text-sm font-medium text-[var(--color-fg)] transition-colors hover:bg-[var(--glass-border)] hover:text-[var(--color-fg)]"
               >
                 {label}
               </Link>
             ))}
           </div>
-        </Container>
+        </div>
       </section>
 
-      <section className="pb-24">
-        <Container>
+      {/* Post grid — full-width on mobile so cards fill the screen. */}
+      <section className="pb-16 sm:pb-24 pt-2 sm:pt-6">
+        <div className="mx-auto w-full max-w-[1560px] sm:w-[90%] lg:w-[85%] px-3 sm:px-0">
           <PostGrid
             posts={posts}
             emptyTitle={`No ${name.toLowerCase()} posts yet`}
             emptyMessage="Sign in as the CEO and create one in the admin panel — it will show up here right away."
           />
           <Pagination basePath={basePath} page={page} totalPages={totalPages} />
-        </Container>
+        </div>
       </section>
     </>
   );

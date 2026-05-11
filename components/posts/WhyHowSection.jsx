@@ -74,10 +74,12 @@ export function WhyHowSection() {
       <div className="pointer-events-none absolute left-0 top-0 h-80 w-80 opacity-[0.05] blur-3xl"
         style={{ background: 'radial-gradient(circle, var(--color-primary), transparent)' }} />
 
-      <Container>
-        {/* HEADER */}
+      {/* Full-width on mobile so the carousel doesn't lose 10% to gutters. */}
+      <div className="mx-auto w-full max-w-[1560px] sm:w-[90%] lg:w-[85%] px-4 sm:px-0">
+        {/* HEADER — stacks vertically on mobile so the title and the
+            "View Notes" CTA never compete for room on a narrow phone. */}
         <div
-          className="mb-10 flex items-end justify-between gap-4"
+          className="mb-6 flex flex-col items-start gap-3 sm:mb-10 sm:flex-row sm:items-end sm:justify-between sm:gap-4"
           style={{ animation: 'wu-fadeUp 0.5s cubic-bezier(0.22,1,0.36,1) both' }}
         >
           <div className="flex flex-col gap-1.5">
@@ -85,7 +87,7 @@ export function WhyHowSection() {
               <HelpCircle className="h-3 w-3" />
               Insights
             </span>
-            <h2 className="font-display text-3xl font-black leading-none tracking-tight text-[var(--color-fg)] sm:text-4xl">
+            <h2 className="font-display text-2xl font-black leading-tight tracking-tight text-[var(--color-fg)] sm:text-4xl sm:leading-none">
               Why &amp; How
             </h2>
             <p className="mt-1 text-sm text-[var(--color-fg-soft)]">
@@ -95,7 +97,7 @@ export function WhyHowSection() {
 
           <Link
             href="/posts"
-            className="group/link mb-0.5 inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-[var(--color-primary)] transition-all duration-300 hover:bg-[var(--color-primary)] hover:text-white"
+            className="group/link inline-flex shrink-0 items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold text-[var(--color-primary)] transition-all duration-300 hover:bg-[var(--color-primary)] hover:text-white sm:mb-0.5"
             style={{ border: '1.5px solid var(--color-primary)' }}
           >
             View Notes
@@ -235,7 +237,7 @@ export function WhyHowSection() {
                 })}
           </div>
         </div>
-      </Container>
+      </div>
     </section>
   );
 }

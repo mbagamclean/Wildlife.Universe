@@ -759,6 +759,14 @@ button {
     border-radius: 18px;
     box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
     display: block;
+    /* 16:10 aspect on mobile — slightly taller than the natural
+       16:9 photo crops so the wildlife subject reads bigger on a
+       phone. object-fit: cover keeps the centre of the image in
+       view when the source isn't 16:10. */
+    aspect-ratio: 16 / 10;
+    height: auto;
+    object-fit: cover;
+    object-position: center center;
   }
   /* Standalone images outside <figure> also bleed slightly past
      the card padding so they end up the same visual size as the

@@ -18,6 +18,7 @@ import { HomepageVideosSection } from '@/components/posts/HomepageVideosSection'
 import { ShortsSection } from '@/components/posts/ShortsSection';
 import { DocumentariesSection } from '@/components/posts/DocumentariesSection';
 import { fetchAllCategoriesRich, fetchActiveHeroSlides, fetchHeroMode } from '@/lib/seo-data';
+import { ReviewsSection } from '@/components/reviews/ReviewsSection';
 import { categories } from '@/lib/mock/categories';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -288,6 +289,11 @@ export default async function HomePage() {
           <LatestConservationSection />
         </ScrollReveal>
       </FadeOnScroll>
+
+      {/* ── Reader reviews — last block before the footer ── */}
+      <ScrollReveal effect="fadeUp">
+        <ReviewsSection />
+      </ScrollReveal>
     </>
   );
 }
