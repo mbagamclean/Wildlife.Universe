@@ -298,7 +298,13 @@ function MobileTocBar({ toc, activeToc, progress, visible, onNavigate }) {
   const next = activeToc < toc.length - 1 ? toc[activeToc + 1] : null;
 
   return (
-    <div className="fixed left-0 right-0 top-16 z-40 lg:hidden">
+    // Pinned at top-14 (56 px), not top-16 (64 px). The navbar
+    // shrinks from 64 to 56 px when the page scrolls (py-3 to py-2
+    // in Navbar.jsx). MobileTocBar only ever appears AFTER the hero
+    // has scrolled out of view — by which point the navbar is always
+    // in its 56 px scrolled state — so 56 px sits flush against the
+    // navbar bottom with no gap.
+    <div className="fixed left-0 right-0 top-14 z-40 lg:hidden">
       <AnimatePresence>
         {visible && (
           <motion.div
