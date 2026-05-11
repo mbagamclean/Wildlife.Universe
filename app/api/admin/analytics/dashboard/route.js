@@ -214,7 +214,7 @@ export async function GET(req) {
   const url = new URL(req.url);
   const range = url.searchParams.get('range') || '7d';
   const { start, end, hours } = rangeWindow(range);
-  const prev = previousWindow(range);
+  const prevW = previousWindow(range);
   const sb = adminClient();
 
   let ownHost = 'wildlifeuniverse.org';
@@ -233,7 +233,7 @@ export async function GET(req) {
         .order('viewed_at', { ascending: true })
         .limit(50000),
       sb.from('post_views').select('session_id, viewed_at')
-        .gte('viewed_at', prev.start).lte('viewed_at', prev.end)
+        .gte('viewed_at', prevW.start).lte('viewed_at', prevW.end)
         .limit(50000),
     ]);
     if (curr.error) throw curr.error;
@@ -259,28 +259,63 @@ export async function GET(req) {
   // If the window doesn't cover the last 5 minutes (e.g. user picked
   // 90d ending now — it does), this still works.
 
+  // ── Session-level aggregation (one pass) — drives Visits, Bounce
+  //    rate, and Visit duration. A "visit" is a session_id; sessions
+  //    with a single pageview are bounces; duration is last-first
+  //    timestamp within the session. Bounces count as 0 duration.
+  function aggregateSessions(allRows) {
+    const sess = new Map();
+    for (const r of allRows) {
+      if (!r.session_id) continue;
+      const t = new Date(r.viewed_at).getTime();
+      const s = sess.get(r.session_id);
+      if (!s) sess.set(r.session_id, { first: t, last: t, count: 1 });
+      else { s.last = Math.max(s.last, t); s.first = Math.min(s.first, t); s.count++; }
+    }
+    let visits = 0, bounces = 0, totalDurMs = 0;
+    for (const s of sess.values()) {
+      visits++;
+      if (s.count === 1) bounces++;
+      totalDurMs += Math.max(0, s.last - s.first);
+    }
+    return {
+      visits,
+      bounceRate: visits > 0 ? (bounces / visits) * 100 : 0,
+      avgVisitDurationSec: visits > 0 ? totalDurMs / visits / 1000 : 0,
+      uniqueVisitors: sess.size,
+    };
+  }
+
+  const curr = aggregateSessions(rows);
+  const prev = aggregateSessions(prevRows);
+
   // ── KPIs
   const pageviews = rows.length;
-  const sessions = new Set(rows.filter((r) => r.session_id).map((r) => r.session_id));
-  const uniqueVisitors = sessions.size;
-  const viewsPerVisit = uniqueVisitors > 0 ? (pageviews / uniqueVisitors) : 0;
+  const uniqueVisitors = curr.uniqueVisitors;
+  const totalVisits = curr.visits;
+  const viewsPerVisit = totalVisits > 0 ? (pageviews / totalVisits) : 0;
+  const bounceRate = curr.bounceRate;
+  const visitDurationSec = curr.avgVisitDurationSec;
 
-  // Previous-period equivalents — same shape, used only to render the
-  // ▲/▼ percentage deltas next to each KPI.
   const prevPageviews = prevRows.length;
-  const prevSessions = new Set(prevRows.filter((r) => r.session_id).map((r) => r.session_id));
-  const prevUniqueVisitors = prevSessions.size;
-  const prevViewsPerVisit = prevUniqueVisitors > 0 ? (prevPageviews / prevUniqueVisitors) : 0;
+  const prevUniqueVisitors = prev.uniqueVisitors;
+  const prevTotalVisits = prev.visits;
+  const prevViewsPerVisit = prevTotalVisits > 0 ? (prevPageviews / prevTotalVisits) : 0;
 
-  const pctDelta = (curr, prev) => {
-    if (prev === 0) return curr > 0 ? 100 : 0;
-    return Number((((curr - prev) / prev) * 100).toFixed(1));
+  const pctDelta = (a, b) => {
+    if (b === 0) return a > 0 ? 100 : 0;
+    return Number((((a - b) / b) * 100).toFixed(1));
   };
 
   const deltas = {
     pageviews: pctDelta(pageviews, prevPageviews),
     uniqueVisitors: pctDelta(uniqueVisitors, prevUniqueVisitors),
+    totalVisits: pctDelta(totalVisits, prevTotalVisits),
     viewsPerVisit: pctDelta(viewsPerVisit, prevViewsPerVisit),
+    // Bounce rate: lower-is-better — invert so green ▼ shows for a
+    // drop in bounce rate. Display layer interprets sign.
+    bounceRate: pctDelta(bounceRate, prev.bounceRate),
+    visitDuration: pctDelta(visitDurationSec, prev.avgVisitDurationSec),
   };
 
   // ── Time-series
@@ -352,7 +387,10 @@ export async function GET(req) {
     totals: {
       pageviews,
       uniqueVisitors,
+      totalVisits,
       viewsPerVisit: Number(viewsPerVisit.toFixed(2)),
+      bounceRate: Number(bounceRate.toFixed(1)),
+      visitDurationSec: Number(visitDurationSec.toFixed(0)),
     },
     deltas,
     live: liveSessions.size,

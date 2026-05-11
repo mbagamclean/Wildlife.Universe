@@ -36,12 +36,23 @@ function fmtNumber(n) {
   return String(n);
 }
 
-function KPI({ icon: Icon, label, value, delta }) {
+function fmtDuration(seconds) {
+  if (!seconds || seconds < 1) return '0s';
+  const m = Math.floor(seconds / 60);
+  const s = Math.floor(seconds % 60);
+  if (m === 0) return `${s}s`;
+  return `${m}m ${String(s).padStart(2, '0')}s`;
+}
+
+function KPI({ icon: Icon, label, value, delta, lowerIsBetter = false }) {
   // delta is a percentage number. 0 → no comparison row. Positive
   // green ▲, negative red ▼, exactly matching Plausible's idiom.
+  // lowerIsBetter flips the colour mapping (used for Bounce rate).
   const hasDelta = typeof delta === 'number' && Number.isFinite(delta);
-  const positive = hasDelta && delta > 0;
-  const negative = hasDelta && delta < 0;
+  const goingUp = hasDelta && delta > 0;
+  const goingDown = hasDelta && delta < 0;
+  const positive = lowerIsBetter ? goingDown : goingUp;
+  const negative = lowerIsBetter ? goingUp : goingDown;
   return (
     <div style={{
       flex: 1, minWidth: 0,
@@ -67,9 +78,8 @@ function KPI({ icon: Icon, label, value, delta }) {
           fontSize: 11, fontWeight: 700,
           color: positive ? '#16a34a' : negative ? '#dc2626' : 'var(--adm-text-muted)',
         }}>
-          {positive ? <ArrowUp size={11} strokeWidth={2.5} aria-hidden /> : negative ? <ArrowDown size={11} strokeWidth={2.5} aria-hidden /> : null}
+          {goingUp ? <ArrowUp size={11} strokeWidth={2.5} aria-hidden /> : goingDown ? <ArrowDown size={11} strokeWidth={2.5} aria-hidden /> : null}
           {Math.abs(delta)}%
-          <span style={{ color: 'var(--adm-text-muted)', fontWeight: 500 }}>vs. previous</span>
         </div>
       )}
     </div>
@@ -373,12 +383,18 @@ export default function AnalyticsDashboardPage() {
         </div>
       ) : data ? (
         <>
-          {/* KPI row with comparison deltas vs. previous period */}
-          <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <KPI icon={Eye} label="Pageviews" value={fmtNumber(data.totals.pageviews)} delta={data.deltas?.pageviews} />
+          {/* KPI row — six Plausible-style tiles with comparison deltas */}
+          <div style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
+            gap: 12,
+          }}>
             <KPI icon={Users} label="Unique visitors" value={fmtNumber(data.totals.uniqueVisitors)} delta={data.deltas?.uniqueVisitors} />
-            <KPI icon={MousePointerClick} label="Views / visit" value={data.totals.viewsPerVisit.toFixed(2)} delta={data.deltas?.viewsPerVisit} />
-            <KPI icon={Activity} label="Live (5m)" value={fmtNumber(data.live)} />
+            <KPI icon={Activity} label="Total visits" value={fmtNumber(data.totals.totalVisits)} delta={data.deltas?.totalVisits} />
+            <KPI icon={Eye} label="Total pageviews" value={fmtNumber(data.totals.pageviews)} delta={data.deltas?.pageviews} />
+            <KPI icon={MousePointerClick} label="Views per visit" value={data.totals.viewsPerVisit.toFixed(2)} delta={data.deltas?.viewsPerVisit} />
+            <KPI icon={Activity} label="Bounce rate" value={`${data.totals.bounceRate}%`} delta={data.deltas?.bounceRate} lowerIsBetter />
+            <KPI icon={Activity} label="Visit duration" value={fmtDuration(data.totals.visitDurationSec)} delta={data.deltas?.visitDuration} />
           </div>
 
           {/* Currently-viewing strip — what people are reading right now */}
@@ -470,6 +486,43 @@ export default function AnalyticsDashboardPage() {
               rows={(t) => t === 'browser' ? data.topBrowsers : t === 'os' ? data.topOS : data.topDevices}
               emptyText="No device data yet."
             />
+          </div>
+
+          {/* Goals — placeholder until custom event tracking lands */}
+          <div style={{
+            padding: 16, borderRadius: 12,
+            background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',
+          }}>
+            <div style={{
+              display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+              marginBottom: 10, gap: 8, flexWrap: 'wrap',
+            }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                <MousePointerClick size={14} strokeWidth={2} aria-hidden style={{ color: 'var(--color-primary)' }} />
+                <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-text)' }}>Goals</span>
+              </div>
+              <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--adm-border)' }}>
+                {['Goals', 'Properties', 'Funnels'].map((t, i) => (
+                  <span
+                    key={t}
+                    style={{
+                      fontSize: 11, fontWeight: 700, padding: '4px 10px',
+                      color: i === 0 ? 'var(--color-primary)' : 'var(--adm-text-muted)',
+                      borderBottom: i === 0 ? '2px solid var(--color-primary)' : '2px solid transparent',
+                      marginBottom: -1, opacity: i === 0 ? 1 : 0.5,
+                    }}
+                  >{t}</span>
+                ))}
+              </div>
+            </div>
+            <div style={{
+              padding: '32px 16px', textAlign: 'center',
+              fontSize: 12, color: 'var(--adm-text-subtle)',
+              border: '1px dashed var(--adm-border)', borderRadius: 8,
+            }}>
+              <div style={{ marginBottom: 4, fontWeight: 600 }}>No goals tracked yet</div>
+              <div style={{ fontSize: 11 }}>Goal tracking (sign-ups, scroll depth, outbound clicks, downloads) requires the custom-event tracker — not yet wired. The page-view tracker that powers this dashboard is already live.</div>
+            </div>
           </div>
         </>
       ) : null}
