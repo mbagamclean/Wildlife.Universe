@@ -78,7 +78,8 @@ const NAV = [
   {
     section: 'ANALYTICS',
     items: [
-      { href: '/admin/configuration/analytics',         label: 'Overview',               icon: BarChart2 },
+      { href: '/admin/analytics',                       label: 'Dashboard',              icon: BarChart2 },
+      { href: '/admin/configuration/analytics',         label: 'Content Stats',          icon: TrendingUp },
       { href: '/admin/configuration/traffic-growth',    label: 'Traffic Growth',         icon: TrendingUp },
       { href: '/admin/configuration/live-activity',     label: 'Live Activity',          icon: Activity },
       { href: '/admin/configuration/indexing-monitor',  label: 'Indexing Monitor',       icon: Search },

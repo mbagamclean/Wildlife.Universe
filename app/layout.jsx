@@ -4,6 +4,7 @@ import { SiteSettingsProvider } from '@/lib/providers/SiteSettingsProvider';
 import { StorageProvider } from '@/lib/storage/StorageProvider';
 import { AuthProvider } from '@/lib/auth/AuthContext';
 import { SiteChrome } from '@/components/layout/SiteChrome';
+import { PageviewTracker } from '@/components/analytics/PageviewTracker';
 import {
   SITE_NAME,
   SITE_URL,
@@ -101,6 +102,7 @@ export default function RootLayout({ children }) {
           <SiteSettingsProvider>
             <StorageProvider>
               <AuthProvider>
+                <PageviewTracker />
                 <SiteChrome>{children}</SiteChrome>
               </AuthProvider>
             </StorageProvider>

@@ -24,16 +24,23 @@ function hashIp(ip) {
 export async function POST(req) {
   let body = {};
   try { body = await req.json(); } catch {}
-  const { slug, postId, sessionId } = body || {};
-  if (!slug && !postId) {
-    return NextResponse.json({ success: false, error: 'slug or postId required' }, { status: 400 });
+  const { slug, postId, sessionId, pathname, referrer: bodyReferrer } = body || {};
+  // Universal tracker mode: any path (homepage, category, search) sends
+  // `pathname` — post detail tracker keeps sending slug+postId. Accept
+  // either, but require at least one piece of identifying info.
+  if (!slug && !postId && !pathname) {
+    return NextResponse.json({ success: false, error: 'slug, postId, or pathname required' }, { status: 400 });
   }
 
   const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim()
     || req.headers.get('x-real-ip')
     || null;
   const userAgent = req.headers.get('user-agent') || null;
-  const referrer = req.headers.get('referer') || null;
+  // Prefer the referrer the client sent (in-app navigations can pass
+  // the previous pathname); fall back to the Referer header.
+  const referrer = bodyReferrer || req.headers.get('referer') || null;
+  // Vercel sets x-vercel-ip-country on every request. ISO 3166-1 alpha-2.
+  const country = req.headers.get('x-vercel-ip-country') || null;
 
   const supabase = getServiceClient();
 
@@ -53,9 +60,11 @@ export async function POST(req) {
     await supabase.from('post_views').insert({
       post_id: resolvedId,
       post_slug: slug || null,
+      pathname: pathname ? pathname.slice(0, 500) : null,
       ip_hash: hashIp(ip),
       user_agent: userAgent ? userAgent.slice(0, 300) : null,
       referrer: referrer ? referrer.slice(0, 500) : null,
+      country: country || null,
       session_id: sessionId || null,
     });
   } catch {
