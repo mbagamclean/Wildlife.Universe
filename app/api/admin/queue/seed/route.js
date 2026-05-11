@@ -87,18 +87,75 @@ export async function POST(req) {
   const requestedCount = Math.max(1, Math.min(MAX_COUNT_PER_REQUEST, Number.parseInt(count, 10) || 0));
   if (requestedCount === 0) return NextResponse.json({ error: 'count-must-be-positive' }, { status: 400 });
 
-  // Ask Claude for N topics
-  const model = anthropic(process.env.ANTHROPIC_MODEL || 'claude-opus-4-7');
-  let topics;
-  try {
-    const { object } = await generateObject({
-      model,
-      schema: TopicListSchema,
-      prompt: buildSeederPrompt(cat.slug, label, requestedCount),
-    });
-    topics = object.topics;
-  } catch (err) {
-    return NextResponse.json({ error: 'topic-generation-failed', detail: err.message }, { status: 500 });
+  // Ask Claude for N topics.
+  //
+  // Hardcode Opus here — the seed flow specifically depends on
+  // reliable structured-output tool calls. ANTHROPIC_MODEL is meant
+  // for the cron article-body generator (Sonnet by design); for
+  // strict Zod schemas Sonnet's tool-call output is unreliable.
+  //
+  // Chunk anything > 10 into parallel requests. A single call asking
+  // Opus for 30 well-researched topics with strict structured output
+  // routinely takes 25-50 s; on Vercel's 60 s function ceiling that's
+  // a coin-flip. Three parallel calls of ≤10 each finish in ~15-20 s
+  // total and Promise.allSettled means one bad chunk doesn't kill the
+  // whole job — we keep whatever the other chunks produced.
+  const CHUNK_SIZE = 10;
+  const chunks = [];
+  let remaining = requestedCount;
+  while (remaining > 0) {
+    chunks.push(Math.min(CHUNK_SIZE, remaining));
+    remaining -= CHUNK_SIZE;
+  }
+
+  const settled = await Promise.allSettled(
+    chunks.map((n) =>
+      generateObject({
+        model: anthropic('claude-opus-4-7'),
+        schema: TopicListSchema,
+        prompt: buildSeederPrompt(cat.slug, label, n),
+      }),
+    ),
+  );
+
+  const topics = [];
+  const chunkErrors = [];
+  for (const r of settled) {
+    if (r.status === 'fulfilled') {
+      topics.push(...(r.value?.object?.topics || []));
+    } else {
+      chunkErrors.push(r.reason);
+    }
+  }
+
+  if (topics.length === 0) {
+    // Categorize the first error so the admin sees something
+    // actionable instead of an SDK stack trace.
+    const first = chunkErrors[0] || new Error('Unknown error');
+    const raw = String(first?.message || first || 'Unknown error');
+    console.error('[queue/seed] every chunk failed:', chunkErrors);
+    let friendly = raw;
+    if (/api[\s_-]*key|401|unauthorized|invalid[_\s-]*key/i.test(raw)) {
+      friendly = 'Anthropic API key missing or invalid. Set ANTHROPIC_API_KEY on Vercel (Project Settings → Environment Variables) and redeploy.';
+    } else if (/timeout|timed out|deadline|aborted|ETIMEDOUT/i.test(raw)) {
+      friendly = `Anthropic call timed out before Opus finished. Try a smaller count (10 or fewer) — the Vercel function ceiling is 60s and structured output for 30+ topics can exceed it. Underlying: ${raw}`;
+    } else if (/429|rate.?limit/i.test(raw)) {
+      friendly = 'Anthropic rate-limited this request. Wait 30–60s and try again.';
+    } else if (/NoObjectGenerated|invalid[_\s-]*json|schema|tool[_\s-]*call/i.test(raw)) {
+      friendly = `Claude returned output that didn't match the topic schema. Retry — this is usually a transient hiccup. Underlying: ${raw}`;
+    } else if (/network|ECONNRESET|ENOTFOUND|fetch failed/i.test(raw)) {
+      friendly = `Network error reaching Anthropic. Retry. Underlying: ${raw}`;
+    }
+    return NextResponse.json({
+      error: 'topic-generation-failed',
+      detail: friendly,
+      raw,
+    }, { status: 500 });
+  }
+
+  if (chunkErrors.length > 0) {
+    // Partial success — log for visibility but keep going.
+    console.warn(`[queue/seed] ${chunkErrors.length}/${chunks.length} chunks failed; using ${topics.length} topics from remaining chunks`);
   }
 
   // Build canonical titles

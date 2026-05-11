@@ -160,8 +160,13 @@ export function QueueActions({ allLabels }) {
           </div>
         )}
         {seedResult?.error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
-            {seedResult.error}
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <div className="font-semibold">{seedResult.error}</div>
+            {seedResult.detail && (
+              <div className="mt-1 text-xs text-red-200/80 whitespace-pre-wrap break-words">
+                {typeof seedResult.detail === 'string' ? seedResult.detail : JSON.stringify(seedResult.detail, null, 2)}
+              </div>
+            )}
           </div>
         )}
       </form>
@@ -207,8 +212,13 @@ export function QueueActions({ allLabels }) {
           </div>
         )}
         {runResult?.error && (
-          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-2 text-sm text-red-200">
-            {runResult.error}
+          <div className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-200">
+            <div className="font-semibold">{runResult.error}</div>
+            {runResult.raw && (
+              <pre className="mt-1 max-h-40 overflow-auto text-[10px] text-red-200/70 whitespace-pre-wrap break-words">
+                {JSON.stringify(runResult.raw, null, 2)}
+              </pre>
+            )}
           </div>
         )}
       </div>
