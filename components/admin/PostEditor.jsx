@@ -45,7 +45,7 @@ import {
   Minus, Info, Printer, Type,
   Maximize2, Minimize2,
   Sparkles, Star, Folder, Tag, Calendar, User,
-  ChevronDown, Save, Send, Quote,
+  ChevronDown, Save, Send, Quote, EyeOff,
   FileText, Clock, Check, TrendingUp, Wand2, Crown,
 } from 'lucide-react';
 
@@ -370,6 +370,72 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
   const [iucnVerifiedAt, setIucnVerifiedAt] = useState(initial?.iucnVerifiedAt || null);
   const [bookStatus, setBookStatus] = useState(initial?.bookStatus || null);
 
+  // ── Dirty / publish-state tracking ──────────────────────────────
+  // dbStatus mirrors the post's CURRENT status in the database (only
+  // changes after a successful save). Drives the Publish button label
+  // ("Publish now" vs "Publish update") and the Unpublish button's
+  // visibility — both independent of the local checkbox toggle.
+  const [dbStatus, setDbStatus] = useState(initial?.status || 'draft');
+  const isDbPublished = dbStatus === 'published';
+
+  // currentBody mirrors the Tiptap editor's HTML so dirty detection
+  // includes body edits. Synced via editor.on('update', …) below.
+  const [currentBody, setCurrentBody] = useState(() => initial?.body || '');
+
+  // Build a stable JSON signature of every editable field at mount.
+  // The signature gets refreshed after a successful save so the
+  // buttons re-disable until the next edit. JSON.stringify keeps the
+  // comparison cheap and safely handles strings, objects, and
+  // booleans uniformly.
+  const buildSignature = useCallback((vals) => JSON.stringify({
+    title: vals.title || '',
+    slug: vals.slug || '',
+    category: vals.category || '',
+    label: vals.label || '',
+    description: vals.description || '',
+    excerpt: vals.excerpt || '',
+    cover: typeof vals.cover === 'string' ? vals.cover : JSON.stringify(vals.cover ?? ''),
+    palette: JSON.stringify(vals.palette || null),
+    featured: !!vals.featured,
+    tags: vals.tags || '',
+    publishDate: vals.publishDate || '',
+    metaTitle: vals.metaTitle || '',
+    metaDesc: vals.metaDesc || '',
+    metaKw: vals.metaKw || '',
+    iucnStatus: vals.iucnStatus ?? null,
+    scientificName: vals.scientificName ?? null,
+    iucnVerified: !!vals.iucnVerified,
+    iucnVerifiedAt: vals.iucnVerifiedAt ?? null,
+    bookStatus: vals.bookStatus ?? null,
+    body: vals.body || '',
+  }), []);
+
+  // Snapshot the initial state once on mount.
+  const [snapshot, setSnapshot] = useState(() => buildSignature({
+    title: initial?.title || '',
+    slug: initial?.slug || '',
+    category: initial?.category || lockedCategory || 'animals',
+    label: initial?.label || '',
+    description: initial?.description || '',
+    excerpt: '',
+    cover: initial?.cover || '',
+    palette: initial?.coverPalette || { from: '#0c4a1a', via: '#3aa15a', to: '#d4af37' },
+    featured: !!initial?.featured,
+    tags: Array.isArray(initial?.tags) ? initial.tags.join(', ') : '',
+    publishDate: initial?.publishDate
+      ? new Date(initial.publishDate).toISOString().slice(0, 16)
+      : new Date().toISOString().slice(0, 16),
+    metaTitle: '',
+    metaDesc: '',
+    metaKw: '',
+    iucnStatus: initial?.iucnStatus || null,
+    scientificName: initial?.scientificName || null,
+    iucnVerified: initial?.iucnVerified || false,
+    iucnVerifiedAt: initial?.iucnVerifiedAt || null,
+    bookStatus: initial?.bookStatus || null,
+    body: initial?.body || '',
+  }));
+
   const currentCat = useMemo(() => categories.find(c => c.slug === category), [category]);
   const labelOptions = currentCat?.labels || [];
 
@@ -398,6 +464,38 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
     content: initial?.body || '',
     editorProps: { attributes: { class: 'tiptap-content' } },
   });
+
+  // Mirror the editor's HTML into React state so dirty detection sees
+  // body edits. Attached imperatively because useEditor's onUpdate
+  // option is set at construction and we don't have a stable
+  // setCurrentBody reference at that point in the file.
+  useEffect(() => {
+    if (!editor) return;
+    const handler = () => setCurrentBody(editor.getHTML());
+    editor.on('update', handler);
+    return () => { editor.off('update', handler); };
+  }, [editor]);
+
+  // Live dirty flag — any change to any tracked field, including the
+  // SEO meta + excerpt + Tiptap body, re-enables the Save / Publish
+  // buttons. Reverting a change back to the snapshot re-disables them.
+  const isDirty = useMemo(() => {
+    const current = buildSignature({
+      title, slug, category, label, description, excerpt,
+      cover, palette, featured, tags, publishDate,
+      metaTitle, metaDesc, metaKw,
+      iucnStatus, scientificName, iucnVerified, iucnVerifiedAt, bookStatus,
+      body: currentBody,
+    });
+    return current !== snapshot;
+  }, [
+    snapshot, buildSignature,
+    title, slug, category, label, description, excerpt,
+    cover, palette, featured, tags, publishDate,
+    metaTitle, metaDesc, metaKw,
+    iucnStatus, scientificName, iucnVerified, iucnVerifiedAt, bookStatus,
+    currentBody,
+  ]);
 
   const wordCount = editor?.storage?.characterCount?.words() ?? 0;
   const charCount = editor?.storage?.characterCount?.characters() ?? 0;
@@ -564,6 +662,23 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
       ]);
       localStorage.removeItem(draftKey);
       setSavedAt(new Date());
+      // Refresh the dirty snapshot so the buttons re-disable until the
+      // next real edit. Use the same payload we just sent so the
+      // snapshot exactly matches what's now in the database.
+      setDbStatus(status);
+      setSnapshot(buildSignature({
+        title: payload.title, slug: payload.slug,
+        category: payload.category, label: payload.label,
+        description: payload.description, excerpt: payload.excerpt,
+        cover: payload.cover, palette: payload.coverPalette,
+        featured: payload.featured, tags: tags,
+        publishDate: payload.publishDate,
+        metaTitle: payload.metaTitle, metaDesc: payload.metaDesc, metaKw: payload.metaKw,
+        iucnStatus: payload.iucnStatus, scientificName: payload.scientificName,
+        iucnVerified: payload.iucnVerified, iucnVerifiedAt: payload.iucnVerifiedAt,
+        bookStatus: payload.bookStatus,
+        body: payload.body,
+      }));
     } catch (err) {
       // Surface a real error so the user doesn't keep hitting Publish into the void.
       console.error('[PostEditor] save failed:', err);
@@ -665,29 +780,63 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
             >
               <Printer size={14} />
             </button>
+            {/* SAVE — persists changes without touching status.
+                Disabled when nothing has changed since load/last-save. */}
             <button
-              onClick={() => handleSave('draft')}
-              disabled={saving}
+              onClick={() => handleSave(isDbPublished ? 'published' : 'draft')}
+              disabled={saving || !isDirty}
+              title={!isDirty && !saving ? 'No unsaved changes' : (isDbPublished ? 'Save changes (post stays published)' : 'Save draft')}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 height: 34, padding: '0 16px', borderRadius: 7, border: 'none',
                 background: '#374151', color: '#fff', fontSize: 12, fontWeight: 600,
-                cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1,
+                cursor: saving ? 'wait' : (!isDirty ? 'not-allowed' : 'pointer'),
+                opacity: saving ? 0.7 : (!isDirty ? 0.45 : 1),
               }}
             >
-              <Save size={13} /> {saving ? 'Saving…' : 'Save Draft'}
+              <Save size={13} /> {saving ? 'Saving…' : 'Save'}
             </button>
+
+            {/* UNPUBLISH — only when the post is currently published.
+                Always pressable while not saving (status action, not a
+                content save). Confirms before firing. */}
+            {isDbPublished && (
+              <button
+                onClick={() => {
+                  if (!window.confirm('Unpublish this post? It will be hidden from the public site until you re-publish.')) return;
+                  handleSave('draft');
+                }}
+                disabled={saving}
+                title="Hide this post from the public site"
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 5,
+                  height: 34, padding: '0 14px', borderRadius: 7,
+                  border: '1px solid var(--adm-border)',
+                  background: 'transparent', color: 'var(--adm-text)',
+                  fontSize: 12, fontWeight: 600,
+                  cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1,
+                }}
+              >
+                <EyeOff size={13} /> Unpublish
+              </button>
+            )}
+
+            {/* PUBLISH NOW (drafts) / PUBLISH UPDATE (already-live).
+                Label reflects current DB status. Disabled when nothing
+                has changed since load/last-save. */}
             <button
               onClick={() => handleSave('published')}
-              disabled={saving}
+              disabled={saving || !isDirty}
+              title={!isDirty && !saving ? 'No unsaved changes' : (isDbPublished ? 'Publish your edits to the live post' : 'Publish this post to the public site')}
               style={{
                 display: 'flex', alignItems: 'center', gap: 5,
                 height: 34, padding: '0 16px', borderRadius: 7, border: 'none',
                 background: '#1d4ed8', color: '#fff', fontSize: 12, fontWeight: 600,
-                cursor: saving ? 'wait' : 'pointer', opacity: saving ? 0.7 : 1,
+                cursor: saving ? 'wait' : (!isDirty ? 'not-allowed' : 'pointer'),
+                opacity: saving ? 0.7 : (!isDirty ? 0.45 : 1),
               }}
             >
-              <Send size={13} /> Publish Now
+              <Send size={13} /> {saving ? 'Saving…' : (isDbPublished ? 'Publish update' : 'Publish now')}
             </button>
           </div>
           </div>
