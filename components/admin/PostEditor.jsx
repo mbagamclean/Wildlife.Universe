@@ -543,7 +543,25 @@ export function PostEditor({ initial, lockedCategory = null, onSave, onCancel })
       bookStatus,
     };
     try {
-      await onSave(payload);
+      // Race the save against a hard 20s ceiling. The browser Supabase
+      // client occasionally hangs forever on a stalled auth lock (the
+      // "Lock was released because another request stole it" pattern this
+      // codebase has hit before — see lib/supabase/client.js header). A
+      // hung await means the `finally` below never runs and the Publish
+      // button stays "Saving…" until the user refreshes or logs out.
+      // The timeout guarantees the UI can never get permanently stuck,
+      // and the catch shows a clear recovery message.
+      await Promise.race([
+        onSave(payload),
+        new Promise((_, reject) =>
+          setTimeout(
+            () => reject(new Error(
+              'Save timed out after 20s. Refresh first to check if it went through — if not, log out and back in, then try again.',
+            )),
+            20000,
+          ),
+        ),
+      ]);
       localStorage.removeItem(draftKey);
       setSavedAt(new Date());
     } catch (err) {
