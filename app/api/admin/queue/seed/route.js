@@ -177,13 +177,23 @@ export async function POST(req) {
       return true;
     });
 
-  // Dedup against existing queue + already-published posts. Compare
-  // case-insensitively too — "African Lion" and "african lion" should
-  // collapse to one row even if the DB constraint is case-sensitive.
+  // Dedup against existing queue + already-published posts.
+  //
+  // The real DB constraint is composite: UNIQUE (category, label, topic)
+  // — see migration 013, line 34. Filter the existence query by the
+  // same (category, label) pair so we don't false-positive when the
+  // SAME species name happens to exist under a different label
+  // (e.g. "African Lion" in Mammals shouldn't block it in IUCN
+  // Redlist). Compare case-insensitively too — "African Lion" and
+  // "african lion" should collapse.
   const sb = adminSupabase();
   const titleList = candidates.map((c) => c.title);
   const [existingQueue, existingPosts] = await Promise.all([
-    sb.from('content_queue').select('topic').in('topic', titleList),
+    sb.from('content_queue')
+      .select('topic')
+      .eq('category', cat.slug)
+      .eq('label', label)
+      .in('topic', titleList),
     sb.from('posts').select('title').in('title', titleList).neq('status', 'draft'),
   ]);
   const taken = new Set([
@@ -212,18 +222,49 @@ export async function POST(req) {
     status: 'pending',
     priority: 0,
   }));
-  // Upsert with ignoreDuplicates as a final safety net — even with the
-  // intra-batch + DB dedup above, a parallel seed request could race
-  // and produce a duplicate. ignoreDuplicates makes the conflict a
-  // no-op instead of a hard 500.
-  const { error: insertErr } = await sb
+  // Upsert with ignoreDuplicates and the EXACT composite onConflict
+  // matching migration 013:
+  //   CONSTRAINT content_queue_unique_topic UNIQUE (category, label, topic)
+  //
+  // Previous code passed onConflict: 'topic' — that did not match the
+  // composite constraint, so PostgREST couldn't apply the ignore
+  // clause and every collision still raised
+  // "duplicate key value violates unique constraint content_queue_unique_topic".
+  // The bug surface here is exactly the constraint mismatch.
+  let insertedCount = 0;
+  const { data: bulkInserted, error: insertErr } = await sb
     .from('content_queue')
-    .upsert(rows, { onConflict: 'topic', ignoreDuplicates: true });
-  if (insertErr) {
-    return NextResponse.json({
-      error: 'queue-insert-failed',
-      detail: insertErr.message,
-    }, { status: 500 });
+    .upsert(rows, {
+      onConflict: 'category,label,topic',
+      ignoreDuplicates: true,
+    })
+    .select('id');
+
+  if (!insertErr) {
+    insertedCount = (bulkInserted || []).length;
+  } else {
+    // Belt-and-braces fallback: if the upsert itself errored (network
+    // hiccup, edge case in PostgREST), insert one row at a time and
+    // swallow per-row duplicate-key violations. The user still gets
+    // partial success — every non-duplicate row lands.
+    console.warn('[queue/seed] bulk upsert failed, falling back to per-row inserts:', insertErr.message);
+    for (const row of rows) {
+      const { error: rowErr } = await sb
+        .from('content_queue')
+        .insert(row)
+        .select('id')
+        .maybeSingle();
+      if (!rowErr) {
+        insertedCount += 1;
+      } else if (!/duplicate key|unique constraint/i.test(rowErr.message || '')) {
+        // Anything other than a constraint violation is a real failure
+        return NextResponse.json({
+          error: 'queue-insert-failed',
+          detail: rowErr.message,
+        }, { status: 500 });
+      }
+      // else: silent skip on duplicate
+    }
   }
 
   return NextResponse.json({
