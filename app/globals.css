@@ -733,19 +733,41 @@ button {
   display: block;
   margin: 1.2em auto;
 }
-/* Mobile bleed: on phones the article card is edge-to-edge, so let
-   images bleed past the 1rem horizontal card padding for a true
-   full-screen-width read. */
+/* Mobile post-image treatment.
+   Each image renders inside a 97%-wide rounded container, centred in
+   the column. The 3% remainder splits as a small breathing gutter on
+   each side. We also bleed slightly past the card's horizontal
+   padding (~1rem) so the rendered image is roughly 1.5× the size it
+   would naturally claim inside the padded card — taller, more
+   readable, more premium. The shadow gives the rounded card a soft
+   lift, and overflow:hidden on figure keeps figcaption tight under
+   the image. */
 @media (max-width: 640px) {
+  .post-body figure {
+    width: calc(100% + 1.4rem);
+    max-width: none;
+    margin: 1.5em -0.7rem;
+  }
   .post-body img,
   .post-body video,
   .post-body figure > img,
   .post-body figure > video {
-    margin-left: -1rem;
-    margin-right: -1rem;
-    width: calc(100% + 2rem);
-    max-width: none;
-    border-radius: 0;
+    width: 97%;
+    max-width: 97%;
+    margin-left: auto;
+    margin-right: auto;
+    border-radius: 18px;
+    box-shadow: 0 6px 22px rgba(0, 0, 0, 0.12), 0 2px 6px rgba(0, 0, 0, 0.08);
+    display: block;
+  }
+  /* Standalone images outside <figure> also bleed slightly past
+     the card padding so they end up the same visual size as the
+     figure-wrapped ones above. */
+  .post-body > img,
+  .post-body > p > img,
+  .post-body > video {
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 .post-body figure { margin: 1.2em 0; }
