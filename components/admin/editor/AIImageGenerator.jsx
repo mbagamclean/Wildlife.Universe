@@ -120,6 +120,10 @@ export function AIImageGenerator({ editor, cover, category, label, title, onCove
   const store = useAIStore();
   const [activeTab, setActiveTab] = useState('Text to Image');
   const [h2Headings, setH2Headings] = useState([]);
+  // Which detected headings should the next bulk run image?
+  // Stored as a Set of heading text so a heading rename remaps cleanly
+  // when the editor's H2 list mutates underneath us.
+  const [selectedHeadings, setSelectedHeadings] = useState(() => new Set());
 
   // Featured image flow: when the post has a cover, feed it into the
   // generator as a *species reference* so the AI matches the same animal,
@@ -145,7 +149,34 @@ export function AIImageGenerator({ editor, cover, category, label, title, onCove
     if (store.bulkJobs.length === 0 && headings.length > 0) {
       store.setBulkJobs(headings.map(h => ({ heading: h, status: 'pending', imageUrl: null, error: null })));
     }
+    // Sync selection: keep current picks intact across edits, and
+    // auto-select any newly-added heading so first-time use needs
+    // zero clicks to pick "all".
+    setSelectedHeadings((prev) => {
+      const next = new Set();
+      for (const h of headings) {
+        if (prev.size === 0 || prev.has(h)) next.add(h);
+      }
+      return next;
+    });
   }, [editor?.state.doc]);
+
+  const toggleHeading = useCallback((h) => {
+    setSelectedHeadings((prev) => {
+      const next = new Set(prev);
+      if (next.has(h)) next.delete(h);
+      else next.add(h);
+      return next;
+    });
+  }, []);
+
+  const selectAllHeadings = useCallback(() => {
+    setSelectedHeadings(new Set(h2Headings));
+  }, [h2Headings]);
+
+  const selectNoHeadings = useCallback(() => {
+    setSelectedHeadings(new Set());
+  }, []);
 
   const generateSingle = useCallback(async () => {
     if (store.isGeneratingImage || !store.imagePrompt.trim()) return;
@@ -203,23 +234,27 @@ export function AIImageGenerator({ editor, cover, category, label, title, onCove
 
   const generateBulk = useCallback(async () => {
     if (store.isBulkRunning || h2Headings.length === 0) return;
+    if (selectedHeadings.size === 0) return;
     store.setIsBulkRunning(true);
 
     // Build context for each heading by reading editor content
-    const headingData = [];
+    const allHeadingData = [];
     let currentH2 = null;
     let contextParts = [];
 
     editor?.state.doc.descendants((node) => {
       if (node.type.name === 'heading' && node.attrs.level === 2) {
-        if (currentH2) headingData.push({ heading: currentH2, context: contextParts.join(' ') });
+        if (currentH2) allHeadingData.push({ heading: currentH2, context: contextParts.join(' ') });
         currentH2 = node.textContent;
         contextParts = [];
       } else if (currentH2 && node.isText) {
         contextParts.push(node.text || '');
       }
     });
-    if (currentH2) headingData.push({ heading: currentH2, context: contextParts.join(' ') });
+    if (currentH2) allHeadingData.push({ heading: currentH2, context: contextParts.join(' ') });
+
+    // Honour the user's picks — only generate for selected headings.
+    const headingData = allHeadingData.filter((h) => selectedHeadings.has(h.heading));
 
     // Reset jobs
     const jobs = headingData.map(h => ({ ...h, status: 'pending', imageUrl: null, error: null }));
@@ -270,7 +305,7 @@ export function AIImageGenerator({ editor, cover, category, label, title, onCove
     }
 
     store.setIsBulkRunning(false);
-  }, [editor, h2Headings, store, effectiveProvider, useFeaturedAsReference, coverUrl, speciesContext]);
+  }, [editor, h2Headings, selectedHeadings, store, effectiveProvider, useFeaturedAsReference, coverUrl, speciesContext]);
 
   const insertImage = useCallback((image, mode) => {
     if (mode === 'cover') {
@@ -317,7 +352,13 @@ export function AIImageGenerator({ editor, cover, category, label, title, onCove
       {/* Tabs */}
       <div style={{ display: 'flex', borderBottom: '1px solid var(--adm-border)', marginBottom: 12 }}>
         {IMAGE_TABS.map(t => {
-          const label = t === 'Text to Image' ? 'Generate' : t === 'Bulk' ? `Bulk (${h2Headings.length})` : t;
+          const bulkCount =
+            h2Headings.length === 0
+              ? '0'
+              : selectedHeadings.size === h2Headings.length
+                ? String(h2Headings.length)
+                : `${selectedHeadings.size}/${h2Headings.length}`;
+          const label = t === 'Text to Image' ? 'Generate' : t === 'Bulk' ? `Bulk (${bulkCount})` : t;
           return (
             <button key={t} onClick={() => setActiveTab(t)} style={{
               flex: 1, padding: '7px 4px', fontSize: 10, fontWeight: 700, border: 'none', background: 'transparent',
@@ -486,24 +527,96 @@ export function AIImageGenerator({ editor, cover, category, label, title, onCove
             </div>
           ) : (
             <>
-              <div style={{ fontSize: 11, color: 'var(--adm-text-subtle)' }}>
-                {h2Headings.length} H2 section{h2Headings.length !== 1 ? 's' : ''} detected. Each will get a unique wildlife image.
+              {/* Heading picker — tick the sections you want images for */}
+              <div style={{
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                fontSize: 11, color: 'var(--adm-text-subtle)',
+              }}>
+                <span>
+                  <strong style={{ color: 'var(--adm-text)' }}>{selectedHeadings.size}</strong>
+                  {' '}of {h2Headings.length} section{h2Headings.length !== 1 ? 's' : ''} selected
+                </span>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button
+                    type="button"
+                    onClick={selectAllHeadings}
+                    disabled={store.isBulkRunning || selectedHeadings.size === h2Headings.length}
+                    style={{
+                      fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 6,
+                      border: '1px solid var(--adm-border)', background: 'var(--adm-surface)',
+                      color: 'var(--adm-text)', cursor: 'pointer',
+                    }}
+                  >All</button>
+                  <button
+                    type="button"
+                    onClick={selectNoHeadings}
+                    disabled={store.isBulkRunning || selectedHeadings.size === 0}
+                    style={{
+                      fontSize: 10, fontWeight: 700, padding: '3px 9px', borderRadius: 6,
+                      border: '1px solid var(--adm-border)', background: 'var(--adm-surface)',
+                      color: 'var(--adm-text)', cursor: 'pointer',
+                    }}
+                  >None</button>
+                </div>
               </div>
+
+              <div style={{
+                display: 'flex', flexDirection: 'column', gap: 4,
+                maxHeight: 220, overflowY: 'auto',
+                padding: 6, borderRadius: 8, border: '1px solid var(--adm-border)',
+                background: 'var(--adm-surface)',
+              }}>
+                {h2Headings.map((h, i) => {
+                  const checked = selectedHeadings.has(h);
+                  return (
+                    <label
+                      key={`${h}-${i}`}
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '7px 9px', borderRadius: 6, cursor: store.isBulkRunning ? 'wait' : 'pointer',
+                        background: checked ? 'rgba(124,58,237,0.08)' : 'transparent',
+                        border: '1px solid ' + (checked ? 'rgba(124,58,237,0.25)' : 'transparent'),
+                        transition: 'background 0.15s, border-color 0.15s',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        disabled={store.isBulkRunning}
+                        onChange={() => toggleHeading(h)}
+                        style={{
+                          width: 14, height: 14, accentColor: PURPLE,
+                          flexShrink: 0, cursor: 'inherit',
+                        }}
+                      />
+                      <span style={{
+                        fontSize: 11, fontWeight: 600, color: 'var(--adm-text)',
+                        overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+                      }}>
+                        {h || <em style={{ color: 'var(--adm-text-subtle)' }}>(empty heading)</em>}
+                      </span>
+                    </label>
+                  );
+                })}
+              </div>
+
               <button
                 onClick={generateBulk}
-                disabled={store.isBulkRunning}
+                disabled={store.isBulkRunning || selectedHeadings.size === 0}
                 style={{
                   padding: '11px', borderRadius: 10, fontSize: 12, fontWeight: 700, border: 'none',
-                  background: store.isBulkRunning ? 'var(--adm-hover-bg)' : GRAD,
-                  color: store.isBulkRunning ? 'var(--adm-text-muted)' : '#fff',
-                  cursor: store.isBulkRunning ? 'wait' : 'pointer',
+                  background: store.isBulkRunning || selectedHeadings.size === 0 ? 'var(--adm-hover-bg)' : GRAD,
+                  color: store.isBulkRunning || selectedHeadings.size === 0 ? 'var(--adm-text-muted)' : '#fff',
+                  cursor: store.isBulkRunning ? 'wait' : selectedHeadings.size === 0 ? 'not-allowed' : 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
                 }}
               >
                 {store.isBulkRunning ? (
-                  <><motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} style={{ display: 'inline-block' }}>⟳</motion.span> Generating {h2Headings.length} images…</>
+                  <><motion.span animate={{ rotate: 360 }} transition={{ repeat: Infinity, duration: 1, ease: 'linear' }} style={{ display: 'inline-block' }}>⟳</motion.span> Generating {store.bulkJobs.length} image{store.bulkJobs.length !== 1 ? 's' : ''}…</>
+                ) : selectedHeadings.size === 0 ? (
+                  <><span>≡</span> Pick at least one section</>
                 ) : (
-                  <><span>≡</span> Generate All {h2Headings.length} Section Images</>
+                  <><span>≡</span> Generate {selectedHeadings.size} Section Image{selectedHeadings.size !== 1 ? 's' : ''}</>
                 )}
               </button>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
