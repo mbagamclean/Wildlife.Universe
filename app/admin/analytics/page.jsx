@@ -17,8 +17,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import {
   BarChart3, Globe, Smartphone, MousePointerClick, Users, Eye,
-  Activity, FileText, ChevronDown,
+  Activity, FileText, ChevronDown, ArrowUp, ArrowDown,
 } from 'lucide-react';
+import { WorldMap } from '@/components/admin/analytics/WorldMap';
 
 const RANGES = [
   { id: '24h', label: 'Today' },
@@ -35,7 +36,12 @@ function fmtNumber(n) {
   return String(n);
 }
 
-function KPI({ icon: Icon, label, value, sub }) {
+function KPI({ icon: Icon, label, value, delta }) {
+  // delta is a percentage number. 0 → no comparison row. Positive
+  // green ▲, negative red ▼, exactly matching Plausible's idiom.
+  const hasDelta = typeof delta === 'number' && Number.isFinite(delta);
+  const positive = hasDelta && delta > 0;
+  const negative = hasDelta && delta < 0;
   return (
     <div style={{
       flex: 1, minWidth: 0,
@@ -55,8 +61,106 @@ function KPI({ icon: Icon, label, value, sub }) {
       }}>
         {value}
       </div>
-      {sub && (
-        <div style={{ marginTop: 4, fontSize: 11, color: 'var(--adm-text-muted)' }}>{sub}</div>
+      {hasDelta && (
+        <div style={{
+          marginTop: 4, display: 'inline-flex', alignItems: 'center', gap: 3,
+          fontSize: 11, fontWeight: 700,
+          color: positive ? '#16a34a' : negative ? '#dc2626' : 'var(--adm-text-muted)',
+        }}>
+          {positive ? <ArrowUp size={11} strokeWidth={2.5} aria-hidden /> : negative ? <ArrowDown size={11} strokeWidth={2.5} aria-hidden /> : null}
+          {Math.abs(delta)}%
+          <span style={{ color: 'var(--adm-text-muted)', fontWeight: 500 }}>vs. previous</span>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * Multi-tab panel. Each tab swaps the rows list (and optionally the
+ * panel body — used for Locations to swap between the WorldMap and
+ * the countries list).
+ */
+function TabbedPanel({ title, icon: Icon, tabs, defaultTab, render, rows, formatName, emptyText = 'No data yet' }) {
+  const [tab, setTab] = useState(defaultTab || tabs[0].id);
+  const activeTab = tabs.find((t) => t.id === tab) || tabs[0];
+  const activeRows = typeof rows === 'function' ? rows(activeTab.id) : rows;
+  const max = activeRows && activeRows.length > 0 ? Math.max(...activeRows.map((r) => r.count)) : 1;
+
+  return (
+    <div style={{
+      padding: 16, borderRadius: 12,
+      background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',
+      minHeight: 280,
+    }}>
+      <div style={{
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        marginBottom: 10, gap: 8, flexWrap: 'wrap',
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <Icon size={14} strokeWidth={2} aria-hidden style={{ color: 'var(--color-primary)' }} />
+          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-text)' }}>{title}</span>
+        </div>
+        <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--adm-border)' }}>
+          {tabs.map((t) => (
+            <button
+              key={t.id}
+              type="button"
+              onClick={() => setTab(t.id)}
+              style={{
+                fontSize: 11, fontWeight: 700, padding: '4px 10px', border: 'none',
+                background: 'transparent',
+                color: tab === t.id ? 'var(--color-primary)' : 'var(--adm-text-muted)',
+                borderBottom: tab === t.id ? '2px solid var(--color-primary)' : '2px solid transparent',
+                marginBottom: -1, cursor: 'pointer',
+              }}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Custom render for special tabs (e.g. world map) */}
+      {render && render(activeTab.id)}
+
+      {/* Standard row list — hidden when render() is in charge */}
+      {!render && (
+        (!activeRows || activeRows.length === 0) ? (
+          <div style={{ fontSize: 12, color: 'var(--adm-text-subtle)', textAlign: 'center', padding: '32px 0' }}>
+            {emptyText}
+          </div>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            {activeRows.map((row, i) => {
+              const pct = (row.count / max) * 100;
+              const display = formatName ? formatName(row) : row.name;
+              return (
+                <div key={`${row.name}-${i}`} style={{ position: 'relative' }}>
+                  <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'rgba(124, 58, 237, 0.10)',
+                    borderRadius: 6,
+                    width: `${pct}%`,
+                    transition: 'width 0.3s',
+                  }} />
+                  <div style={{
+                    position: 'relative',
+                    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                    padding: '6px 10px', fontSize: 12, color: 'var(--adm-text)',
+                  }}>
+                    <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
+                      {display}
+                    </span>
+                    <span style={{ fontWeight: 700, color: 'var(--adm-text)', fontVariantNumeric: 'tabular-nums' }}>
+                      {fmtNumber(row.count)}
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )
       )}
     </div>
   );
@@ -161,92 +265,6 @@ function TimeseriesChart({ data, hours }) {
   );
 }
 
-function Panel({ title, icon: Icon, rows, formatName, emptyText = 'No data yet' }) {
-  const max = rows && rows.length > 0 ? Math.max(...rows.map((r) => r.count)) : 1;
-  return (
-    <div style={{
-      padding: 16, borderRadius: 12,
-      background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',
-      minHeight: 280,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10 }}>
-        <Icon size={14} strokeWidth={2} aria-hidden style={{ color: 'var(--color-primary)' }} />
-        <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-text)' }}>{title}</span>
-      </div>
-      {(!rows || rows.length === 0) ? (
-        <div style={{ fontSize: 12, color: 'var(--adm-text-subtle)', textAlign: 'center', padding: '32px 0' }}>
-          {emptyText}
-        </div>
-      ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-          {rows.map((row, i) => {
-            const pct = (row.count / max) * 100;
-            const display = formatName ? formatName(row) : row.name;
-            return (
-              <div key={`${row.name}-${i}`} style={{ position: 'relative' }}>
-                <div style={{
-                  position: 'absolute', inset: 0,
-                  background: 'rgba(124, 58, 237, 0.10)',
-                  borderRadius: 6,
-                  width: `${pct}%`,
-                  transition: 'width 0.3s',
-                }} />
-                <div style={{
-                  position: 'relative',
-                  display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                  padding: '6px 10px', fontSize: 12, color: 'var(--adm-text)',
-                }}>
-                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: '70%' }}>
-                    {display}
-                  </span>
-                  <span style={{ fontWeight: 700, color: 'var(--adm-text)', fontVariantNumeric: 'tabular-nums' }}>
-                    {fmtNumber(row.count)}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function DevicesPanel({ browsers, os, devices }) {
-  const [tab, setTab] = useState('browser');
-  const rows = tab === 'browser' ? browsers : tab === 'os' ? os : devices;
-  return (
-    <div style={{
-      padding: 16, borderRadius: 12,
-      background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',
-      minHeight: 280,
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <Smartphone size={14} strokeWidth={2} aria-hidden style={{ color: 'var(--color-primary)' }} />
-          <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--adm-text)' }}>Devices</span>
-        </div>
-        <div style={{ display: 'flex', gap: 4 }}>
-          {['browser', 'os', 'device'].map((t) => (
-            <button
-              key={t}
-              type="button"
-              onClick={() => setTab(t)}
-              style={{
-                fontSize: 10, fontWeight: 700, padding: '4px 8px', borderRadius: 5,
-                border: '1px solid var(--adm-border)',
-                background: tab === t ? 'var(--color-primary)' : 'transparent',
-                color: tab === t ? '#fff' : 'var(--adm-text-muted)',
-                textTransform: 'capitalize', cursor: 'pointer',
-              }}
-            >{t === 'os' ? 'OS' : t}</button>
-          ))}
-        </div>
-      </div>
-      <Panel title="" icon={Smartphone} rows={rows} />
-    </div>
-  );
-}
 
 export default function AnalyticsDashboardPage() {
   const [range, setRange] = useState('7d');
@@ -355,46 +373,102 @@ export default function AnalyticsDashboardPage() {
         </div>
       ) : data ? (
         <>
-          {/* KPI row */}
+          {/* KPI row with comparison deltas vs. previous period */}
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
-            <KPI icon={Eye} label="Pageviews" value={fmtNumber(data.totals.pageviews)} />
-            <KPI icon={Users} label="Unique visitors" value={fmtNumber(data.totals.uniqueVisitors)} />
-            <KPI icon={MousePointerClick} label="Views / visit" value={data.totals.viewsPerVisit.toFixed(2)} />
+            <KPI icon={Eye} label="Pageviews" value={fmtNumber(data.totals.pageviews)} delta={data.deltas?.pageviews} />
+            <KPI icon={Users} label="Unique visitors" value={fmtNumber(data.totals.uniqueVisitors)} delta={data.deltas?.uniqueVisitors} />
+            <KPI icon={MousePointerClick} label="Views / visit" value={data.totals.viewsPerVisit.toFixed(2)} delta={data.deltas?.viewsPerVisit} />
             <KPI icon={Activity} label="Live (5m)" value={fmtNumber(data.live)} />
           </div>
+
+          {/* Currently-viewing strip — what people are reading right now */}
+          {data.currentPages && data.currentPages.length > 0 && (
+            <div style={{
+              padding: '10px 14px', borderRadius: 12,
+              background: 'var(--adm-surface)', border: '1px solid var(--adm-border)',
+            }}>
+              <div style={{
+                fontSize: 11, fontWeight: 700, color: 'var(--adm-text-subtle)',
+                textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 6,
+                display: 'inline-flex', alignItems: 'center', gap: 5,
+              }}>
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }} />
+                Currently viewing
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+                {data.currentPages.map((p) => (
+                  <span key={p.name} style={{
+                    fontSize: 12, padding: '4px 9px', borderRadius: 999,
+                    border: '1px solid var(--adm-border)',
+                    background: 'var(--adm-surface-deep, transparent)',
+                    color: 'var(--adm-text)',
+                  }}>
+                    <span style={{ color: 'var(--adm-text-muted)' }}>{p.name}</span>
+                    <span style={{ marginLeft: 6, fontWeight: 700 }}>{p.count}</span>
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Chart */}
           <TimeseriesChart data={data.timeseries} hours={data.window.hours} />
 
-          {/* Breakdowns */}
+          {/* Breakdowns — Plausible-style tabbed panels */}
           <div style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))',
             gap: 12,
           }}>
-            <Panel
-              title="Top pages"
-              icon={FileText}
-              rows={data.topPages}
-              emptyText="No pageviews yet."
-            />
-            <Panel
+            {/* Sources — Channels | Sources */}
+            <TabbedPanel
               title="Top sources"
               icon={BarChart3}
-              rows={data.topSources}
+              tabs={[
+                { id: 'channels', label: 'Channels' },
+                { id: 'sources', label: 'Sources' },
+              ]}
+              rows={(t) => t === 'channels' ? data.topChannels : data.topSources}
               emptyText="No referrers yet."
             />
-            <Panel
-              title="Top locations"
+
+            {/* Pages — Top | Entry | Exit */}
+            <TabbedPanel
+              title="Pages"
+              icon={FileText}
+              tabs={[
+                { id: 'top', label: 'Top' },
+                { id: 'entry', label: 'Entry' },
+                { id: 'exit', label: 'Exit' },
+              ]}
+              rows={(t) => t === 'entry' ? data.entryPages : t === 'exit' ? data.exitPages : data.topPages}
+              emptyText="No pageviews yet."
+            />
+
+            {/* Locations — Map | Countries */}
+            <TabbedPanel
+              title="Locations"
               icon={Globe}
-              rows={data.topLocations}
-              formatName={(r) => `${r.code === r.name ? r.code : `${r.name}`}`}
+              tabs={[
+                { id: 'map', label: 'Map' },
+                { id: 'list', label: 'Countries' },
+              ]}
+              render={(t) => t === 'map' ? <WorldMap data={data.topLocations} /> : null}
+              rows={(t) => t === 'list' ? data.topLocations : null}
               emptyText="No location data yet."
             />
-            <DevicesPanel
-              browsers={data.topBrowsers}
-              os={data.topOS}
-              devices={data.topDevices}
+
+            {/* Devices — Browser | OS | Device */}
+            <TabbedPanel
+              title="Devices"
+              icon={Smartphone}
+              tabs={[
+                { id: 'browser', label: 'Browser' },
+                { id: 'os', label: 'OS' },
+                { id: 'device', label: 'Device' },
+              ]}
+              rows={(t) => t === 'browser' ? data.topBrowsers : t === 'os' ? data.topOS : data.topDevices}
+              emptyText="No device data yet."
             />
           </div>
         </>

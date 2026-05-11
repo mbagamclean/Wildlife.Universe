@@ -39,6 +39,16 @@ function rangeWindow(range) {
   return { start: start.toISOString(), end: now.toISOString(), hours };
 }
 
+// Previous-period window of the same length, ending where the current
+// window starts. Powers the ▲/▼ comparison deltas on each KPI.
+function previousWindow(range) {
+  const hours = RANGE_HOURS[range] || RANGE_HOURS['7d'];
+  const now = new Date();
+  const start = new Date(now.getTime() - hours * 2 * 60 * 60 * 1000);
+  const end = new Date(now.getTime() - hours * 60 * 60 * 1000);
+  return { start: start.toISOString(), end: end.toISOString(), hours };
+}
+
 // ─── UA parser — tiny regex-based heuristic, zero dependency ─────
 // Returns { browser, os, device } from a raw user-agent string. Keeps
 // the dashboard's Browser / OS / Device panels meaningful without
@@ -122,6 +132,20 @@ function countryName(code) {
   return COUNTRY_NAMES[code.toUpperCase()] || code.toUpperCase();
 }
 
+// Classify a parsed referrer into a high-level channel — the same
+// buckets Plausible uses (Direct, Organic Search, Social, Referral).
+const SEARCH_ENGINES = new Set(['Google', 'Bing', 'DuckDuckGo', 'Yahoo', 'Yandex', 'Baidu', 'Ecosia', 'Brave Search']);
+const SOCIAL_HOSTS = new Set(['Twitter / X', 'Facebook', 'Instagram', 'LinkedIn', 'Reddit', 'YouTube', 'Hacker News', 'Threads', 'Bluesky', 'Mastodon', 'TikTok', 'Pinterest']);
+const AI_HOSTS = new Set(['ChatGPT', 'Perplexity', 'Claude', 'Gemini']);
+
+function channelFor(source) {
+  if (!source || source === 'Direct') return 'Direct';
+  if (SEARCH_ENGINES.has(source)) return 'Organic Search';
+  if (SOCIAL_HOSTS.has(source)) return 'Social';
+  if (AI_HOSTS.has(source)) return 'AI / LLM';
+  return 'Referral';
+}
+
 // Top-N aggregator from an array of values.
 function topN(values, n = 8) {
   const counts = new Map();
@@ -190,24 +214,31 @@ export async function GET(req) {
   const url = new URL(req.url);
   const range = url.searchParams.get('range') || '7d';
   const { start, end, hours } = rangeWindow(range);
+  const prev = previousWindow(range);
   const sb = adminClient();
 
   let ownHost = 'wildlifeuniverse.org';
   try { ownHost = new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://www.wildlifeuniverse.org').host.replace(/^www\./, ''); } catch {}
 
-  // Single full pull for the window — at typical traffic volumes
-  // (<100k rows / 90 d) this is far cheaper than 6 grouped queries.
+  // Pull both periods in parallel — current for all panels, previous
+  // only for the KPI comparison deltas (no need to render its full
+  // breakdown server-side).
+  const fields = 'viewed_at, pathname, post_slug, session_id, user_agent, referrer, country';
   let rows = [];
+  let prevRows = [];
   try {
-    const { data, error } = await sb
-      .from('post_views')
-      .select('viewed_at, pathname, post_slug, session_id, user_agent, referrer, country')
-      .gte('viewed_at', start)
-      .lte('viewed_at', end)
-      .order('viewed_at', { ascending: true })
-      .limit(50000);
-    if (error) throw error;
-    rows = data || [];
+    const [curr, before] = await Promise.all([
+      sb.from('post_views').select(fields)
+        .gte('viewed_at', start).lte('viewed_at', end)
+        .order('viewed_at', { ascending: true })
+        .limit(50000),
+      sb.from('post_views').select('session_id, viewed_at')
+        .gte('viewed_at', prev.start).lte('viewed_at', prev.end)
+        .limit(50000),
+    ]);
+    if (curr.error) throw curr.error;
+    rows = curr.data || [];
+    prevRows = before.error ? [] : (before.data || []);
   } catch (err) {
     return NextResponse.json({
       ok: false,
@@ -234,23 +265,59 @@ export async function GET(req) {
   const uniqueVisitors = sessions.size;
   const viewsPerVisit = uniqueVisitors > 0 ? (pageviews / uniqueVisitors) : 0;
 
+  // Previous-period equivalents — same shape, used only to render the
+  // ▲/▼ percentage deltas next to each KPI.
+  const prevPageviews = prevRows.length;
+  const prevSessions = new Set(prevRows.filter((r) => r.session_id).map((r) => r.session_id));
+  const prevUniqueVisitors = prevSessions.size;
+  const prevViewsPerVisit = prevUniqueVisitors > 0 ? (prevPageviews / prevUniqueVisitors) : 0;
+
+  const pctDelta = (curr, prev) => {
+    if (prev === 0) return curr > 0 ? 100 : 0;
+    return Number((((curr - prev) / prev) * 100).toFixed(1));
+  };
+
+  const deltas = {
+    pageviews: pctDelta(pageviews, prevPageviews),
+    uniqueVisitors: pctDelta(uniqueVisitors, prevUniqueVisitors),
+    viewsPerVisit: pctDelta(viewsPerVisit, prevViewsPerVisit),
+  };
+
   // ── Time-series
   const timeseries = fillTimeseries(rows, start, end, hours);
 
   // ── Top pages (prefer pathname; fall back to /posts/<slug>)
-  const topPages = topN(
-    rows.map((r) => r.pathname || (r.post_slug ? `/posts/${r.post_slug}` : null)),
-    10,
-  );
+  const pageOf = (r) => r.pathname || (r.post_slug ? `/posts/${r.post_slug}` : null);
+  const topPages = topN(rows.map(pageOf), 10);
 
-  // ── Top sources
-  const topSources = topN(
-    rows.map((r) => parseReferrer(r.referrer, ownHost)),
-    8,
-  );
+  // ── Entry / Exit pages — group rows by session, sort by time,
+  // first event = entry, last event = exit. Skip sessions with one
+  // event so we're not double-counting bounces into both buckets.
+  const bySession = new Map();
+  for (const r of rows) {
+    if (!r.session_id) continue;
+    const p = pageOf(r);
+    if (!p) continue;
+    if (!bySession.has(r.session_id)) bySession.set(r.session_id, []);
+    bySession.get(r.session_id).push({ p, t: new Date(r.viewed_at).getTime() });
+  }
+  const entries = [];
+  const exits = [];
+  for (const events of bySession.values()) {
+    events.sort((a, b) => a.t - b.t);
+    entries.push(events[0].p);
+    if (events.length > 1) exits.push(events[events.length - 1].p);
+  }
+  const entryPages = topN(entries, 10);
+  const exitPages = topN(exits, 10);
+
+  // ── Top sources (parsed) + Channels (rolled-up bucket)
+  const sources = rows.map((r) => parseReferrer(r.referrer, ownHost));
+  const topSources = topN(sources, 10);
+  const topChannels = topN(sources.map(channelFor), 6);
 
   // ── Top countries (with display names)
-  const countryCodes = topN(rows.map((r) => r.country), 10);
+  const countryCodes = topN(rows.map((r) => r.country), 12);
   const topLocations = countryCodes.map((row) => ({
     name: countryName(row.name),
     code: row.name,
@@ -263,6 +330,21 @@ export async function GET(req) {
   const topOS = topN(parsed.map((p) => p.os), 8);
   const topDevices = topN(parsed.map((p) => p.device), 4);
 
+  // ── Currently-viewing list — distinct pages with traffic in the
+  // last 5 minutes, ranked by visitor count.
+  const liveByPage = new Map();
+  for (const r of rows) {
+    if (new Date(r.viewed_at).getTime() < liveCutoff) continue;
+    const p = pageOf(r);
+    if (!p) continue;
+    if (!liveByPage.has(p)) liveByPage.set(p, new Set());
+    if (r.session_id) liveByPage.get(p).add(r.session_id);
+  }
+  const currentPages = [...liveByPage.entries()]
+    .map(([p, set]) => ({ name: p, count: set.size }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 8);
+
   return NextResponse.json({
     ok: true,
     range,
@@ -272,13 +354,18 @@ export async function GET(req) {
       uniqueVisitors,
       viewsPerVisit: Number(viewsPerVisit.toFixed(2)),
     },
+    deltas,
     live: liveSessions.size,
     timeseries,
     topPages,
+    entryPages,
+    exitPages,
     topSources,
+    topChannels,
     topLocations,
     topBrowsers,
     topOS,
     topDevices,
+    currentPages,
   });
 }
