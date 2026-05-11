@@ -158,13 +158,28 @@ export async function POST(req) {
     console.warn(`[queue/seed] ${chunkErrors.length}/${chunks.length} chunks failed; using ${topics.length} topics from remaining chunks`);
   }
 
-  // Build canonical titles
-  const candidates = topics.map((t) => ({
-    title: `${t.commonName.trim()} (${t.scientificName.trim()})`,
-    commonName: t.commonName.trim(),
-  }));
+  // Build canonical titles, then dedup WITHIN the candidate batch first.
+  // With chunking, three parallel Claude calls each pick "best species"
+  // independently — popular ones (e.g. African Lion) routinely repeat
+  // across chunks. Without intra-batch dedup the insert fails on the
+  // content_queue_unique_topic constraint and the whole save 500s.
+  const seen = new Set();
+  const candidates = topics
+    .map((t) => ({
+      title: `${(t.commonName || '').trim()} (${(t.scientificName || '').trim()})`,
+      commonName: (t.commonName || '').trim(),
+    }))
+    .filter((c) => {
+      if (!c.commonName) return false;
+      const key = c.title.toLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
 
-  // Dedup against existing queue + already-published posts
+  // Dedup against existing queue + already-published posts. Compare
+  // case-insensitively too — "African Lion" and "african lion" should
+  // collapse to one row even if the DB constraint is case-sensitive.
   const sb = adminSupabase();
   const titleList = candidates.map((c) => c.title);
   const [existingQueue, existingPosts] = await Promise.all([
@@ -172,10 +187,10 @@ export async function POST(req) {
     sb.from('posts').select('title').in('title', titleList).neq('status', 'draft'),
   ]);
   const taken = new Set([
-    ...(existingQueue.data || []).map((r) => r.topic),
-    ...(existingPosts.data || []).map((r) => r.title),
+    ...(existingQueue.data || []).map((r) => (r.topic || '').toLowerCase()),
+    ...(existingPosts.data || []).map((r) => (r.title || '').toLowerCase()),
   ]);
-  const fresh = candidates.filter((c) => !taken.has(c.title));
+  const fresh = candidates.filter((c) => !taken.has(c.title.toLowerCase()));
 
   if (fresh.length === 0) {
     return NextResponse.json({
@@ -197,9 +212,18 @@ export async function POST(req) {
     status: 'pending',
     priority: 0,
   }));
-  const { error: insertErr } = await sb.from('content_queue').insert(rows);
+  // Upsert with ignoreDuplicates as a final safety net — even with the
+  // intra-batch + DB dedup above, a parallel seed request could race
+  // and produce a duplicate. ignoreDuplicates makes the conflict a
+  // no-op instead of a hard 500.
+  const { error: insertErr } = await sb
+    .from('content_queue')
+    .upsert(rows, { onConflict: 'topic', ignoreDuplicates: true });
   if (insertErr) {
-    return NextResponse.json({ error: 'queue-insert-failed', detail: insertErr.message }, { status: 500 });
+    return NextResponse.json({
+      error: 'queue-insert-failed',
+      detail: insertErr.message,
+    }, { status: 500 });
   }
 
   return NextResponse.json({

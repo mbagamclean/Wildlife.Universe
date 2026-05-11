@@ -725,11 +725,28 @@ button {
 .post-body hr { border: none; border-top: 1px solid var(--glass-border); margin: 1.5em 0; }
 .post-body img,
 .post-body video {
-  max-width: 100%;
+  width: 100%;            /* was max-width — fills the column instead
+                             of capping at intrinsic size, giving the
+                             ~1.5× perceived bump the reader asked for */
   height: auto;
   border-radius: 12px;
   display: block;
   margin: 1.2em auto;
+}
+/* Mobile bleed: on phones the article card is edge-to-edge, so let
+   images bleed past the 1rem horizontal card padding for a true
+   full-screen-width read. */
+@media (max-width: 640px) {
+  .post-body img,
+  .post-body video,
+  .post-body figure > img,
+  .post-body figure > video {
+    margin-left: -1rem;
+    margin-right: -1rem;
+    width: calc(100% + 2rem);
+    max-width: none;
+    border-radius: 0;
+  }
 }
 .post-body figure { margin: 1.2em 0; }
 .post-body figcaption {

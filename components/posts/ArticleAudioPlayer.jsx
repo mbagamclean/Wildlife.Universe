@@ -76,12 +76,15 @@ function LangDropdown({ value, onChange }) {
     <div className="shrink-0">
 
       {/* ── Mobile: native select (touch-optimized, no positioning issues) ── */}
+      {/* Compact width so the audio-player header doesn't overflow on
+          narrow phones — the lang picker + translate button used to
+          push the title off-screen. */}
       <div className="relative flex items-center sm:hidden">
-        <Languages className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-[#008000]" />
+        <Languages className="pointer-events-none absolute left-2 h-3 w-3 text-[#008000]" />
         <select
           value={value}
           onChange={(e) => onChange(e.target.value)}
-          className="appearance-none rounded-lg border border-[var(--glass-border)] bg-[var(--color-bg)] py-2 pl-7 pr-6 text-xs font-medium text-[var(--color-fg)] focus:outline-none focus:ring-1 focus:ring-[#008000]"
+          className="w-[112px] max-w-[112px] truncate appearance-none rounded-lg border border-[var(--glass-border)] bg-[var(--color-bg)] py-1.5 pl-6 pr-5 text-[11px] font-medium text-[var(--color-fg)] focus:outline-none focus:ring-1 focus:ring-[#008000]"
         >
           {LANG_GROUPS.map((group) => (
             <optgroup key={group.group} label={group.group}>
@@ -461,7 +464,7 @@ export function ArticleAudioPlayer({
   const isActive = status !== 'idle';
 
   return (
-    <div className="mb-8 rounded-2xl border border-[var(--glass-border)] bg-[var(--color-bg-deep)]">
+    <div className="mb-8 border-y border-x-0 sm:rounded-2xl sm:border border-[var(--glass-border)] bg-[var(--color-bg-deep)]">
 
       {/* ── Header row: icon + title  |  lang picker ── */}
       <div className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-3 px-4 py-4 sm:px-5">

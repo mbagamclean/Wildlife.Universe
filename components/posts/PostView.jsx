@@ -238,7 +238,14 @@ function CoverMedia({ cover, title, className = '' }) {
       cover.includes('instagram.com') || cover.includes('facebook.com');
     if (isVideoUrl)
       return <VideoPlayer src={cover} className={className} rounded={false} showBadge />;
-    return <img src={cover} alt={title} className={`w-full object-cover ${className}`} />;
+    return (
+      <img
+        src={cover}
+        alt={title}
+        className={`h-full w-full object-cover ${className}`}
+        style={{ objectPosition: 'center center' }}
+      />
+    );
   }
 
   if (cover.type === 'video')
@@ -250,7 +257,8 @@ function CoverMedia({ cover, title, className = '' }) {
       <img
         src={cover.sources?.[Math.max(0, (cover.sources?.length || 1) - 1)]?.src || ''}
         alt={title}
-        className={`w-full object-cover ${className}`}
+        className={`h-full w-full object-cover ${className}`}
+        style={{ objectPosition: 'center center' }}
       />
     </picture>
   );
@@ -707,7 +715,10 @@ export function PostView({ slug }) {
       <div aria-hidden className="fixed left-0 top-0 z-[60] h-1 origin-left bg-[#008000] transition-[width] duration-100" style={{ width: `${progress}%` }} />
 
       {/* ── Hero ── */}
-      <header className="relative -mt-16 flex h-[88vh] min-h-[640px] items-end overflow-hidden">
+      {/* Mobile: shorter so the wildlife photo isn't reduced to a narrow
+          vertical slice (88vh on a phone shows ~10% of a 16:9 image,
+          centred). Desktop keeps the cinematic full-bleed. */}
+      <header className="relative -mt-16 flex h-[64vh] min-h-[420px] items-end overflow-hidden sm:h-[88vh] sm:min-h-[640px]">
         {/* background: cover image or palette gradient */}
         <div aria-hidden className="absolute inset-0"
           style={{ background: post.cover ? undefined : `linear-gradient(135deg, ${palette.from} 0%, ${palette.via} 55%, ${palette.to} 100%)` }}
@@ -794,8 +805,10 @@ export function PostView({ slug }) {
 
       {/* ── Body ── */}
       <section className="py-8 sm:py-14">
-        <Container>
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_1fr] lg:gap-8">
+        {/* Mobile: full-width edge-to-edge so the article + TOC + audio
+            player can fill the screen. Tablet+: the standard 90/85% gutter. */}
+        <div className="mx-auto w-full max-w-[1560px] sm:w-[90%] lg:w-[85%]">
+          <div className="grid grid-cols-1 gap-3 sm:gap-6 lg:grid-cols-[220px_1fr] lg:gap-8">
 
             {/* ── TOC sidebar — desktop only ── */}
             <aside className="hidden lg:block">
@@ -867,7 +880,7 @@ export function PostView({ slug }) {
               {toc.length >= 2 && (
                 <div
                   ref={tocCardRef}
-                  className="overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--color-bg-deep)] transition-colors duration-300 hover:border-[#008000]/25"
+                  className="overflow-hidden border-y border-x-0 sm:rounded-2xl sm:border bg-[var(--color-bg-deep)] border-[var(--glass-border)] transition-colors duration-300 hover:border-[#008000]/25"
                 >
                   {/* Header — always visible */}
                   <button
@@ -940,7 +953,7 @@ export function PostView({ slug }) {
                   display correctly instead of as literal "<p>" text. The
                   HTML has already been sanitized (XSS-safe) and had stable
                   IDs injected onto headings to power the TOC. */}
-              <div ref={articleBodyRef} className="rounded-2xl border border-[var(--glass-border)] bg-[var(--color-bg-deep)] p-5 transition-all duration-500 hover:border-[#d4af37]/25 hover:shadow-[0_20px_56px_rgba(0,0,0,0.08),0_4px_20px_rgba(212,175,55,0.10),0_2px_8px_rgba(0,128,0,0.05)] sm:p-8">
+              <div ref={articleBodyRef} className="border-y border-x-0 sm:rounded-2xl sm:border border-[var(--glass-border)] bg-[var(--color-bg-deep)] px-4 py-6 transition-all duration-500 hover:border-[#d4af37]/25 sm:px-8 sm:py-8 sm:hover:shadow-[0_20px_56px_rgba(0,0,0,0.08),0_4px_20px_rgba(212,175,55,0.10),0_2px_8px_rgba(0,128,0,0.05)]">
                 {bodyText ? (
                   <div
                     className="post-body"
@@ -969,7 +982,7 @@ export function PostView({ slug }) {
 
             </div>
           </div>
-        </Container>
+        </div>
       </section>
 
       {/* ── Related posts — its own card ── */}
