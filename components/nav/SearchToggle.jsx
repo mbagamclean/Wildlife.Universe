@@ -112,7 +112,7 @@ export function SearchToggle() {
               className="w-full max-w-2xl"
               onClick={(e) => e.stopPropagation()}
             >
-              <form onSubmit={onSubmit} className="glass overflow-hidden rounded-2xl">
+              <form onSubmit={onSubmit} className="glass overflow-hidden rounded-2xl !bg-white/95 dark:!bg-[#0a0f0a]/95">
                 <div className="flex items-center gap-3 px-5 py-4">
                   <Search className="h-5 w-5 text-[var(--color-primary)]" />
                   <input
