@@ -23,6 +23,10 @@ import { isDuplicateOfExisting } from '../lib/content-pipeline/dedup.mjs';
 const MAX_ATTEMPTS = 3;
 const MAX_BATCH_SIZE = 4;
 const MAX_DAILY_ARTICLES = Number.parseInt(process.env.MAX_DAILY_ARTICLES, 10) || 8;
+// A run that takes more than this is dead — the workflow's
+// timeout-minutes is 30, so anything past 20 has been killed by the
+// runner. The janitor reclaims those rows back to pending.
+const STALE_GENERATING_MS = 20 * 60 * 1000;
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.wildlifeuniverse.org').replace(/\/$/, '');
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY || '';
@@ -94,6 +98,43 @@ async function markPending(sb, rowId, reason) {
     .eq('id', rowId);
 }
 
+/**
+ * Self-healing janitor. Runs at the start of every cron invocation so a
+ * crashed worker or a future "silently retire a row" bug can't quietly
+ * shrink the queue past the point where it stops producing. Two passes:
+ *
+ *   1. Rows stuck in `generating` for >STALE_GENERATING_MS were claimed by
+ *      a worker that died (GH Actions OOM, network drop, runner timeout).
+ *      Flip back to `pending` so the next claim can retry them.
+ *
+ *   2. Rows stuck in `pending` with attempts >= MAX_ATTEMPTS are invisible
+ *      to the worker's `.lt('attempts', MAX_ATTEMPTS)` filter and would
+ *      sit forever. Mark them `failed` so the queue accounting is honest.
+ *      Without this, ONE outage can permanently retire rows.
+ */
+async function janitor(sb) {
+  const staleCutoff = new Date(Date.now() - STALE_GENERATING_MS).toISOString();
+  const { data: reclaimed } = await sb
+    .from('content_queue')
+    .update({ status: 'pending', last_error: 'janitor: reclaimed-stale-generating' })
+    .eq('status', 'generating')
+    .lt('updated_at', staleCutoff)
+    .select('id');
+  if (reclaimed?.length) {
+    console.log(`[janitor] reclaimed ${reclaimed.length} stale-generating row(s)`);
+  }
+
+  const { data: zombies } = await sb
+    .from('content_queue')
+    .update({ status: 'failed', last_error: 'janitor: max-attempts-exhausted' })
+    .eq('status', 'pending')
+    .gte('attempts', MAX_ATTEMPTS)
+    .select('id');
+  if (zombies?.length) {
+    console.log(`[janitor] marked ${zombies.length} attempts-exhausted row(s) as failed`);
+  }
+}
+
 async function markGenerated(sb, rowId, postId) {
   await sb
     .from('content_queue')
@@ -118,14 +159,22 @@ async function processOne(sb, row) {
     });
     console.log(`[batch] generated draft post ${result.post.id} in ${(result.elapsedMs / 1000).toFixed(1)}s, ~$${result.costEstimateUsd}`);
   } catch (err) {
-    if (row.attempts >= MAX_ATTEMPTS) {
-      await markFailed(sb, row.id, `generation-failed-final: ${err.message}`);
-      console.error(`[batch] FAILED after ${row.attempts} attempts: ${err.message}`);
+    // `claimRow` already incremented attempts in the DB to row.attempts+1.
+    // The retry decision must use that post-claim value, otherwise the
+    // very last attempt always lands in markPending and the row sticks at
+    // attempts=MAX_ATTEMPTS in `pending` — invisible to the next run's
+    // `.lt('attempts', MAX_ATTEMPTS)` filter forever.
+    const dbAttempts = row.attempts + 1;
+    const phase = err.phase || 'unknown';
+    const tagged = `[${phase}] ${err.message}`;
+    if (dbAttempts >= MAX_ATTEMPTS) {
+      await markFailed(sb, row.id, `generation-failed-final: ${tagged}`);
+      console.error(`[batch] FAILED after ${dbAttempts} attempt(s): ${tagged}`);
     } else {
-      await markPending(sb, row.id, `generation-failed-retry: ${err.message}`);
-      console.warn(`[batch] generation failed (attempt ${row.attempts}, will retry): ${err.message}`);
+      await markPending(sb, row.id, `generation-failed-retry-${dbAttempts}: ${tagged}`);
+      console.warn(`[batch] generation failed (attempt ${dbAttempts}, will retry): ${tagged}`);
     }
-    return { ok: false, queueId: row.id, error: err.message };
+    return { ok: false, queueId: row.id, error: tagged };
   }
 
   const quality = validateGeneratedPost({
@@ -139,7 +188,7 @@ async function processOne(sb, row) {
     coverUrl: typeof result.post.cover === 'string' ? result.post.cover : null,
   });
   if (!quality.ok) {
-    await markFailed(sb, row.id, `quality-gate: ${quality.reasons.join('; ')}`);
+    await markFailed(sb, row.id, `[quality] ${quality.reasons.join('; ')}`);
     console.warn(`[batch] quality gate REJECTED: ${quality.reasons.join('; ')} (post stays draft)`);
     return { ok: false, queueId: row.id, postId: result.post.id, error: quality.reasons };
   }
@@ -155,7 +204,7 @@ async function processOne(sb, row) {
     excludePostId: result.post.id,
   });
   if (dup.isDuplicate) {
-    await markFailed(sb, row.id, `dedup: ${dup.reason} (matched ${dup.matchedPostId})`);
+    await markFailed(sb, row.id, `[dedup] ${dup.reason} (matched ${dup.matchedPostId})`);
     console.warn(`[batch] dedup REJECTED: ${dup.reason} (matched ${dup.matchedPostId})`);
     return { ok: false, queueId: row.id, postId: result.post.id, error: dup.reason };
   }
@@ -187,8 +236,16 @@ async function main() {
 
   const sb = admin();
 
+  // Self-heal first — anything left stranded by a previous run is back
+  // in the pool before we read it.
+  await janitor(sb);
+
   const last24h = await countLast24h(sb);
   if (last24h >= MAX_DAILY_ARTICLES) {
+    // GH Actions workflow command surfaces this as a yellow run summary
+    // banner instead of a silent green ✓ that looks identical to "1 article
+    // shipped". Exit 0 still so the schedule keeps firing.
+    console.log(`::warning title=Daily cap reached::${last24h}/${MAX_DAILY_ARTICLES} articles in last 24h — nothing generated this run`);
     console.log(`daily cap reached (${last24h} >= ${MAX_DAILY_ARTICLES}), exiting cleanly`);
     process.exit(0);
   }
@@ -209,6 +266,7 @@ async function main() {
     process.exit(1);
   }
   if (!rows || rows.length === 0) {
+    console.log('::warning title=Queue empty::no pending content_queue rows — seed via /admin/queue');
     console.log('queue empty — nothing to do');
     process.exit(0);
   }
@@ -226,7 +284,10 @@ async function main() {
       if (r.ok) succeeded += 1;
       else failed += 1;
     } catch (err) {
-      await markFailed(sb, row.id, `unexpected: ${err.message}`);
+      // Belt-and-braces: any throw that escapes processOne marks the row
+      // failed (not pending) — otherwise the next run claims it again at
+      // attempts=MAX_ATTEMPTS, hits the off-by-one, and zombifies it.
+      await markFailed(sb, row.id, `[unexpected] ${err.message}`);
       console.error(`[batch] UNEXPECTED throw on ${row.id}:`, err);
       failed += 1;
     }

@@ -26,6 +26,8 @@ export const maxDuration = 300; // up to 5 minutes per invocation
 const MAX_ATTEMPTS = 3;
 const MAX_DAILY_ARTICLES = Number.parseInt(process.env.MAX_DAILY_ARTICLES, 10) || 8;
 const MAX_BATCH_SIZE = 4; // hard ceiling so a runaway ?n= can't blow the budget
+// Mirror of scripts/cron-batch.mjs — see janitor() below for the reason.
+const STALE_GENERATING_MS = 20 * 60 * 1000;
 
 function admin() {
   return createClient(
@@ -118,6 +120,27 @@ async function markGenerated(sb, rowId, postId) {
     .eq('id', rowId);
 }
 
+/**
+ * Self-healing janitor. Same contract as scripts/cron-batch.mjs:
+ *   - Reclaim rows stuck in `generating` past STALE_GENERATING_MS.
+ *   - Mark `pending` rows with attempts >= MAX_ATTEMPTS as `failed`,
+ *     because the worker's `.lt('attempts', MAX_ATTEMPTS)` filter would
+ *     otherwise hide them from every future run.
+ */
+async function janitor(sb) {
+  const staleCutoff = new Date(Date.now() - STALE_GENERATING_MS).toISOString();
+  await sb
+    .from('content_queue')
+    .update({ status: 'pending', last_error: 'janitor: reclaimed-stale-generating' })
+    .eq('status', 'generating')
+    .lt('updated_at', staleCutoff);
+  await sb
+    .from('content_queue')
+    .update({ status: 'failed', last_error: 'janitor: max-attempts-exhausted' })
+    .eq('status', 'pending')
+    .gte('attempts', MAX_ATTEMPTS);
+}
+
 async function processOne(sb, row) {
   // 1. Generate the article via the shared pipeline
   let result;
@@ -129,12 +152,20 @@ async function processOne(sb, row) {
       status: 'draft', // hold as draft until quality + dedup pass
     });
   } catch (err) {
-    if (row.attempts >= MAX_ATTEMPTS) {
-      await markFailed(sb, row.id, `generation-failed-final: ${err.message}`);
+    // claimRow already incremented attempts in the DB. The retry decision
+    // must use that post-claim value or the very last attempt always
+    // lands in markPending — then `.lt('attempts', MAX_ATTEMPTS)` hides
+    // the row from every future run. See scripts/cron-batch.mjs for the
+    // same fix.
+    const dbAttempts = row.attempts + 1;
+    const phase = err.phase || 'unknown';
+    const tagged = `[${phase}] ${err.message}`;
+    if (dbAttempts >= MAX_ATTEMPTS) {
+      await markFailed(sb, row.id, `generation-failed-final: ${tagged}`);
     } else {
-      await markPending(sb, row.id, `generation-failed-retry-${row.attempts}: ${err.message}`);
+      await markPending(sb, row.id, `generation-failed-retry-${dbAttempts}: ${tagged}`);
     }
-    return { ok: false, queueId: row.id, error: err.message };
+    return { ok: false, queueId: row.id, error: tagged };
   }
 
   // 2. Quality gate — runs against the just-inserted post (already in DB
@@ -150,7 +181,7 @@ async function processOne(sb, row) {
     coverUrl: typeof result.post.cover === 'string' ? result.post.cover : null,
   });
   if (!quality.ok) {
-    await markFailed(sb, row.id, `quality-gate: ${quality.reasons.join('; ')}`);
+    await markFailed(sb, row.id, `[quality] ${quality.reasons.join('; ')}`);
     return { ok: false, queueId: row.id, postId: result.post.id, error: quality.reasons };
   }
 
@@ -166,7 +197,7 @@ async function processOne(sb, row) {
     excludePostId: result.post.id,
   });
   if (dup.isDuplicate) {
-    await markFailed(sb, row.id, `dedup: ${dup.reason} (matched ${dup.matchedPostId})`);
+    await markFailed(sb, row.id, `[dedup] ${dup.reason} (matched ${dup.matchedPostId})`);
     return { ok: false, queueId: row.id, postId: result.post.id, error: dup.reason };
   }
 
@@ -191,6 +222,10 @@ export async function POST(req) {
   const url = new URL(req.url);
   const requested = Math.max(1, Math.min(MAX_BATCH_SIZE, Number.parseInt(url.searchParams.get('n'), 10) || 1));
   const sb = admin();
+
+  // Self-heal first — stuck rows from killed previous runs come back into
+  // the pool before we read it.
+  await janitor(sb);
 
   // Daily cost cap
   const last24h = await countLast24h(sb);
@@ -237,7 +272,7 @@ export async function POST(req) {
     } catch (err) {
       // Last-resort safety: any unexpected throw → mark failed so the
       // queue row doesn't sit stuck in 'generating' forever.
-      await markFailed(sb, row.id, `unexpected: ${err.message}`);
+      await markFailed(sb, row.id, `[unexpected] ${err.message}`);
       results.push({ ok: false, queueId: row.id, error: err.message });
     }
   }
