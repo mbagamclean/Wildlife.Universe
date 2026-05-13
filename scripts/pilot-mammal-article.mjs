@@ -169,19 +169,17 @@ ${body}`,
 }
 
 async function generateCoverImage(commonName, sciName) {
-  console.log('[3/5] generating cover image with DALL·E 3...');
+  console.log('[3/5] generating cover image with gpt-image-1...');
   const oai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
   const prompt = `Photorealistic wildlife photograph of a ${commonName} (${sciName}) in its true natural habitat. Eye-level perspective, environmental context giving sense of place, golden-hour lighting from the side, real catchlight in the eye, razor-sharp focus on the eye, creamy bokeh falloff in the background. Authentic field photograph, National Geographic / BBC Earth caliber, captured with Canon EOS R5 and RF 100-500mm telephoto at f/5.6, ISO 400, 1/1000s. Visible micro-detail in fur, scales, or feathers. Subtle film grain, neutral color science. ABSOLUTELY DO NOT PRODUCE: cartoon, illustration, 3D render, painting, anime, fantasy, plastic skin, oversaturated colors, halos around the subject, watermarks, signatures, text, frames, multiple subjects, anatomical errors.`;
   const res = await oai.images.generate({
-    model: 'dall-e-3',
+    model: 'gpt-image-1',
     prompt,
-    size: '1792x1024',
-    quality: 'hd',
-    style: 'natural',
+    size: '1536x1024',
+    quality: 'high',
     n: 1,
   });
-  const url = res.data[0].url;
-  const buf = Buffer.from(await (await fetch(url)).arrayBuffer());
+  const buf = Buffer.from(res.data[0].b64_json, 'base64');
   console.log(`[3/5] image: ${buf.length} bytes`);
   return buf;
 }

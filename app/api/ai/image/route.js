@@ -79,18 +79,17 @@ async function uploadToSupabase(imageBuffer, name) {
 async function generateWithOpenAI(prompt, apiKey) {
   const { OpenAI } = await import('openai');
   const client = new OpenAI({ apiKey: apiKey || process.env.OPENAI_API_KEY });
+  // gpt-image-1 replaces dall-e-3. Differences: returns base64 (not URL),
+  // size capped at 1536x1024 landscape, quality is low|medium|high|auto,
+  // no `style` parameter.
   const response = await client.images.generate({
-    model: 'dall-e-3',
+    model: 'gpt-image-1',
     prompt: `${prompt}${STYLE_SUFFIX}`,
-    size: '1792x1024',
-    quality: 'hd',
-    style: 'natural',
+    size: '1536x1024',
+    quality: 'high',
     n: 1,
   });
-  const imageUrl = response.data[0].url;
-  const imgResponse = await fetch(imageUrl);
-  const buffer = Buffer.from(await imgResponse.arrayBuffer());
-  return buffer;
+  return Buffer.from(response.data[0].b64_json, 'base64');
 }
 
 async function fetchAsBase64(url) {
