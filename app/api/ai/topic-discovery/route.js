@@ -95,7 +95,7 @@ Return ONLY this JSON:
       system: SYSTEM,
       prompt,
       temperature: 0.75,
-      maxTokens: 3500,
+      maxOutputTokens: 3500,
     });
 
     const parsed = extractJson(raw);

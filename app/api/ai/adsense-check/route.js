@@ -64,7 +64,7 @@ Content (first 4000 chars): ${text.slice(0, 4000)}`;
       system: SYSTEM,
       prompt,
       temperature: 0.2,
-      maxTokens: 2000,
+      maxOutputTokens: 2000,
     });
 
     const parsed = extractJson(raw);

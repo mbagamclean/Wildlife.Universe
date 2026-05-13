@@ -101,7 +101,7 @@ ${platformShape}
       system: SYSTEM,
       prompt,
       temperature: 0.7,
-      maxTokens: 2400,
+      maxOutputTokens: 2400,
     });
 
     const parsed = extractJson(raw);

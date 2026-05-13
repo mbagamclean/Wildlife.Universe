@@ -81,7 +81,7 @@ ${trimmed}`;
       system: SYSTEM,
       prompt,
       temperature: 0.2,
-      maxTokens: 4000,
+      maxOutputTokens: 4000,
     });
 
     const parsed = extractJson(raw);

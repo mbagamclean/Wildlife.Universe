@@ -66,7 +66,7 @@ Return JSON exactly in this shape:
       system: SYSTEM_PROMPT,
       prompt: userPrompt,
       temperature: 0.85,
-      maxTokens: 4000,
+      maxOutputTokens: 4000,
     });
 
     const parsed = extractJson(text);

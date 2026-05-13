@@ -117,7 +117,7 @@ Be specific. No generic SEO advice like "add more keywords" — every item must 
       system: SYSTEM,
       prompt,
       temperature: 0.5,
-      maxTokens: 3500,
+      maxOutputTokens: 3500,
     });
 
     const parsed = extractJson(raw);

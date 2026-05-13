@@ -45,7 +45,7 @@ Passage: ${text.slice(0, 2000)}`;
       system: SYSTEM,
       prompt,
       temperature: 0.7,
-      maxTokens: 2000,
+      maxOutputTokens: 2000,
     });
 
     const parsed = extractJson(raw);

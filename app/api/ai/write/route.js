@@ -1294,12 +1294,17 @@ export async function POST(req) {
         ? systemPrompt + '\n' + RICH_FORMATTING_TOOLKIT
         : systemPrompt;
 
+    // Vercel AI SDK v6 renamed `maxTokens` → `maxOutputTokens`. Passing
+    // the v5 name is silently ignored and Anthropic falls back to ~1024
+    // tokens, so the stream completes in seconds with a stub instead of
+    // a full article. The local var stays for readability; only the
+    // property name needs the v6 spelling.
     const result = streamText({
       model,
       system: finalSystemPrompt,
       prompt: userPrompt,
       temperature: 0.7,
-      maxTokens,
+      maxOutputTokens: maxTokens,
     });
 
     return result.toTextStreamResponse();

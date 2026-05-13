@@ -49,7 +49,7 @@ Text: ${cleaned}`;
       system: SYSTEM,
       prompt,
       temperature: 0.2,
-      maxTokens: 2500,
+      maxOutputTokens: 2500,
     });
 
     const parsed = extractJson(raw);

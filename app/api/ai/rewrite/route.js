@@ -34,7 +34,7 @@ export async function POST(req) {
       system: SYSTEM,
       prompt: `${instruction}\n\n${text.slice(0, 4000)}`,
       temperature: 0.5,
-      maxTokens: 1500,
+      maxOutputTokens: 1500,
     });
 
     return Response.json({ success: true, data: { result: result.trim() } });

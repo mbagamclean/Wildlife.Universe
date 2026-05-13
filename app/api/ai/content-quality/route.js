@@ -71,7 +71,7 @@ Quantities: 5-8 recommendations, 3-6 strengths. Each item must reference actual 
       system: SYSTEM,
       prompt,
       temperature: 0.3,
-      maxTokens: 2200,
+      maxOutputTokens: 2200,
     });
 
     const parsed = extractJson(raw);

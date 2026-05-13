@@ -74,7 +74,7 @@ Wildlife/nature focus. AdSense-safe topics only.`;
       system: SYSTEM,
       prompt,
       temperature: 0.6,
-      maxTokens: 2500,
+      maxOutputTokens: 2500,
     });
 
     const parsed = extractJson(raw);
