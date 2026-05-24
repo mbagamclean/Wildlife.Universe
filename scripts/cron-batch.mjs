@@ -18,7 +18,7 @@
 import { createClient } from '@supabase/supabase-js';
 import { generateAndInsertPost } from '../lib/content-pipeline/generate.mjs';
 import { validateGeneratedPost } from '../lib/content-pipeline/quality.mjs';
-import { isDuplicateOfExisting } from '../lib/content-pipeline/dedup.mjs';
+import { isDuplicateOfExisting, isPreGenerationDuplicate } from '../lib/content-pipeline/dedup.mjs';
 import { pingRevalidate } from './_lib/revalidate.mjs';
 
 const MAX_ATTEMPTS = 3;
@@ -153,6 +153,29 @@ async function markGenerated(sb, rowId, postId) {
 
 async function processOne(sb, row) {
   console.log(`\n[batch] processing ${row.id}: ${row.category}/${row.label} → ${row.topic}`);
+
+  // PRE-GENERATION dedup — fingerprint topic against published posts
+  // BEFORE burning ~16 min of CLI body+extract + an image-gen call. The
+  // post-generation dedup gate still runs as a safety net for semantic
+  // duplicates that this cheap match can't detect.
+  const preDup = await isPreGenerationDuplicate({
+    topic: row.topic,
+    category: row.category,
+    label: row.label,
+  });
+  if (preDup.isDuplicate) {
+    await sb
+      .from('content_queue')
+      .update({
+        status: 'failed',
+        generated_post_id: preDup.matchedPostId,
+        last_error: `[pre-dedup] ${preDup.reason} → matched ${preDup.matchedSlug || preDup.matchedPostId}`,
+      })
+      .eq('id', row.id);
+    console.warn(`[batch] SKIPPED ${row.id} — duplicate of /posts/${preDup.matchedSlug || preDup.matchedPostId} (${preDup.reason})`);
+    return { ok: false, queueId: row.id, skipped: true, reason: preDup.reason };
+  }
+
   let result;
   try {
     result = await generateAndInsertPost({
