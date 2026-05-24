@@ -23,8 +23,13 @@ name: Generate batch articles
 #   INDEXNOW_KEY             (optional — enables Bing/Yandex auto-ping)
 
 on:
-  schedule:
-    - cron: '0 */4 * * *'
+  # SCHEDULE PAUSED 2026-05-23: Anthropic API key has no credit. Local cron
+  # runs (scripts/cron-batch.mjs) use a Claude Code CLI fallback against
+  # the Max subscription when the API errors. CI runners can't authenticate
+  # the Max subscription (no interactive OAuth), so this workflow is
+  # manual-only until the API key is refilled. To resume, uncomment:
+  #   schedule:
+  #     - cron: '0 */4 * * *'
   workflow_dispatch:
     inputs:
       n:

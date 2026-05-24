@@ -19,14 +19,18 @@ import { createClient } from '@supabase/supabase-js';
 import { generateAndInsertPost } from '../lib/content-pipeline/generate.mjs';
 import { validateGeneratedPost } from '../lib/content-pipeline/quality.mjs';
 import { isDuplicateOfExisting } from '../lib/content-pipeline/dedup.mjs';
+import { pingRevalidate } from './_lib/revalidate.mjs';
 
 const MAX_ATTEMPTS = 3;
 const MAX_BATCH_SIZE = 4;
 const MAX_DAILY_ARTICLES = Number.parseInt(process.env.MAX_DAILY_ARTICLES, 10) || 8;
-// A run that takes more than this is dead — the workflow's
-// timeout-minutes is 30, so anything past 20 has been killed by the
-// runner. The janitor reclaims those rows back to pending.
-const STALE_GENERATING_MS = 20 * 60 * 1000;
+// A run that takes more than this is dead — the janitor reclaims those
+// rows back to pending. Bumped 2026-05-23: local runs that fall back to
+// the Claude Code CLI (Max subscription) take ~16 min for body+extract,
+// so 20 min was too tight. 30 min still safely under GH Actions' 30-min
+// job timeout, since CI runs use the funded API path (~90s/article) and
+// wouldn't hit this anyway.
+const STALE_GENERATING_MS = 30 * 60 * 1000;
 
 const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL || 'https://www.wildlifeuniverse.org').replace(/\/$/, '');
 const INDEXNOW_KEY = process.env.INDEXNOW_KEY || '';
@@ -159,14 +163,33 @@ async function processOne(sb, row) {
     });
     console.log(`[batch] generated draft post ${result.post.id} in ${(result.elapsedMs / 1000).toFixed(1)}s, ~$${result.costEstimateUsd}`);
   } catch (err) {
+    const phase = err.phase || 'unknown';
+    const tagged = `[${phase}] ${err.message}`;
+    // SESSION-LIMIT: Max subscription quota ceiling hit. This is a system-
+    // wide pause, NOT this row's fault — burning an attempt would permanently
+    // retire the row after ~3 unlucky window-boundaries. Roll attempts back
+    // to the pre-claim value and throw a sentinel so the outer loop can
+    // abort the rest of the batch (the pacer will sleep until reset).
+    if (/session limit/i.test(err.message)) {
+      await sb
+        .from('content_queue')
+        .update({
+          status: 'pending',
+          attempts: row.attempts, // claimRow set this to row.attempts+1 — restore
+          last_error: `session-limit-skip: ${tagged}`,
+        })
+        .eq('id', row.id);
+      console.warn(`[batch] SESSION LIMIT on ${row.id} — attempts rolled back, aborting batch`);
+      const abortErr = new Error('session-limit-abort');
+      abortErr.sessionLimit = true;
+      throw abortErr;
+    }
     // `claimRow` already incremented attempts in the DB to row.attempts+1.
     // The retry decision must use that post-claim value, otherwise the
     // very last attempt always lands in markPending and the row sticks at
     // attempts=MAX_ATTEMPTS in `pending` — invisible to the next run's
     // `.lt('attempts', MAX_ATTEMPTS)` filter forever.
     const dbAttempts = row.attempts + 1;
-    const phase = err.phase || 'unknown';
-    const tagged = `[${phase}] ${err.message}`;
     if (dbAttempts >= MAX_ATTEMPTS) {
       await markFailed(sb, row.id, `generation-failed-final: ${tagged}`);
       console.error(`[batch] FAILED after ${dbAttempts} attempt(s): ${tagged}`);
@@ -186,9 +209,20 @@ async function processOne(sb, row) {
       faq: result.post.faq,
     },
     coverUrl: typeof result.post.cover === 'string' ? result.post.cover : null,
+    category: row.category,
   });
   if (!quality.ok) {
-    await markFailed(sb, row.id, `[quality] ${quality.reasons.join('; ')}`);
+    // Record generated_post_id even on failure so the orphan draft can be
+    // traced back to the queue row that produced it (recovery scripts and
+    // manual review both benefit).
+    await sb
+      .from('content_queue')
+      .update({
+        status: 'failed',
+        generated_post_id: result.post.id,
+        last_error: `[quality] ${quality.reasons.join('; ')}`,
+      })
+      .eq('id', row.id);
     console.warn(`[batch] quality gate REJECTED: ${quality.reasons.join('; ')} (post stays draft)`);
     return { ok: false, queueId: row.id, postId: result.post.id, error: quality.reasons };
   }
@@ -213,6 +247,12 @@ async function processOne(sb, row) {
   await markGenerated(sb, row.id, result.post.id);
   console.log(`[batch] PUBLISHED https://www.wildlifeuniverse.org/posts/${result.post.slug}`);
   await pingIndexNow(result.post.slug);
+  // Purge Next.js ISR + Vercel edge cache so the new post appears on
+  // homepage / category / label listings on the very next page load.
+  // Without this, the "needs several refreshes to see new posts" bug
+  // returns immediately because of the s-maxage + stale-while-revalidate
+  // window on listing routes. Fire-and-forget — failure is non-fatal.
+  await pingRevalidate();
 
   return { ok: true, queueId: row.id, postId: result.post.id, slug: result.post.slug };
 }
@@ -273,6 +313,7 @@ async function main() {
 
   let succeeded = 0;
   let failed = 0;
+  let aborted = false;
   for (const row of rows) {
     const claimed = await claimRow(sb, row);
     if (!claimed) {
@@ -284,6 +325,14 @@ async function main() {
       if (r.ok) succeeded += 1;
       else failed += 1;
     } catch (err) {
+      if (err.sessionLimit) {
+        // Pacer signal: stop processing the rest of this batch. processOne
+        // has already rolled the offending row's attempts back. Exit code 3
+        // tells the pacer "session-limit, sleep until reset".
+        console.warn(`[batch] aborting batch — session limit. Remaining rows skipped (will be picked up next run).`);
+        aborted = true;
+        break;
+      }
       // Belt-and-braces: any throw that escapes processOne marks the row
       // failed (not pending) — otherwise the next run claims it again at
       // attempts=MAX_ATTEMPTS, hits the off-by-one, and zombifies it.
@@ -293,7 +342,8 @@ async function main() {
     }
   }
 
-  console.log(`\n=== done: succeeded=${succeeded} failed=${failed} ===`);
+  console.log(`\n=== done: succeeded=${succeeded} failed=${failed}${aborted ? ' (aborted — session limit)' : ''} ===`);
+  if (aborted) process.exit(3);
   process.exit(failed > 0 && succeeded === 0 ? 1 : 0);
 }
 

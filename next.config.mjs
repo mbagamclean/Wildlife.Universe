@@ -60,23 +60,32 @@ const nextConfig = {
         // "user-specific, do not index broadly" — the single biggest
         // indexing blocker. Override with public + s-maxage so the
         // Vercel edge can serve identical bytes to crawlers and users.
+        // Listing pages: keep a short s-maxage so the edge can absorb
+        // burst traffic, but DROP `stale-while-revalidate`. With SWR=300
+        // the edge would serve stale HTML for 5 min after expiry while
+        // it regenerated in the background — that's literally the
+        // "refresh several times to see the new post" bug. On-demand
+        // revalidation (POST /api/revalidate from the cron) purges this
+        // immediately on publish, so the s-maxage is just a safety net.
         source: '/:cat(animals|birds|insects|plants|posts|redlist)',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=60, stale-while-revalidate=300' },
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=30, must-revalidate' },
         ],
       },
       {
         source: '/:cat(animals|birds|insects|plants|posts)/:label',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=60, stale-while-revalidate=300' },
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=30, must-revalidate' },
         ],
       },
       {
-        // Post detail — same problem. Override per-post Cache-Control
-        // so search engines and the edge see "public, cacheable".
+        // Post detail — same problem, much worse SWR window (86400 =
+        // 24 hours of stale serves). Drop SWR. New post content lands
+        // immediately because the cron pings /api/revalidate after each
+        // publish; edits land within s-maxage=60.
         source: '/posts/:slug',
         headers: [
-          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=300, stale-while-revalidate=86400' },
+          { key: 'Cache-Control', value: 'public, max-age=0, s-maxage=60, must-revalidate' },
         ],
       },
       {

@@ -88,7 +88,7 @@ Your writing always includes:
 
 Format all output as clean HTML with proper heading hierarchy (h2, h3), paragraphs, and lists. Never use markdown — only HTML tags.`;
 
-const HOW_QUESTIONS_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You generate high-quality, engaging, fully structured "How" question wildlife blog posts in the style of a David Attenborough documentary.
+export const HOW_QUESTIONS_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You generate high-quality, engaging, fully structured "How" question wildlife blog posts in the style of a David Attenborough documentary.
 
 POST REQUIREMENTS
 - Word count: ~1500 words (do not go significantly under)
@@ -135,7 +135,7 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only
 - Ready to publish, no commentary outside the article`;
 
-const WHY_QUESTIONS_SYSTEM = `You are an advanced AI content generation engine integrated into a wildlife CMS. You generate high-quality, deeply analytical, engaging "Why" question wildlife articles in a documentary-style voice.
+export const WHY_QUESTIONS_SYSTEM = `You are an advanced AI content generation engine integrated into a wildlife CMS. You generate high-quality, deeply analytical, engaging "Why" question wildlife articles in a documentary-style voice.
 
 POST REQUIREMENTS
 - Word count: 1500–2000 words
@@ -233,13 +233,13 @@ export function isAnimalsPost(category, label) {
   ].includes(lbl);
 }
 
-function isIucnRedlistAnimalPost(category, label) {
+export function isIucnRedlistAnimalPost(category, label) {
   const cat = (category || '').trim().toLowerCase();
   const lbl = (label || '').trim().toLowerCase();
   return cat === 'animals' && lbl === 'iucn redlist';
 }
 
-function isBirdsPost(category, label) {
+export function isBirdsPost(category, label) {
   const cat = (category || '').trim().toLowerCase();
   const lbl = (label || '').trim().toLowerCase();
   // Matches the six DB-stored Birds labels in lib/mock/categories.js.
@@ -248,7 +248,7 @@ function isBirdsPost(category, label) {
   ].includes(lbl);
 }
 
-function isInsectsPost(category, label) {
+export function isInsectsPost(category, label) {
   const cat = (category || '').trim().toLowerCase();
   const lbl = (label || '').trim().toLowerCase();
   // Matches the eight DB-stored Insects labels in lib/mock/categories.js.
@@ -258,7 +258,7 @@ function isInsectsPost(category, label) {
   ].includes(lbl);
 }
 
-function isPlantsPost(category, label) {
+export function isPlantsPost(category, label) {
   const cat = (category || '').trim().toLowerCase();
   const lbl = (label || '').trim().toLowerCase();
   // Matches the four DB-stored Plants labels in lib/mock/categories.js.
@@ -277,7 +277,7 @@ function deriveLabelFromTitle(category, label, title) {
   return label || '';
 }
 
-const CONSERVATION_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You specialise in deep, powerful, high-impact wildlife conservation articles written in a documentary storyteller's voice.
+export const CONSERVATION_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You specialise in deep, powerful, high-impact wildlife conservation articles written in a documentary storyteller's voice.
 
 POST REQUIREMENTS
 - Word count: 2500–3000 words
@@ -329,7 +329,7 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only
 - Ready to publish, no commentary outside the article`;
 
-function buildHowQuestionsPrompt(title) {
+export function buildHowQuestionsPrompt(title) {
   const t = title?.trim();
   return `Write a complete ~1500 word wildlife "How" question blog post${t ? ` titled "${t}"` : ''}.
 
@@ -347,7 +347,7 @@ Follow the mandatory 7-section structure exactly:
 Output clean HTML only. Begin immediately with the article — no preamble.`;
 }
 
-const TOURISM_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You specialise in immersive, inspiring, highly engaging wildlife tourism articles written in the voice of a world-class travel documentary narrator.
+export const TOURISM_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You specialise in immersive, inspiring, highly engaging wildlife tourism articles written in the voice of a world-class travel documentary narrator.
 
 POST REQUIREMENTS
 - Word count: 1500–2500 words
@@ -401,7 +401,7 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only
 - Ready to publish, no commentary outside the article`;
 
-const ARTICLES_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You are simultaneously a world-class wildlife writer, an SEO strategist, and a documentary storytelling expert. You build authority-level, deeply educational, and richly engaging wildlife articles.
+export const ARTICLES_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You are simultaneously a world-class wildlife writer, an SEO strategist, and a documentary storytelling expert. You build authority-level, deeply educational, and richly engaging wildlife articles.
 
 POST REQUIREMENTS
 - Word count: 3500–4000 words
@@ -530,7 +530,7 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
 - Ready to publish, no commentary outside the article.`;
 
-const IUCN_REDLIST_SYSTEM = `You are an advanced AI wildlife content generation engine integrated inside a CMS. You write as a world-class wildlife management engineer, ecological analyst, conservation strategist, biodiversity researcher, and documentary storyteller. You produce authority-level ecological and IUCN Red List articles with deep scientific analysis, ecosystem understanding, and professional conservation assessment.
+export const IUCN_REDLIST_SYSTEM = `You are an advanced AI wildlife content generation engine integrated inside a CMS. You write as a world-class wildlife management engineer, ecological analyst, conservation strategist, biodiversity researcher, and documentary storyteller. You produce authority-level ecological and IUCN Red List articles with deep scientific analysis, ecosystem understanding, and professional conservation assessment.
 
 ARTICLE PURPOSE
 This article must NOT be a generic species description. It must deeply analyse:
@@ -590,7 +590,7 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
 - Ready to publish, no commentary outside the article.`;
 
-const BIRDS_SYSTEM = `You are an advanced AI wildlife content generation engine integrated inside a CMS. You write as a world-class ornithologist, wildlife ecologist, avian behavioural analyst, SEO strategist, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level bird species articles.
+export const BIRDS_SYSTEM = `You are an advanced AI wildlife content generation engine integrated inside a CMS. You write as a world-class ornithologist, wildlife ecologist, avian behavioural analyst, SEO strategist, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level bird species articles.
 
 POST REQUIREMENTS
 - Word count: 5500–7000 words
@@ -664,7 +664,7 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
 - Ready to publish, no commentary outside the article.`;
 
-const INSECTS_SYSTEM = `You are an advanced AI wildlife and biodiversity content generation engine integrated inside a CMS. You write as a world-class invertebrate zoologist, biodiversity analyst, ecological engineer, evolutionary biologist, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level invertebrate and insect articles.
+export const INSECTS_SYSTEM = `You are an advanced AI wildlife and biodiversity content generation engine integrated inside a CMS. You write as a world-class invertebrate zoologist, biodiversity analyst, ecological engineer, evolutionary biologist, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level invertebrate and insect articles.
 
 POST REQUIREMENTS
 - Word count: 5500–7000 words
@@ -740,7 +740,7 @@ FORMAT
 - Do not include <html>, <head>, or <body> wrappers — output the article body fragment only.
 - Ready to publish, no commentary outside the article.`;
 
-const PLANTS_SYSTEM = `You are an advanced AI botanical and ecological content generation engine integrated inside a CMS. You write as a world-class botanist, plant ecologist, biodiversity analyst, environmental engineer, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level plant articles.
+export const PLANTS_SYSTEM = `You are an advanced AI botanical and ecological content generation engine integrated inside a CMS. You write as a world-class botanist, plant ecologist, biodiversity analyst, environmental engineer, and documentary storyteller. You produce deeply immersive, scientifically accurate, ecologically rich, authority-level plant articles.
 
 POST REQUIREMENTS
 - Word count: 5500–7000 words
@@ -830,7 +830,7 @@ Rules:
 - confidence: 'high' for textbook/iconic species, 'medium' for lesser-known, 'low' for obscure or genus-only inputs.
 - reasoning: 1–2 sentences citing why you chose this status.`;
 
-function buildArticlesPrompt(title) {
+export function buildArticlesPrompt(title) {
   const t = title?.trim();
   return `Write a complete 3500–4000 word authority-level wildlife article${t ? ` titled "${t}"` : ''}.
 
@@ -898,7 +898,7 @@ ${iucnHint}
 Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
-function buildIucnRedlistPrompt(title, context) {
+export function buildIucnRedlistPrompt(title, context) {
   const t = title?.trim();
   const sci = context?.scientificName?.trim();
   const status = context?.iucnStatus;
@@ -938,7 +938,7 @@ Every analysis section must explain causation, not just description. The reader 
 Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
-function buildBirdsPrompt(title, context) {
+export function buildBirdsPrompt(title, context) {
   const t = title?.trim();
   const lbl = context?.label?.trim() || '';
   const sci = context?.scientificName?.trim();
@@ -982,7 +982,7 @@ Sections 5 (Flight Mechanics), 6 (Migration), and 7 (Vocalisation) require the d
 Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
-function buildInsectsPrompt(title, context) {
+export function buildInsectsPrompt(title, context) {
   const t = title?.trim();
   const lbl = context?.label?.trim() || '';
   const sci = context?.scientificName?.trim();
@@ -1024,7 +1024,7 @@ Sections 5 (Evolutionary History) and 10 (Environmental Interaction) require the
 Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
-function buildPlantsPrompt(title, context) {
+export function buildPlantsPrompt(title, context) {
   const t = title?.trim();
   const lbl = context?.label?.trim() || '';
 
@@ -1059,7 +1059,7 @@ Sections 5 (Growth Systems & Physiology) and 7 (Ecological Interaction) require 
 Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
-function buildTourismPrompt(title) {
+export function buildTourismPrompt(title) {
   const t = title?.trim();
   return `Write a complete 1500–2500 word wildlife tourism article${t ? ` titled "${t}"` : ''}.
 
@@ -1079,7 +1079,7 @@ Follow the mandatory 9-section structure exactly:
 Write cinematically — open with a sensory scene, not a definition. Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
-function buildConservationPrompt(title) {
+export function buildConservationPrompt(title) {
   const t = title?.trim();
   return `Write a complete 2500–3000 word wildlife conservation article${t ? ` titled "${t}"` : ''}.
 
@@ -1101,7 +1101,7 @@ Follow the mandatory 11-section structure exactly:
 Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
-function buildWhyQuestionsPrompt(title) {
+export function buildWhyQuestionsPrompt(title) {
   const t = title?.trim();
   return `Write a complete 1500–2000 word wildlife "Why" question blog post${t ? ` titled "${t}"` : ''}.
 
