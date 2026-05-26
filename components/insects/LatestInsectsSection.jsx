@@ -21,11 +21,13 @@ function EmptyState() {
   );
 }
 
-export function LatestInsectsSection() {
-  const [insects, setInsects] = useState([]);
-  const [status,  setStatus]  = useState('loading');
+export function LatestInsectsSection({ initialInsects = null }) {
+  const hasInitial = Array.isArray(initialInsects);
+  const [insects, setInsects] = useState(hasInitial ? initialInsects : []);
+  const [status,  setStatus]  = useState(hasInitial ? 'ready' : 'loading');
   const [canLeft,  setCanLeft]  = useState(false);
   const [canRight, setCanRight] = useState(false);
+  const skipFirstFetchRef = useRef(hasInitial);
   const trackRef = useRef(null);
 
   const loadInsects = useCallback(async () => {
@@ -39,7 +41,11 @@ export function LatestInsectsSection() {
   }, []);
 
   useEffect(() => {
-    loadInsects();
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+    } else {
+      loadInsects();
+    }
     window.addEventListener('wu:storage-changed', loadInsects);
     return () => window.removeEventListener('wu:storage-changed', loadInsects);
   }, [loadInsects]);

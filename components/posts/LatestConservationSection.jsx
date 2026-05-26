@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Leaf } from 'lucide-react';
 import { db } from '@/lib/storage/db';
@@ -58,9 +58,11 @@ function EmptyState() {
   );
 }
 
-export function LatestConservationSection() {
-  const [posts, setPosts] = useState([]);
-  const [status, setStatus] = useState('loading'); // 'loading' | 'ready'
+export function LatestConservationSection({ initialPosts = null }) {
+  const hasInitial = Array.isArray(initialPosts);
+  const [posts, setPosts] = useState(hasInitial ? initialPosts.slice(0, MAX_POSTS) : []);
+  const [status, setStatus] = useState(hasInitial ? 'ready' : 'loading'); // 'loading' | 'ready'
+  const skipFirstFetchRef = useRef(hasInitial);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -80,7 +82,11 @@ export function LatestConservationSection() {
   }, []);
 
   useEffect(() => {
-    loadPosts();
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+    } else {
+      loadPosts();
+    }
     window.addEventListener('wu:storage-changed', loadPosts);
     return () => window.removeEventListener('wu:storage-changed', loadPosts);
   }, [loadPosts]);

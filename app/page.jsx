@@ -24,6 +24,12 @@ import {
   fetchPublishedPosts,
   fetchPublishedPostsByCategory,
   fetchIUCNGrouped,
+  fetchTrendingPosts,
+  fetchPublishedPostsByLabels,
+  fetchHowWhyPosts,
+  fetchCuratedBooks,
+  fetchApprovedReviews,
+  fetchHomepageVideos,
 } from '@/lib/seo-data';
 import { ReviewsSection } from '@/components/reviews/ReviewsSection';
 import { categories } from '@/lib/mock/categories';
@@ -78,10 +84,11 @@ export default async function HomePage() {
   // the category grid are present in the initial HTML payload. This
   // eliminates the green-gradient placeholder that previously painted
   // until Supabase resolved client-side.
-  // Above-the-fold sections (Latest Posts, Animals, Plants, IUCN) used
-  // to client-fetch their own data after mount, leaving users staring at
-  // skeletons. Server-fetch in parallel and pass via initial props so the
-  // first HTML response already contains the content.
+  // Every homepage section used to client-fetch its own data after mount,
+  // leaving users staring at skeletons. Server-fetch in parallel and pass
+  // via initial props so the first HTML response already contains all the
+  // section content. All fetches use slim card-projection to keep the
+  // payload bounded (full bodies aren't needed for card displays).
   const [
     richCategories,
     heroSlides,
@@ -90,16 +97,38 @@ export default async function HomePage() {
     latestAnimals,
     latestPlants,
     iucnGrouped,
+    trendingPosts,
+    latestBirds,
+    latestInsects,
+    whyHowPosts,
+    latestArticles,
+    latestConservation,
+    latestTourism,
+    curatedBooks,
+    approvedReviews,
+    featuredVideos,
+    shortsVideos,
+    documentariesVideos,
   ] = await Promise.all([
     fetchAllCategoriesRich(),
     fetchActiveHeroSlides(),
     fetchHeroMode(),
-    // slim: project only card-display columns so we don't ship full
-    // article bodies (~100KB/row) inline in the homepage HTML.
     fetchPublishedPosts({ slim: true, limit: 60 }),
     fetchPublishedPostsByCategory('animals', { slim: true, limit: 40 }),
     fetchPublishedPostsByCategory('plants', { slim: true, limit: 40 }),
     fetchIUCNGrouped({ slim: true }),
+    fetchTrendingPosts({ limit: 6, slim: true }),
+    fetchPublishedPostsByCategory('birds', { slim: true, limit: 40 }),
+    fetchPublishedPostsByCategory('insects', { slim: true, limit: 40 }),
+    fetchHowWhyPosts({ limit: 20, slim: true }),
+    fetchPublishedPostsByLabels(['articles', 'article'], { limit: 12, slim: true }),
+    fetchPublishedPostsByLabels(['conservation'], { limit: 6, slim: true }),
+    fetchPublishedPostsByLabels(['tourism', 'tourism safaris'], { limit: 12, slim: true }),
+    fetchCuratedBooks({ slim: true }),
+    fetchApprovedReviews({ limit: 20 }),
+    fetchHomepageVideos('featured', { limit: 6 }),
+    fetchHomepageVideos('shorts', { limit: 12 }),
+    fetchHomepageVideos('documentaries', { limit: 8 }),
   ]);
   const richBySlug = new Map(richCategories.map((c) => [c.slug, c]));
 
@@ -233,9 +262,9 @@ export default async function HomePage() {
         <LatestAnimalsSection initialAnimals={latestAnimals} />
       </ScrollReveal>
 
-      {/* ── Trending — zoom + fade ─────────────────────────── */}
-      <ScrollReveal effect="zoomIn">
-        <TrendingSection />
+      {/* ── Trending — zoom + fade. priority. ──────────────── */}
+      <ScrollReveal effect="zoomIn" priority>
+        <TrendingSection initialTrending={trendingPosts} />
       </ScrollReveal>
 
       {/* ── Latest Plants — slide in from right. priority. ── */}
@@ -248,78 +277,80 @@ export default async function HomePage() {
         <IUCNSection initialGrouped={iucnGrouped} />
       </ScrollReveal>
 
-      {/* ── Latest Birds — flip up (taking flight) ────────── */}
-      <ScrollReveal effect="flipUp">
-        <LatestBirdsSection />
+      {/* ── Latest Birds — flip up (taking flight). priority. ── */}
+      <ScrollReveal effect="flipUp" priority>
+        <LatestBirdsSection initialBirds={latestBirds} />
       </ScrollReveal>
 
-      {/* ── Why / How — slide from left ───────────────────── */}
-      <ScrollReveal effect="slideLeft">
-        <WhyHowSection />
+      {/* ── Why / How — slide from left. priority. ────────── */}
+      <ScrollReveal effect="slideLeft" priority>
+        <WhyHowSection initialPosts={whyHowPosts} />
       </ScrollReveal>
 
-      {/* ── Latest Insects — flip up (matches Latest Birds design) + bidirectional fade ── */}
+      {/* ── Latest Insects — flip up. priority. ────────────── */}
       <FadeOnScroll>
-        <ScrollReveal effect="flipUp">
-          <LatestInsectsSection />
+        <ScrollReveal effect="flipUp" priority>
+          <LatestInsectsSection initialInsects={latestInsects} />
         </ScrollReveal>
       </FadeOnScroll>
 
-      {/* ── Featured Videos (curated via /admin/configuration/homepage-videos) ── */}
-      <ScrollReveal effect="fadeUp">
+      {/* ── Featured Videos (curated via /admin/configuration/homepage-videos). priority. ── */}
+      <ScrollReveal effect="fadeUp" priority>
         <HomepageVideosSection
           section="featured"
           heading="Featured Videos"
           subheading="Hand-picked stories from across YouTube, Vimeo, TikTok, Instagram and more"
           accent="#dc2626"
           maxItems={6}
+          initialVideos={featuredVideos}
         />
       </ScrollReveal>
 
-      {/* ── Books — rise with scale (CEO-curated only via book_status) ─── */}
-      <ScrollReveal effect="riseScale">
-        <BooksSection />
+      {/* ── Books — CEO-curated only via book_status. priority. ─── */}
+      <ScrollReveal effect="riseScale" priority>
+        <BooksSection initialBooks={curatedBooks} />
       </ScrollReveal>
 
-      {/* ── Latest Articles — slide right (matches Latest Plants design) + bidirectional fade ── */}
+      {/* ── Latest Articles — slide right. priority. ───────── */}
       <FadeOnScroll>
-        <ScrollReveal effect="slideRight">
-          <LatestArticlesSection />
+        <ScrollReveal effect="slideRight" priority>
+          <LatestArticlesSection initialPosts={latestArticles} />
         </ScrollReveal>
       </FadeOnScroll>
 
-      {/* ── Shorts — Instagram-style modal viewer over a horizontal carousel ── */}
-      <ScrollReveal effect="bounceUp">
+      {/* ── Shorts — modal viewer over horizontal carousel. priority. ── */}
+      <ScrollReveal effect="bounceUp" priority>
         <ShortsSection
           section="shorts"
           heading="Shorts"
           subheading="Vertical wildlife moments from creators around the world"
           maxItems={12}
+          initialShorts={shortsVideos}
         />
       </ScrollReveal>
 
-      {/* ── Latest Tourism Posts — slide right (matches Latest Plants design) + bidirectional fade ── */}
+      {/* ── Latest Tourism Posts — slide right. priority. ── */}
       <FadeOnScroll>
-        <ScrollReveal effect="slideRight">
-          <LatestTourismSection />
+        <ScrollReveal effect="slideRight" priority>
+          <LatestTourismSection initialPosts={latestTourism} />
         </ScrollReveal>
       </FadeOnScroll>
 
-      {/* ── Documentaries — cinematic cover-flow carousel ── */}
-      <ScrollReveal effect="fadeUp">
-        <DocumentariesSection />
+      {/* ── Documentaries — cinematic cover-flow carousel. priority. ── */}
+      <ScrollReveal effect="fadeUp" priority>
+        <DocumentariesSection initialDocs={documentariesVideos} />
       </ScrollReveal>
 
-      {/* ── Latest Conservation Posts — fade up (matches Latest Posts design) + bidirectional fade ── */}
+      {/* ── Latest Conservation Posts — fade up. priority. ── */}
       <FadeOnScroll>
-        <ScrollReveal effect="fadeUp">
-          <LatestConservationSection />
+        <ScrollReveal effect="fadeUp" priority>
+          <LatestConservationSection initialPosts={latestConservation} />
         </ScrollReveal>
       </FadeOnScroll>
 
-      {/* ── Reader reviews — last block before the footer ── */}
-      <ScrollReveal effect="fadeUp">
-        <ReviewsSection />
+      {/* ── Reader reviews — last block before footer. priority. ── */}
+      <ScrollReveal effect="fadeUp" priority>
+        <ReviewsSection initialReviews={approvedReviews} />
       </ScrollReveal>
     </>
   );

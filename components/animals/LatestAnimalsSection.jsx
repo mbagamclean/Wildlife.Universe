@@ -22,7 +22,7 @@ function EmptyState() {
 }
 
 export function LatestAnimalsSection({ initialAnimals = null }) {
-  const hasInitial = Array.isArray(initialAnimals) && initialAnimals.length > 0;
+  const hasInitial = Array.isArray(initialAnimals);
   const [animals, setAnimals] = useState(hasInitial ? initialAnimals : []);
   const [status, setStatus]   = useState(hasInitial ? 'ready' : 'loading');
   const [canLeft,  setCanLeft]  = useState(false);

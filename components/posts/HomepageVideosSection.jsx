@@ -13,11 +13,20 @@ import { db } from '@/lib/storage/db';
  * active rows — so the homepage degrades gracefully before migration 006
  * is run.
  */
-export function HomepageVideosSection({ section = 'featured', heading, subheading, accent = '#dc2626', maxItems = 6 }) {
-  const [videos, setVideos] = useState([]);
-  const [ready, setReady] = useState(false);
+export function HomepageVideosSection({
+  section = 'featured',
+  heading,
+  subheading,
+  accent = '#dc2626',
+  maxItems = 6,
+  initialVideos = null,
+}) {
+  const hasInitial = Array.isArray(initialVideos) && initialVideos.length > 0;
+  const [videos, setVideos] = useState(hasInitial ? initialVideos.slice(0, maxItems) : []);
+  const [ready, setReady] = useState(hasInitial);
 
   useEffect(() => {
+    if (hasInitial) return;
     let cancelled = false;
     db.homepageVideos
       .list({ section })
@@ -29,7 +38,7 @@ export function HomepageVideosSection({ section = 'featured', heading, subheadin
       })
       .catch(() => { if (!cancelled) setReady(true); });
     return () => { cancelled = true; };
-  }, [section, maxItems]);
+  }, [section, maxItems, hasInitial]);
 
   if (!ready || videos.length === 0) return null;
 

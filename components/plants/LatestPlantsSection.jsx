@@ -31,7 +31,7 @@ function EmptyState() {
 }
 
 export function LatestPlantsSection({ initialPlants = null }) {
-  const hasInitial = Array.isArray(initialPlants) && initialPlants.length > 0;
+  const hasInitial = Array.isArray(initialPlants);
   const [plants,   setPlants]   = useState(hasInitial ? initialPlants : []);
   const [status,   setStatus]   = useState(hasInitial ? 'ready' : 'loading');
   const [canLeft,  setCanLeft]  = useState(false);

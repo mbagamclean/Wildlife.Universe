@@ -235,9 +235,11 @@ function layerStyle(isOutgoing, crossfading, hasOverlay) {
 }
 
 /* ─── Main section ──────────────────────────────────────────── */
-export function TrendingSection() {
-  const [queue,       setQueue]       = useState([]);
-  const [status,      setStatus]      = useState('loading');
+export function TrendingSection({ initialTrending = null }) {
+  const hasInitial = Array.isArray(initialTrending);
+  const [queue,       setQueue]       = useState(hasInitial ? initialTrending.slice(0, MAX_POSTS) : []);
+  const [status,      setStatus]      = useState(hasInitial ? 'ready' : 'loading');
+  const skipFirstFetchRef = useRef(hasInitial);
   /* Crossfade state — keeps BOTH outgoing and incoming mounted simultaneously */
   const [prevFeatured, setPrevFeatured] = useState(null);
   const [prevRight,    setPrevRight]    = useState(null);
@@ -301,7 +303,11 @@ export function TrendingSection() {
   }, []);
 
   useEffect(() => {
-    loadPosts();
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+    } else {
+      loadPosts();
+    }
     window.addEventListener('wu:storage-changed', loadPosts);
     return () => {
       window.removeEventListener('wu:storage-changed', loadPosts);

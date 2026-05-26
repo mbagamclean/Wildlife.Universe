@@ -15,10 +15,12 @@ function resolveCoverSrc(cover) {
   return sources[sources.length - 1]?.src || null;
 }
 
-export function WhyHowSection() {
-  const [posts, setPosts] = useState([]);
-  const [status, setStatus] = useState('loading');
+export function WhyHowSection({ initialPosts = null }) {
+  const hasInitial = Array.isArray(initialPosts);
+  const [posts, setPosts] = useState(hasInitial ? initialPosts : []);
+  const [status, setStatus] = useState(hasInitial ? 'ready' : 'loading');
   const [canLeft, setCanLeft] = useState(false);
+  const skipFirstFetchRef = useRef(hasInitial);
   const [canRight, setCanRight] = useState(false);
   const trackRef = useRef(null);
 
@@ -39,7 +41,11 @@ export function WhyHowSection() {
   }, []);
 
   useEffect(() => {
-    loadPosts();
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+    } else {
+      loadPosts();
+    }
     window.addEventListener('wu:storage-changed', loadPosts);
     return () => window.removeEventListener('wu:storage-changed', loadPosts);
   }, [loadPosts]);

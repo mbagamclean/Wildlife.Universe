@@ -60,7 +60,10 @@ function EmptyState() {
 }
 
 export function LatestPostsSection({ initialPosts = null }) {
-  const hasInitial = Array.isArray(initialPosts) && initialPosts.length > 0;
+  // Treat any server-returned array (even empty) as authoritative — the
+  // server confirmed there's nothing to show, so render EmptyState
+  // directly instead of flashing through a skeleton.
+  const hasInitial = Array.isArray(initialPosts);
   const [posts, setPosts] = useState(hasInitial ? initialPosts : []);
   const [status, setStatus] = useState(hasInitial ? 'ready' : 'loading');
   const [page, setPage] = useState(1);

@@ -15,16 +15,34 @@ function resolveCoverSrc(cover) {
   return sources[sources.length - 1]?.src || null;
 }
 
-export function DocumentariesSection() {
-  const [docs, setDocs] = useState([]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
+function mapDocRow(r) {
+  return {
+    id: r.id,
+    title: r.title || 'Untitled documentary',
+    description: r.description || '',
+    cover: r.thumbnail || null,
+    coverPalette: null,
+    sourceUrl: r.sourceUrl || null,
+    sourceType: r.sourceType || null,
+    durationSec: r.durationSec || null,
+  };
+}
+
+export function DocumentariesSection({ initialDocs = null }) {
+  const hasInitial = Array.isArray(initialDocs) && initialDocs.length > 0;
+  const initialMapped = hasInitial ? initialDocs.slice(0, 8).map(mapDocRow) : [];
+  const [docs, setDocs] = useState(initialMapped);
+  const [activeIndex, setActiveIndex] = useState(
+    initialMapped.length > 0 ? Math.floor(initialMapped.length / 2) : 0
+  );
+  const [loading, setLoading] = useState(!hasInitial);
   // True once the user has clicked the centred card to start playback.
   // Reset whenever the active card changes — neighbouring cards never
   // play while peeking at the edges.
   const [isPlayingCenter, setIsPlayingCenter] = useState(false);
 
   useEffect(() => {
+    if (hasInitial) return undefined;
     let cancelled = false;
     db.homepageVideos
       .list({ section: 'documentaries' })

@@ -16,13 +16,31 @@ function resolveCoverSrc(cover) {
   return sources[sources.length - 1]?.src || null;
 }
 
-export function BooksSection() {
-  const [items, setItems] = useState([]);
-  const [activeIndex, setActiveIndex] = useState(0);
-  const [loading, setLoading] = useState(true);
+function mapBookRow(p) {
+  return {
+    ...p,
+    isBook: String(p.bookStatus).toLowerCase() === 'sold',
+    price: String(p.bookStatus).toLowerCase() === 'free' ? 0 : (p.price || 24.99),
+    id: `lib_${p.id}`,
+  };
+}
+
+export function BooksSection({ initialBooks = null }) {
+  const hasInitial = Array.isArray(initialBooks) && initialBooks.length > 0;
+  const initialMapped = hasInitial ? initialBooks.map(mapBookRow) : [];
+  const [items, setItems] = useState(initialMapped);
+  const [activeIndex, setActiveIndex] = useState(
+    initialMapped.length > 0 ? Math.floor(initialMapped.length / 2) : 0
+  );
+  const [loading, setLoading] = useState(!hasInitial);
   const containerRef = useRef(null);
+  const skipFirstFetchRef = useRef(hasInitial);
 
   useEffect(() => {
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+      return;
+    }
     db.posts.list().then((all) => {
       // CEO-curated only: post.bookStatus must be 'free' or 'sold' (set in
       // PostEditor under "Book status"). Posts without a book_status do NOT
@@ -32,12 +50,7 @@ export function BooksSection() {
         return bs === 'free' || bs === 'sold';
       });
       curated.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-      const mapped = curated.map((p) => ({
-        ...p,
-        isBook: String(p.bookStatus).toLowerCase() === 'sold',
-        price: String(p.bookStatus).toLowerCase() === 'free' ? 0 : (p.price || 24.99),
-        id: `lib_${p.id}`,
-      }));
+      const mapped = curated.map(mapBookRow);
       setItems(mapped);
       if (mapped.length > 0) {
         setActiveIndex(Math.floor(mapped.length / 2)); // start in the middle

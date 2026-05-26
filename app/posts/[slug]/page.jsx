@@ -94,8 +94,10 @@ export default async function PostDetailPage({ params, searchParams }) {
     );
   }
 
-  // For post detail pages we still hand off to the existing client-side
-  // PostView, but inject server-rendered JSON-LD for crawlers.
+  // The server already fetches the post for JSON-LD/breadcrumbs — pass it
+  // (and a slice of related siblings) into PostView as initial props so
+  // the article body renders in the SSR HTML instead of waiting on a
+  // client-side db.posts.get(slug) + listByCategory chain.
   const post = await fetchPostBySlug(slug);
   const jsonLd = post ? buildArticleJsonLd(post) : null;
   const crumbs = post
@@ -116,12 +118,19 @@ export default async function PostDetailPage({ params, searchParams }) {
   const related = post ? await fetchRelatedPosts(post, { limit: 8 }) : [];
   const faqJsonLd = post ? buildFaqJsonLd(post.faq) : null;
 
+  // PostView's internal sibling-related panel only shows 3 — hand it the
+  // top 3 from the already-fetched related list so it doesn't make its
+  // own listByCategory call on mount.
+  const initialRelatedForView = post
+    ? related.filter((r) => r.slug !== post.slug).slice(0, 3)
+    : [];
+
   return (
     <>
       {jsonLd && <JsonLd data={jsonLd} />}
       {crumbs && <JsonLd data={crumbs} />}
       {faqJsonLd && <JsonLd data={faqJsonLd} />}
-      <PostView slug={slug} />
+      <PostView slug={slug} initialPost={post} initialRelated={initialRelatedForView} />
       {post?.faq && <PostFaq faq={post.faq} />}
       <RelatedPosts posts={related} />
     </>

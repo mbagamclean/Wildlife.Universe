@@ -428,10 +428,10 @@ function MobileTocBar({ toc, activeToc, progress, visible, onNavigate }) {
 }
 
 /* ─── main component ─── */
-export function PostView({ slug }) {
-  const [post, setPost]           = useState(null);
-  const [loaded, setLoaded]       = useState(false);
-  const [related, setRelated]     = useState([]);
+export function PostView({ slug, initialPost = null, initialRelated = null }) {
+  const [post, setPost]           = useState(initialPost);
+  const [loaded, setLoaded]       = useState(initialPost != null);
+  const [related, setRelated]     = useState(Array.isArray(initialRelated) ? initialRelated : []);
   const [progress, setProgress]   = useState(0);
   const [showTop, setShowTop]     = useState(false);
   const [saved, setSaved]         = useState(false);
@@ -459,6 +459,27 @@ export function PostView({ slug }) {
   /* load */
   useEffect(() => {
     let cancelled = false;
+
+    // If the server already handed us the post (and ideally its related
+    // siblings), skip the network roundtrip — the article content renders
+    // from initial props on the very first paint instead of waiting on a
+    // client-side db.posts.get(slug) + listByCategory chain.
+    if (initialPost && initialPost.slug === slug) {
+      try {
+        const savedList = JSON.parse(localStorage.getItem('wu_saved') || '[]');
+        setSaved(savedList.includes(slug));
+      } catch { /* ignore */ }
+      if (!Array.isArray(initialRelated) || initialRelated.length === 0) {
+        // Lazy-fill related on the client only if the server didn't ship them.
+        db.posts.listByCategory(initialPost.category)
+          .then((all) => {
+            if (!cancelled) setRelated(all.filter((r) => r.slug !== slug).slice(0, 3));
+          })
+          .catch(() => { /* ignore */ });
+      }
+      return () => { cancelled = true; };
+    }
+
     db.posts.get(slug)
       .then(async (p) => {
         if (cancelled) return;
@@ -466,8 +487,8 @@ export function PostView({ slug }) {
         setLoaded(true);
         if (p) {
           try {
-            const saved = JSON.parse(localStorage.getItem('wu_saved') || '[]');
-            setSaved(saved.includes(slug));
+            const savedList = JSON.parse(localStorage.getItem('wu_saved') || '[]');
+            setSaved(savedList.includes(slug));
           } catch { /* ignore */ }
           try {
             const all = await db.posts.listByCategory(p.category);
@@ -479,7 +500,7 @@ export function PostView({ slug }) {
         if (!cancelled) setLoaded(true);
       });
     return () => { cancelled = true; };
-  }, [slug]);
+  }, [slug, initialPost, initialRelated]);
 
   /* Reset the translation caches whenever the post changes. */
   useEffect(() => {

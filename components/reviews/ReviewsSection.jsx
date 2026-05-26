@@ -27,8 +27,9 @@ function renderStars(rating) {
   ));
 }
 
-export function ReviewsSection() {
-  const [allReviews, setAllReviews] = useState([]);
+export function ReviewsSection({ initialReviews = null }) {
+  const hasInitial = Array.isArray(initialReviews) && initialReviews.length > 0;
+  const [allReviews, setAllReviews] = useState(hasInitial ? initialReviews : []);
   const [displayed, setDisplayed] = useState([]);
   const [showForm, setShowForm] = useState(false);
   const [formData, setFormData] = useState({ user_name: '', rating: 5, comment: '' });
@@ -38,9 +39,14 @@ export function ReviewsSection() {
   const [errorMsg, setErrorMsg] = useState('');
   const tokenRef = useRef(generateToken());
   const lastSubmitRef = useRef(0);
+  const skipFirstFetchRef = useRef(hasInitial);
 
   // Load + reshuffle every 8s (Mayobe parity)
   useEffect(() => {
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {

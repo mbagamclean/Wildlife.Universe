@@ -157,19 +157,26 @@ export function ShortsSection({
   heading = 'Wildlife Universe Shorts',
   subheading = 'Watch quick, immersive wildlife moments.',
   maxItems = 12,
+  initialShorts = null,
 } = {}) {
   const router = useRouter();
-  const [shorts, setShorts] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const hasInitial = Array.isArray(initialShorts) && initialShorts.length > 0;
+  const [shorts, setShorts] = useState(hasInitial ? initialShorts.slice(0, maxItems) : []);
+  const [loading, setLoading] = useState(!hasInitial);
   const [activeIndex, setActiveIndex] = useState(null);
   const [originRect, setOriginRect] = useState(null);
   const trackRef = useRef(null);
+  const skipFirstFetchRef = useRef(hasInitial);
 
   // Three-tier fallback so the section is never empty:
   //   1. Admin-curated homepage_videos for this section
   //   2. Recent posts that have a vertical video cover
   //   3. Recent posts (any cover) — static cards that deep-link to the post
   useEffect(() => {
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+      return undefined;
+    }
     let cancelled = false;
     (async () => {
       let items = [];

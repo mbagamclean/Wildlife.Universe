@@ -21,11 +21,13 @@ function EmptyState() {
   );
 }
 
-export function LatestBirdsSection() {
-  const [birds,  setBirds]  = useState([]);
-  const [status, setStatus] = useState('loading');
+export function LatestBirdsSection({ initialBirds = null }) {
+  const hasInitial = Array.isArray(initialBirds);
+  const [birds,  setBirds]  = useState(hasInitial ? initialBirds : []);
+  const [status, setStatus] = useState(hasInitial ? 'ready' : 'loading');
   const [canLeft,  setCanLeft]  = useState(false);
   const [canRight, setCanRight] = useState(false);
+  const skipFirstFetchRef = useRef(hasInitial);
   const trackRef = useRef(null);
 
   const loadBirds = useCallback(async () => {
@@ -39,7 +41,11 @@ export function LatestBirdsSection() {
   }, []);
 
   useEffect(() => {
-    loadBirds();
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+    } else {
+      loadBirds();
+    }
     window.addEventListener('wu:storage-changed', loadBirds);
     return () => window.removeEventListener('wu:storage-changed', loadBirds);
   }, [loadBirds]);

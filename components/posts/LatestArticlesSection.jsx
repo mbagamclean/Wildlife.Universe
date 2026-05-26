@@ -30,12 +30,14 @@ function EmptyState() {
   );
 }
 
-export function LatestArticlesSection() {
-  const [posts, setPosts]   = useState([]);
-  const [status, setStatus] = useState('loading');
+export function LatestArticlesSection({ initialPosts = null }) {
+  const hasInitial = Array.isArray(initialPosts);
+  const [posts, setPosts]   = useState(hasInitial ? initialPosts : []);
+  const [status, setStatus] = useState(hasInitial ? 'ready' : 'loading');
   const [canLeft,  setCanLeft]  = useState(false);
   const [canRight, setCanRight] = useState(false);
   const trackRef = useRef(null);
+  const skipFirstFetchRef = useRef(hasInitial);
 
   const loadPosts = useCallback(async () => {
     try {
@@ -53,7 +55,11 @@ export function LatestArticlesSection() {
   }, []);
 
   useEffect(() => {
-    loadPosts();
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+    } else {
+      loadPosts();
+    }
     window.addEventListener('wu:storage-changed', loadPosts);
     return () => window.removeEventListener('wu:storage-changed', loadPosts);
   }, [loadPosts]);
