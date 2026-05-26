@@ -17,7 +17,14 @@ import { BooksSection } from '@/components/posts/BooksSection';
 import { HomepageVideosSection } from '@/components/posts/HomepageVideosSection';
 import { ShortsSection } from '@/components/posts/ShortsSection';
 import { DocumentariesSection } from '@/components/posts/DocumentariesSection';
-import { fetchAllCategoriesRich, fetchActiveHeroSlides, fetchHeroMode } from '@/lib/seo-data';
+import {
+  fetchAllCategoriesRich,
+  fetchActiveHeroSlides,
+  fetchHeroMode,
+  fetchPublishedPosts,
+  fetchPublishedPostsByCategory,
+  fetchIUCNGrouped,
+} from '@/lib/seo-data';
 import { ReviewsSection } from '@/components/reviews/ReviewsSection';
 import { categories } from '@/lib/mock/categories';
 import Link from 'next/link';
@@ -71,10 +78,28 @@ export default async function HomePage() {
   // the category grid are present in the initial HTML payload. This
   // eliminates the green-gradient placeholder that previously painted
   // until Supabase resolved client-side.
-  const [richCategories, heroSlides, heroMode] = await Promise.all([
+  // Above-the-fold sections (Latest Posts, Animals, Plants, IUCN) used
+  // to client-fetch their own data after mount, leaving users staring at
+  // skeletons. Server-fetch in parallel and pass via initial props so the
+  // first HTML response already contains the content.
+  const [
+    richCategories,
+    heroSlides,
+    heroMode,
+    latestPosts,
+    latestAnimals,
+    latestPlants,
+    iucnGrouped,
+  ] = await Promise.all([
     fetchAllCategoriesRich(),
     fetchActiveHeroSlides(),
     fetchHeroMode(),
+    // slim: project only card-display columns so we don't ship full
+    // article bodies (~100KB/row) inline in the homepage HTML.
+    fetchPublishedPosts({ slim: true, limit: 60 }),
+    fetchPublishedPostsByCategory('animals', { slim: true, limit: 40 }),
+    fetchPublishedPostsByCategory('plants', { slim: true, limit: 40 }),
+    fetchIUCNGrouped({ slim: true }),
   ]);
   const richBySlug = new Map(richCategories.map((c) => [c.slug, c]));
 
@@ -84,9 +109,11 @@ export default async function HomePage() {
         <HeroOrchestrator initialSlides={heroSlides} initialMode={heroMode} />
       </div>
 
-      {/* ── Latest Posts — fade up ─────────────────────────── */}
-      <ScrollReveal effect="fadeUp">
-        <LatestPostsSection />
+      {/* ── Latest Posts — fade up. priority: above-the-fold, skip
+              opacity:0 gate so server-rendered content paints
+              immediately. ─────────────────────────────────────── */}
+      <ScrollReveal effect="fadeUp" priority>
+        <LatestPostsSection initialPosts={latestPosts} />
       </ScrollReveal>
 
       {/* ── Explore Our Categories — zoom in + stagger cards ─ */}
@@ -201,9 +228,9 @@ export default async function HomePage() {
         </section>
       </ScrollReveal>
 
-      {/* ── Latest Animals — slide in from left ───────────── */}
-      <ScrollReveal effect="slideLeft">
-        <LatestAnimalsSection />
+      {/* ── Latest Animals — slide in from left. priority. ── */}
+      <ScrollReveal effect="slideLeft" priority>
+        <LatestAnimalsSection initialAnimals={latestAnimals} />
       </ScrollReveal>
 
       {/* ── Trending — zoom + fade ─────────────────────────── */}
@@ -211,14 +238,14 @@ export default async function HomePage() {
         <TrendingSection />
       </ScrollReveal>
 
-      {/* ── Latest Plants — slide in from right ───────────── */}
-      <ScrollReveal effect="slideRight">
-        <LatestPlantsSection />
+      {/* ── Latest Plants — slide in from right. priority. ── */}
+      <ScrollReveal effect="slideRight" priority>
+        <LatestPlantsSection initialPlants={latestPlants} />
       </ScrollReveal>
 
-      {/* ── IUCN — blur in (clarity into focus) ───────────── */}
-      <ScrollReveal effect="blurIn">
-        <IUCNSection />
+      {/* ── IUCN — blur in (clarity into focus). priority. ── */}
+      <ScrollReveal effect="blurIn" priority>
+        <IUCNSection initialGrouped={iucnGrouped} />
       </ScrollReveal>
 
       {/* ── Latest Birds — flip up (taking flight) ────────── */}

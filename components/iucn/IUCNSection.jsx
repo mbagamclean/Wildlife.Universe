@@ -66,23 +66,30 @@ function StatusButton({ cfg, active, count, onClick, isLight }) {
   );
 }
 
-export function IUCNSection() {
+export function IUCNSection({ initialGrouped = null }) {
+  const hasInitial = initialGrouped && typeof initialGrouped === 'object'
+    && Object.keys(initialGrouped).length > 0;
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
 
   const isLight = mounted ? resolvedTheme === 'light' : false;
 
-  const [grouped,  setGrouped]  = useState({});
-  const [status,   setStatus]   = useState('loading');
+  const [grouped,  setGrouped]  = useState(hasInitial ? initialGrouped : {});
+  const [status,   setStatus]   = useState(hasInitial ? 'ready' : 'loading');
   const [activeCode,   setActiveCode]   = useState(null);
   const [renderedCode, setRenderedCode] = useState(null);
   const [panelVisible, setPanelVisible] = useState(false);
   const timerRef   = useRef(null);
   const sectionRef = useRef(null);
-  const [inView, setInView] = useState(false);
+  // When server data is provided, paint visible immediately so users see
+  // the IUCN grid on first paint instead of waiting on hydration +
+  // IntersectionObserver to fire the fade-in.
+  const [inView, setInView] = useState(hasInitial);
+  const skipFirstFetchRef = useRef(hasInitial);
 
   useEffect(() => {
+    if (inView) return;
     const el = sectionRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -91,7 +98,7 @@ export function IUCNSection() {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [inView]);
 
   const loadData = useCallback(async () => {
     try {
@@ -112,7 +119,11 @@ export function IUCNSection() {
   }, []);
 
   useEffect(() => {
-    loadData();
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+    } else {
+      loadData();
+    }
     window.addEventListener('wu:storage-changed', loadData);
     return () => window.removeEventListener('wu:storage-changed', loadData);
   }, [loadData]);

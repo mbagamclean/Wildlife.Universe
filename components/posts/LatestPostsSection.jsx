@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import { ArrowRight, Rss, ChevronRight, ChevronsRight } from 'lucide-react';
@@ -59,13 +59,15 @@ function EmptyState() {
   );
 }
 
-export function LatestPostsSection() {
-  const [posts, setPosts] = useState([]);
-  const [status, setStatus] = useState('loading');
+export function LatestPostsSection({ initialPosts = null }) {
+  const hasInitial = Array.isArray(initialPosts) && initialPosts.length > 0;
+  const [posts, setPosts] = useState(hasInitial ? initialPosts : []);
+  const [status, setStatus] = useState(hasInitial ? 'ready' : 'loading');
   const [page, setPage] = useState(1);
   // SSR-safe default: assume desktop. After mount the matchMedia listener
   // bumps this to 8 on phones. Resizing between viewports updates live.
   const [pageSize, setPageSize] = useState(PAGE_SIZE_DESKTOP);
+  const skipFirstFetchRef = useRef(hasInitial);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -88,7 +90,14 @@ export function LatestPostsSection() {
   }, []);
 
   useEffect(() => {
-    loadPosts();
+    // Initial paint is already populated from server-rendered initialPosts —
+    // skip the redundant first fetch but still subscribe so admin edits in
+    // another tab refresh this section live.
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+    } else {
+      loadPosts();
+    }
     window.addEventListener('wu:storage-changed', loadPosts);
     return () => window.removeEventListener('wu:storage-changed', loadPosts);
   }, [loadPosts]);

@@ -30,12 +30,14 @@ function EmptyState() {
   );
 }
 
-export function LatestPlantsSection() {
-  const [plants,   setPlants]   = useState([]);
-  const [status,   setStatus]   = useState('loading');
+export function LatestPlantsSection({ initialPlants = null }) {
+  const hasInitial = Array.isArray(initialPlants) && initialPlants.length > 0;
+  const [plants,   setPlants]   = useState(hasInitial ? initialPlants : []);
+  const [status,   setStatus]   = useState(hasInitial ? 'ready' : 'loading');
   const [canLeft,  setCanLeft]  = useState(false);
   const [canRight, setCanRight] = useState(false);
   const trackRef = useRef(null);
+  const skipFirstFetchRef = useRef(hasInitial);
 
   const loadPlants = useCallback(async () => {
     try {
@@ -48,7 +50,11 @@ export function LatestPlantsSection() {
   }, []);
 
   useEffect(() => {
-    loadPlants();
+    if (skipFirstFetchRef.current) {
+      skipFirstFetchRef.current = false;
+    } else {
+      loadPlants();
+    }
     window.addEventListener('wu:storage-changed', loadPlants);
     return () => window.removeEventListener('wu:storage-changed', loadPlants);
   }, [loadPlants]);
