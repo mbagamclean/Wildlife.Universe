@@ -490,6 +490,16 @@ button {
 .post-body p { margin: 0.65em 0; }
 .post-body a { color: var(--color-primary); text-decoration: underline; text-underline-offset: 3px; text-decoration-thickness: 1px; }
 .post-body a:hover { color: var(--color-primary-deep); }
+/* Auto-injected internal links (species/topic cross-references) get a
+   slightly subtler underline so the body doesn't feel link-heavy. */
+.post-body a.wu-internal-link {
+  text-decoration-style: dotted;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 4px;
+}
+.post-body a.wu-internal-link:hover {
+  text-decoration-style: solid;
+}
 .post-body strong, .post-body b { font-weight: 700; }
 .post-body em, .post-body i { font-style: italic; }
 .post-body ul { list-style: disc;    padding-left: 1.7em; margin: 0.7em 0; }

@@ -13,6 +13,8 @@ import {
   JsonLd,
   buildOrganizationJsonLd,
   buildWebsiteJsonLd,
+  buildVerificationMetadata,
+  buildHreflangMap,
 } from '@/lib/seo';
 import './globals.css';
 
@@ -39,6 +41,21 @@ export const metadata = {
   applicationName: SITE_NAME,
   generator: 'Next.js',
   referrer: 'strict-origin-when-cross-origin',
+  // Search-engine site verification — Google, Bing, Yandex etc. each
+  // issue a token when you claim a property; set the env var and the
+  // matching `<meta>` renders, claiming the property automatically.
+  // Per-page metadata can override; the root keeps the site-wide claim
+  // alive for unverified paths too.
+  verification: buildVerificationMetadata(),
+  // Default site-wide hreflang — English target, x-default fallback.
+  // Per-page metadata overrides the URL but inherits the language map.
+  alternates: {
+    canonical: '/',
+    languages: buildHreflangMap(`${SITE_URL}/`),
+    types: {
+      'application/rss+xml': '/rss.xml',
+    },
+  },
   formatDetection: { email: false, address: false, telephone: false },
   icons: {
     icon: '/favicon.png',

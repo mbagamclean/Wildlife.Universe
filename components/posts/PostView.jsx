@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useRef } from 'react';
+import { useEffect, useState, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -20,6 +20,7 @@ import {
   bodyToHtml,
   sanitizeBodyHtml,
   injectHeadingIdsAndBuildToc,
+  injectInternalLinks,
   stripHtml,
 } from '@/lib/posts/html';
 import {
@@ -428,7 +429,12 @@ function MobileTocBar({ toc, activeToc, progress, visible, onNavigate }) {
 }
 
 /* ─── main component ─── */
-export function PostView({ slug, initialPost = null, initialRelated = null }) {
+export function PostView({
+  slug,
+  initialPost = null,
+  initialRelated = null,
+  internalLinkCatalog = null,
+}) {
   const [post, setPost]           = useState(initialPost);
   const [loaded, setLoaded]       = useState(initialPost != null);
   const [related, setRelated]     = useState(Array.isArray(initialRelated) ? initialRelated : []);
@@ -656,7 +662,30 @@ export function PostView({ slug, initialPost = null, initialRelated = null }) {
      text we strip from the HTML is what feeds the audio player and the
      reading-time / word-count math. */
   const safeHtml = sanitizeBodyHtml(bodyToHtml(post.body));
-  const { html: bodyHtml, toc: headingToc } = injectHeadingIdsAndBuildToc(safeHtml);
+  // Inject internal links into the rendered body — wraps the first
+  // mention of every catalogued species/topic (other than this post)
+  // in an anchor to its detail page. Adds Wikipedia-style crawl
+  // signal and on-site discovery. Skipped when the catalog isn't
+  // available (e.g. an admin preview without server props).
+  const linkMap = useMemo(() => {
+    if (!Array.isArray(internalLinkCatalog) || internalLinkCatalog.length === 0) return null;
+    // Build a term → {slug, title} map, longest term first so
+    // multi-word matches beat single-word matches ("Bald Eagle" beats
+    // "Eagle"). Drop entries that match the current post itself.
+    const entries = [];
+    for (const item of internalLinkCatalog) {
+      if (!item?.slug || item.slug === slug) continue;
+      if (item.title) entries.push([item.title, item]);
+      if (item.scientificName) entries.push([item.scientificName, item]);
+    }
+    entries.sort((a, b) => b[0].length - a[0].length);
+    return new Map(entries);
+  }, [internalLinkCatalog, slug]);
+  const linkedSafeHtml = useMemo(
+    () => (linkMap && linkMap.size > 0 ? injectInternalLinks(safeHtml, linkMap, { maxLinks: 8 }) : safeHtml),
+    [safeHtml, linkMap],
+  );
+  const { html: bodyHtml, toc: headingToc } = injectHeadingIdsAndBuildToc(linkedSafeHtml);
   const bodyText = stripHtml(safeHtml);
   const mins     = readingMins(bodyText);
   const baseToc  = headingToc.length > 0 ? headingToc : buildTocFromText(bodyText);

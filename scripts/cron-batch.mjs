@@ -37,26 +37,56 @@ const INDEXNOW_KEY = process.env.INDEXNOW_KEY || '';
 
 // Fire-and-forget — IndexNow tells Bing / Yandex / Naver / Seznam about
 // freshly published URLs. Google retired its public ping endpoint in
-// 2023; for Google we still rely on Search Console + sitemap crawl.
+// 2023; for Google we now also hit the internal /api/seo/ping route,
+// which invokes the Google Indexing API when an admin has connected
+// OAuth (see /api/auth/google-indexing/start). The internal ping is
+// best-effort — if the Next.js server isn't reachable from wherever
+// this script runs, IndexNow on its own still covers Bing/Yandex/etc.
 async function pingIndexNow(slug) {
-  if (!INDEXNOW_KEY || !slug) return;
-  const host = SITE_URL.replace(/^https?:\/\//, '');
+  if (!slug) return;
   const url = `${SITE_URL}/posts/${slug}`;
-  try {
-    const res = await fetch('https://api.indexnow.org/IndexNow', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        host,
-        key: INDEXNOW_KEY,
-        keyLocation: `${SITE_URL}/${INDEXNOW_KEY}.txt`,
-        urlList: [url],
-      }),
-    });
-    console.log(`[batch] indexnow ${url} → HTTP ${res.status}`);
-  } catch (err) {
-    console.warn(`[batch] indexnow ping failed for ${url}: ${err.message}`);
+  const tasks = [];
+
+  if (INDEXNOW_KEY) {
+    const host = SITE_URL.replace(/^https?:\/\//, '');
+    tasks.push(
+      fetch('https://api.indexnow.org/indexnow', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json; charset=utf-8' },
+        body: JSON.stringify({
+          host,
+          key: INDEXNOW_KEY,
+          keyLocation: `${SITE_URL}/${INDEXNOW_KEY}.txt`,
+          // Submit both the new post and the homepage — homepage's
+          // freshness signal tells engines to come back for the sitemap.
+          urlList: [url, `${SITE_URL}/`],
+        }),
+      })
+        .then((res) => console.log(`[batch] indexnow ${url} → HTTP ${res.status}`))
+        .catch((err) => console.warn(`[batch] indexnow ping failed for ${url}: ${err.message}`)),
+    );
   }
+
+  const internalSecret = process.env.SEO_INTERNAL_PING_SECRET || '';
+  if (internalSecret) {
+    tasks.push(
+      fetch(`${SITE_URL}/api/seo/ping`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-internal-ping-secret': internalSecret,
+        },
+        body: JSON.stringify({ urls: [url, `${SITE_URL}/`], slug, eventType: 'publish_ping' }),
+      })
+        .then(async (res) => {
+          if (res.ok) console.log(`[batch] seo/ping ${url} → HTTP ${res.status}`);
+          else console.warn(`[batch] seo/ping ${url} → HTTP ${res.status}`);
+        })
+        .catch((err) => console.warn(`[batch] seo/ping failed for ${url}: ${err.message}`)),
+    );
+  }
+
+  await Promise.allSettled(tasks);
 }
 
 function admin() {

@@ -9,6 +9,7 @@ import {
   fetchPostsForLabelPage,
   fetchRelatedPosts,
   fetchPublishedPosts,
+  fetchInternalLinkCatalog,
 } from '@/lib/seo-data';
 import {
   buildPostMetadata,
@@ -98,7 +99,14 @@ export default async function PostDetailPage({ params, searchParams }) {
   // (and a slice of related siblings) into PostView as initial props so
   // the article body renders in the SSR HTML instead of waiting on a
   // client-side db.posts.get(slug) + listByCategory chain.
-  const post = await fetchPostBySlug(slug);
+  // Fetch the post and the internal-link catalog in parallel. The
+  // catalog drives Wikipedia-style internal linking inside the body —
+  // we hand it to PostView and it bakes anchors into the rendered HTML
+  // without a client round-trip.
+  const [post, internalLinkCatalog] = await Promise.all([
+    fetchPostBySlug(slug),
+    fetchInternalLinkCatalog().catch(() => []),
+  ]);
   const jsonLd = post ? buildArticleJsonLd(post) : null;
   const crumbs = post
     ? buildBreadcrumbJsonLd([
@@ -130,7 +138,12 @@ export default async function PostDetailPage({ params, searchParams }) {
       {jsonLd && <JsonLd data={jsonLd} />}
       {crumbs && <JsonLd data={crumbs} />}
       {faqJsonLd && <JsonLd data={faqJsonLd} />}
-      <PostView slug={slug} initialPost={post} initialRelated={initialRelatedForView} />
+      <PostView
+        slug={slug}
+        initialPost={post}
+        initialRelated={initialRelatedForView}
+        internalLinkCatalog={internalLinkCatalog}
+      />
       {post?.faq && <PostFaq faq={post.faq} />}
       <RelatedPosts posts={related} />
     </>
