@@ -45,6 +45,7 @@ export default async function BirdsPage({ searchParams }) {
       heroImage={rich?.heroImageUrl || null}
       heroImageMobile={rich?.heroImageMobileUrl || null}
       shortDescription={rich?.shortDescription || ''}
+      imageAlt={rich?.imageAlt || ''}
     />
   );
 }

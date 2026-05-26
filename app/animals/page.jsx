@@ -47,6 +47,7 @@ export default async function AnimalsPage({ searchParams }) {
       heroImage={rich?.heroImageUrl || null}
       heroImageMobile={rich?.heroImageMobileUrl || null}
       shortDescription={rich?.shortDescription || ''}
+      imageAlt={rich?.imageAlt || ''}
     />
   );
 }

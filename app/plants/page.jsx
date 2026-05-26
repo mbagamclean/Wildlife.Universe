@@ -45,6 +45,7 @@ export default async function PlantsPage({ searchParams }) {
       heroImage={rich?.heroImageUrl || null}
       heroImageMobile={rich?.heroImageMobileUrl || null}
       shortDescription={rich?.shortDescription || ''}
+      imageAlt={rich?.imageAlt || ''}
     />
   );
 }

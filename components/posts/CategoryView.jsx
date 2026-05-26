@@ -13,8 +13,11 @@ import { labelSlug } from '@/lib/mock/categories';
  *                                  larger viewports. Falls back to the
  *                                  green gradient when neither is set.
  *   shortDescription             → preferred subtitle (overrides blurb).
- *   imageAlt                     → reserved for future <img> tag if we
- *                                  switch to a foreground image.
+ *   imageAlt                     → descriptive alt text for the hero
+ *                                  image (admin-controlled). When empty
+ *                                  we fall back to a descriptive default
+ *                                  derived from the category name, so
+ *                                  no <img> ships without meaningful alt.
  */
 export function CategoryView({
   category,
@@ -27,10 +30,16 @@ export function CategoryView({
   heroImage = null,
   heroImageMobile = null,
   shortDescription = '',
+  imageAlt = '',
 }) {
   const basePath = `/${category}`;
   const subtitle = shortDescription?.trim() || blurb || `Discover curated content and insights in ${name}`;
   const hasHero = Boolean(heroImage || heroImageMobile);
+  // Descriptive alt for the hero. Prefer admin-set text; otherwise build
+  // a meaningful default so the hero image always has crawl/screen-reader
+  // value. Empty alt is reserved strictly for purely decorative images
+  // — a full-bleed category hero is informational, not decorative.
+  const heroAlt = imageAlt?.trim() || `${name} category cover — Wildlife Universe`;
 
   return (
     <>
@@ -42,18 +51,16 @@ export function CategoryView({
                 <img> below. */}
             {heroImageMobile && (
               <img
-                aria-hidden
                 src={heroImageMobile}
-                alt=""
+                alt={heroAlt}
                 className="absolute inset-0 h-full w-full object-cover sm:hidden"
                 loading="eager"
               />
             )}
             {(heroImage || heroImageMobile) && (
               <img
-                aria-hidden
                 src={heroImage || heroImageMobile}
-                alt=""
+                alt={heroAlt}
                 className={`absolute inset-0 h-full w-full object-cover ${heroImageMobile ? 'hidden sm:block' : ''}`}
                 loading="eager"
               />
