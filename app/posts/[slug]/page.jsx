@@ -8,7 +8,6 @@ import {
   fetchPostBySlug,
   fetchPostsForLabelPage,
   fetchRelatedPosts,
-  fetchPublishedPosts,
   fetchInternalLinkCatalog,
 } from '@/lib/seo-data';
 import { postUrl } from '@/lib/posts/url';
@@ -48,29 +47,14 @@ export async function generateMetadata({ params, searchParams }) {
   return buildPostMetadata(post);
 }
 
-// ISR — refresh post detail every 5 min. Admin save endpoints call
-// revalidatePath('/posts/[slug]') for instant invalidation when the
-// editor publishes or updates a post.
-export const revalidate = 300;
-
-// Pre-render only posts that canonically live at /posts/<slug> — i.e.,
-// posts-category posts WITHOUT a label. Labeled posts (including most
-// of the posts-category articles) live at /posts/<label>/<slug> via
-// app/[category]/[label]/[slug]/page.jsx. Slugs not matching this
-// filter that still hit /posts/<slug> 301-redirect to the canonical
-// URL via the default export below.
-export async function generateStaticParams() {
-  try {
-    const posts = await fetchPublishedPosts();
-    return (posts || [])
-      .filter((p) => p?.slug
-        && (p.category || 'posts').toLowerCase() === 'posts'
-        && !p.label)
-      .map((p) => ({ slug: p.slug }));
-  } catch {
-    return [];
-  }
-}
+// Post-restructure this route exists mainly to render label landings
+// (e.g. /posts/how-questions) and to 301-redirect legacy /posts/<slug>
+// URLs to their canonical 3-segment form. Both branches need ?page=N
+// (label landings) or a runtime DB lookup (redirects), so we render
+// dynamically on every request — no generateStaticParams, no ISR
+// caching. That sidesteps the DYNAMIC_SERVER_USAGE conflict that
+// happens when an empty generateStaticParams meets searchParams use.
+export const dynamic = 'force-dynamic';
 
 export default async function PostDetailPage({ params, searchParams }) {
   const { slug } = await params;
