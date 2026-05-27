@@ -9,6 +9,7 @@ import { allLabels, categories } from '@/lib/mock/categories';
 /* ── link data ──────────────────────────────────────────── */
 const quickLinks = [
   { name: 'Home', href: '/' },
+  { name: 'Wildlife Content', href: '/wildlife-content' },
   { name: 'Popular Posts', href: '/posts' },
   { name: 'About Us', href: '/about' },
   { name: 'Contact', href: '/contact' },
@@ -27,11 +28,9 @@ const legalLinks = [
   { name: 'Wildlife Universe Team', href: '/legal/team' },
 ];
 
-// Show only the wildlife taxonomy categories — exclude the meta `posts`
-// category (its slug overlaps the "All Posts" link in the Quick Links column).
-const categoryLinks = categories
-  .filter((c) => c.slug !== 'posts')
-  .map((c) => ({ name: c.name, href: `/${c.slug}` }));
+// All five taxonomy categories — every one ships its own landing page,
+// sitemap, and label tree, so every one belongs in the footer.
+const categoryLinks = categories.map((c) => ({ name: c.name, href: `/${c.slug}` }));
 
 /* ── social links (manageable by CMS) ───────────────────────── */
 const socialLinks = [
@@ -222,10 +221,10 @@ export function Footer() {
                 Explore Labels
               </p>
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.4rem' }}>
-                {allLabels.map(({ label, slug }) => (
+                {allLabels.map(({ label, categorySlug, href }) => (
                   <Link
-                    key={`${slug}-${label}`}
-                    href={`/${slug}`}
+                    key={`${categorySlug}-${label}`}
+                    href={href}
                     style={{
                       color: 'rgba(255,255,255,0.45)',
                       fontSize: '0.72rem',

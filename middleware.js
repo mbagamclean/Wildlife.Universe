@@ -16,8 +16,8 @@ const CATEGORY_SLUGS = new Set(['animals', 'plants', 'birds', 'insects', 'posts'
 // URL. Skip the Supabase query and let the route render.
 const LABELS_BY_CATEGORY = {
   animals: new Set(['mammals', 'reptiles', 'amphibians', 'fish', 'iucn-redlist']),
-  birds: new Set(['basal', 'waterfowl', 'coastal', 'raptors', 'land', 'song']),
-  insects: new Set(['porifera', 'cnidaria', 'platyhelminthes', 'nematoda', 'annelida', 'mollusca', 'arthropoda', 'echinodermata']),
+  birds: new Set(['basal', 'waterfowl', 'coastal', 'raptors', 'land', 'song', 'iucn-redlist']),
+  insects: new Set(['porifera', 'cnidaria', 'platyhelminthes', 'nematoda', 'annelida', 'mollusca', 'arthropoda', 'echinodermata', 'iucn-redlist']),
   plants: new Set(['trees', 'shrubs', 'herbs', 'vines']),
   posts: new Set(['how-questions', 'why-questions', 'tourism', 'conservation', 'articles']),
 };
