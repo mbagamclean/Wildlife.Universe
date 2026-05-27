@@ -27,6 +27,23 @@ const nextConfig = {
     ],
   },
   serverExternalPackages: ['sharp', 'ffmpeg-static'],
+  async redirects() {
+    // Canonical auth-route variants. SEO scanners and stale external
+    // links keep hitting hyphenated/alternate spellings that returned
+    // 404, dragging the site's "URLs with 4xx" score. We emit classic
+    // 301 (rather than Next's default 308) because some legacy crawlers
+    // still treat 308 as ambiguous; 301 is the historical permanent-
+    // redirect every search engine understands.
+    return [
+      { source: '/sign-in',   destination: '/login',  statusCode: 301 },
+      { source: '/signin',    destination: '/login',  statusCode: 301 },
+      { source: '/log-in',    destination: '/login',  statusCode: 301 },
+      { source: '/sign-up',   destination: '/signup', statusCode: 301 },
+      { source: '/register',  destination: '/signup', statusCode: 301 },
+      { source: '/sign_in',   destination: '/login',  statusCode: 301 },
+      { source: '/sign_up',   destination: '/signup', statusCode: 301 },
+    ];
+  },
   async headers() {
     return [
       {
