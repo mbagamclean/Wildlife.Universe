@@ -18,6 +18,13 @@ export default async function SubscribePage({ searchParams }) {
         }
       : null;
 
+  const heading = bookItem
+    ? `Buy ${bookItem.title} — Wildlife Universe`
+    : 'Subscribe to Wildlife Universe';
+  const subheading = bookItem
+    ? 'Complete your purchase securely below.'
+    : 'Unlock premium wildlife content, ad-free reading, and exclusive features.';
+
   return (
     <div
       style={{
@@ -26,6 +33,35 @@ export default async function SubscribePage({ searchParams }) {
       }}
     >
       <div style={{ maxWidth: 1060, margin: '0 auto', padding: '48px 20px 64px' }}>
+        {/* Page-level <h1> — gives the page a single primary heading
+            for SEO/accessibility. PaymentGateway below uses h2/h3 for
+            its section structure. */}
+        <header style={{ textAlign: 'center', marginBottom: 36 }}>
+          <h1
+            style={{
+              fontSize: 'clamp(28px, 4.2vw, 44px)',
+              fontWeight: 900,
+              letterSpacing: '-0.02em',
+              color: '#fff',
+              margin: 0,
+              lineHeight: 1.1,
+            }}
+          >
+            {heading}
+          </h1>
+          <p
+            style={{
+              marginTop: 10,
+              fontSize: 15,
+              color: 'rgba(255,255,255,0.62)',
+              maxWidth: 620,
+              marginLeft: 'auto',
+              marginRight: 'auto',
+            }}
+          >
+            {subheading}
+          </p>
+        </header>
         <Suspense fallback={null}>
           <PaymentGateway bookItem={bookItem} />
         </Suspense>

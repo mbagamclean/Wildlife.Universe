@@ -237,7 +237,7 @@ function ImageLayer({ slide, onColorSample }) {
             ))}
             <img
               src={url}
-              alt=""
+              alt={slide.title || slide.subject || 'Wildlife Universe hero'}
                             className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 data-[loaded=true]:opacity-100"
               onLoad={handleLoad}
               onError={handleError}
@@ -246,7 +246,7 @@ function ImageLayer({ slide, onColorSample }) {
         ) : (
           <img
             src={url}
-            alt=""
+            alt={slide.title || slide.subject || 'Wildlife Universe hero'}
                         className="absolute inset-0 h-full w-full object-cover opacity-0 transition-opacity duration-700 data-[loaded=true]:opacity-100"
             onLoad={handleLoad}
             onError={handleError}
@@ -290,8 +290,7 @@ function VideoLayer({ slide, onPlay, onPause, onEnded }) {
       {posterUrl && (
         <img
           src={posterUrl}
-          alt=""
-          aria-hidden
+          alt={slide.title || slide.subject || 'Wildlife Universe hero'}
           className="absolute inset-0 h-full w-full object-cover"
           onError={(e) => { e.currentTarget.style.display = 'none'; }}
         />
