@@ -34,6 +34,7 @@ import {
   fetchPostByCategoryAndSlug,
   fetchRelatedPosts,
   fetchInternalLinkCatalog,
+  fetchLabelRichBySlug,
 } from '@/lib/seo-data';
 import { postUrl } from '@/lib/posts/url';
 
@@ -74,7 +75,11 @@ export default async function CategorySlugPage({ params, searchParams }) {
   // 1) Label-first: keeps /<category>/<label-slug> label listings working.
   const label = findLabelBySlug(rawSlug, cat.labels);
   if (label) {
-    const { posts, totalPages } = await fetchPostsForLabelPage(cat.slug, label, { page });
+    const [labelPage, rich] = await Promise.all([
+      fetchPostsForLabelPage(cat.slug, label, { page }),
+      fetchLabelRichBySlug(cat.slug, rawSlug).catch(() => null),
+    ]);
+    const { posts, totalPages } = labelPage;
     if (page > 1 && page > totalPages) notFound();
 
     const breadcrumb = buildBreadcrumbJsonLd([
@@ -93,6 +98,10 @@ export default async function CategorySlugPage({ params, searchParams }) {
           posts={posts}
           page={page}
           totalPages={totalPages}
+          heroImage={rich?.heroImageUrl || null}
+          heroImageMobile={rich?.heroImageMobileUrl || null}
+          shortDescription={rich?.shortDescription || ''}
+          imageAlt={rich?.imageAlt || ''}
         />
       </>
     );

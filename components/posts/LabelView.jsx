@@ -12,16 +12,55 @@ export function LabelView({
   posts,
   page = 1,
   totalPages = 1,
+  heroImage = null,
+  heroImageMobile = null,
+  shortDescription = '',
+  imageAlt = '',
 }) {
   const basePath = `/${category}/${labelSlug(label)}`;
+  const hasHero = Boolean(heroImage || heroImageMobile);
+  const subtitle = shortDescription?.trim() || `Discover curated content and insights in ${label}`;
+  // Descriptive alt — label hero is informational, not decorative. Prefer
+  // admin-set text, then a sensible default derived from the label name.
+  const heroAlt = imageAlt?.trim() || `${label} — ${categoryName} on Wildlife Universe`;
+
   return (
     <>
       {/* ── Hero banner ── */}
       <section className="relative flex h-[88vh] min-h-[640px] items-center justify-center overflow-hidden">
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-br from-[#031a0d] via-[#0c4a1a] to-[#3aa15a]"
-        />
+        {hasHero ? (
+          <>
+            {heroImageMobile && (
+              <img
+                src={heroImageMobile}
+                alt={heroAlt}
+                className="absolute inset-0 h-full w-full object-cover sm:hidden"
+                loading="eager"
+              />
+            )}
+            {(heroImage || heroImageMobile) && (
+              <img
+                src={heroImage || heroImageMobile}
+                alt={heroAlt}
+                className={`absolute inset-0 h-full w-full object-cover ${heroImageMobile ? 'hidden sm:block' : ''}`}
+                loading="eager"
+              />
+            )}
+            <div
+              aria-hidden
+              className="absolute inset-0"
+              style={{
+                background:
+                  'linear-gradient(180deg, rgba(0,0,0,0.55) 0%, rgba(0,0,0,0.35) 45%, rgba(0,0,0,0.7) 100%)',
+              }}
+            />
+          </>
+        ) : (
+          <div
+            aria-hidden
+            className="absolute inset-0 bg-gradient-to-br from-[#031a0d] via-[#0c4a1a] to-[#3aa15a]"
+          />
+        )}
         <div aria-hidden className="absolute inset-0 dark-overlay" />
         <Container className="relative z-10 py-12 text-center">
           <p className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-1.5 text-xs font-semibold uppercase tracking-widest hero-sub-on-dark backdrop-blur">
@@ -32,7 +71,7 @@ export function LabelView({
             {label}
           </h1>
           <p className="mt-3 mx-auto max-w-xl text-base hero-sub-on-dark sm:text-lg">
-            Discover curated content and insights in {label}
+            {subtitle}
           </p>
         </Container>
         <div

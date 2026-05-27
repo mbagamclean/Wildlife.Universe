@@ -9,6 +9,7 @@ import {
   fetchPostsForLabelPage,
   fetchRelatedPosts,
   fetchInternalLinkCatalog,
+  fetchLabelRichBySlug,
 } from '@/lib/seo-data';
 import { postUrl } from '@/lib/posts/url';
 import {
@@ -64,7 +65,11 @@ export default async function PostDetailPage({ params, searchParams }) {
 
   if (label) {
     const page = readPage(sp);
-    const { posts, totalPages } = await fetchPostsForLabelPage('posts', label, { page });
+    const [labelPage, rich] = await Promise.all([
+      fetchPostsForLabelPage('posts', label, { page }),
+      fetchLabelRichBySlug('posts', slug).catch(() => null),
+    ]);
+    const { posts, totalPages } = labelPage;
     if (page > 1 && page > totalPages) notFound();
 
     const breadcrumb = buildBreadcrumbJsonLd([
@@ -83,6 +88,10 @@ export default async function PostDetailPage({ params, searchParams }) {
           posts={posts}
           page={page}
           totalPages={totalPages}
+          heroImage={rich?.heroImageUrl || null}
+          heroImageMobile={rich?.heroImageMobileUrl || null}
+          shortDescription={rich?.shortDescription || ''}
+          imageAlt={rich?.imageAlt || ''}
         />
       </>
     );
