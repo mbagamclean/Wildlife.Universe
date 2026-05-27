@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { ShareButton } from '@/components/ui/ShareButton';
 import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 import { User } from 'lucide-react';
+import { postUrl } from '@/lib/posts/url';
 
 const BADGE_MAP = {
   animals:    ['#1a5c34', '#2e9958'],
@@ -49,7 +50,7 @@ export function LatestPostCard({ post, index = 0 }) {
 
   return (
     <Link
-      href={`/posts/${post.slug}`}
+      href={postUrl(post)}
       className="group block h-full"
       style={{
         animation: 'wu-fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) both',
@@ -146,7 +147,7 @@ export function LatestPostCard({ post, index = 0 }) {
                 {post.author?.name || 'Wildlife Universe'}
               </span>
               <span className="flex items-center" style={{ zIndex: 10 }}>
-                <ShareButton title={post.title} slug={post.slug} className="h-6 w-6 text-[var(--color-fg-soft)] hover:text-white" />
+                <ShareButton title={post.title} slug={post.slug} category={post.category} className="h-6 w-6 text-[var(--color-fg-soft)] hover:text-white" />
               </span>
             </div>
           </div>

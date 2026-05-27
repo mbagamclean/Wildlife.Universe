@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import Image from 'next/image';
+import { postUrl } from '@/lib/posts/url';
 
 const LABEL_COLORS = {
   Trees:       { bg: 'rgba(10,60,10,0.82)',   text: '#7ddf8a' },
@@ -25,7 +26,7 @@ export function PlantCard({ post, index = 0 }) {
 
   return (
     <Link
-      href={`/posts/${post.slug}`}
+      href={postUrl(post)}
       className="group block shrink-0"
       style={{
         width: 'clamp(220px, 30vw, 300px)',

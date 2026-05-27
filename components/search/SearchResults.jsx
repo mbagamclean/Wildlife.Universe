@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { ArrowRight, Calendar, Loader2, SearchX, Tag } from 'lucide-react';
 import { GlassPanel } from '@/components/ui/GlassPanel';
+import { postUrl } from '@/lib/posts/url';
 
 function formatDate(iso) {
   if (!iso) return '';
@@ -128,7 +129,7 @@ export function SearchResults({ query }) {
           return (
             <li key={r.id || r.slug}>
               <Link
-                href={`/posts/${r.slug}`}
+                href={postUrl(r)}
                 className="group flex flex-col gap-4 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4 transition-all duration-200 hover:border-[#008000]/40 hover:bg-[#008000]/5 sm:flex-row sm:p-5"
               >
                 {thumb && (

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { postUrl } from '@/lib/posts/url';
 
 function resolveSrc(cover) {
   if (!cover) return null;
@@ -36,7 +37,7 @@ export function AnimalCircle({ post, size = 'medium', index = 0, style }) {
 
   return (
     <Link
-      href={`/posts/${post.slug}`}
+      href={postUrl(post)}
       className={`group relative block cursor-pointer ${isFluid ? 'w-full' : 'shrink-0'}`}
       style={{
         ...(isFluid ? { aspectRatio: '1' } : fixedStyle),

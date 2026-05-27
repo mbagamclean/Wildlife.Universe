@@ -7,6 +7,7 @@ import { HeroProvider } from './HeroContext';
 import { HeroCarousel } from './HeroCarousel';
 import { FeaturedHeroCarousel } from './FeaturedHeroCarousel';
 import { NetflixRowCarousel } from './NetflixRowCarousel';
+import { postUrl } from '@/lib/posts/url';
 
 function shuffle(arr) {
   const a = arr.slice();
@@ -29,7 +30,7 @@ function postToSlide(post, idx) {
     subject: SUBJECTS[idx % SUBJECTS.length],
     title: post.title,
     description: post.description,
-    cta: { label: 'View Post', href: `/posts/${post.slug}` },
+    cta: { label: 'View Post', href: postUrl(post) },
   };
 }
 

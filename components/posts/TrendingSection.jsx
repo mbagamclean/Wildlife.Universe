@@ -7,6 +7,7 @@ import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 import { ShareButton } from '@/components/ui/ShareButton';
 import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
+import { postUrl } from '@/lib/posts/url';
 
 const MAX_POSTS        = 6;
 const DISPLAY_DURATION = 5200; // ms each post stays featured
@@ -96,7 +97,7 @@ function FeaturedContent({ post }) {
             <User className="h-3 w-3 opacity-90" />
             {post.author?.name || 'Wildlife Universe'}
           </span>
-          <ShareButton title={post.title} slug={post.slug} className="text-white bg-white/10 hover:bg-white/25 h-8 w-8 !p-1.5 shadow-sm" />
+          <ShareButton title={post.title} slug={post.slug} category={post.category} className="text-white bg-white/10 hover:bg-white/25 h-8 w-8 !p-1.5 shadow-sm" />
         </div>
         <span className="flex translate-y-1 items-center gap-1.5 text-sm font-semibold text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
           Read More <ArrowRight className="h-4 w-4" />
@@ -113,7 +114,7 @@ function TrendingCard({ post, rank, onActivate }) {
   const label   = post.label || post.category || '';
   return (
     <Link
-      href={`/posts/${post.slug}`}
+      href={postUrl(post)}
       onMouseEnter={onActivate}
       className="group/card relative flex items-center gap-3.5 rounded-xl p-3 cursor-pointer no-underline transition-colors duration-150 hover:bg-white/5"
     >
@@ -165,7 +166,7 @@ function TrendingCard({ post, rank, onActivate }) {
             <User className="h-2.5 w-2.5" />
             {post.author?.name || 'Wildlife Universe'}
           </span>
-          <ShareButton title={post.title} slug={post.slug} className="h-7 w-7 text-[var(--color-fg-soft)] hover:bg-white/10 opacity-0 group-hover/card:opacity-100 transition-opacity" />
+          <ShareButton title={post.title} slug={post.slug} category={post.category} className="h-7 w-7 text-[var(--color-fg-soft)] hover:bg-white/10 opacity-0 group-hover/card:opacity-100 transition-opacity" />
         </div>
       </div>
 
@@ -375,7 +376,7 @@ export function TrendingSection({ initialTrending = null }) {
           >
             {/* ── FEATURED PANEL ──────────────────── */}
             <Link
-              href={`/posts/${featured?.slug ?? '#'}`}
+              href={featured ? postUrl(featured) : '#'}
               className="group relative block overflow-hidden rounded-2xl lg:flex-1"
               style={{ minHeight: 420, boxShadow: '0 8px 40px rgba(0,0,0,0.22)' }}
             >

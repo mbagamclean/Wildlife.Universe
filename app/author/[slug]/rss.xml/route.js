@@ -9,6 +9,7 @@ import {
   fetchPostsByAuthor,
   fetchAuthorDisplayName,
 } from '@/lib/seo-data';
+import { postAbsoluteUrl } from '@/lib/posts/url';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 1800;
@@ -72,7 +73,7 @@ function isImageUrl(url) {
 }
 
 function buildItemXml(post) {
-  const link = `${SITE_URL}/posts/${post.slug}`;
+  const link = postAbsoluteUrl(post);
   const title = escapeXml(post.title || 'Untitled');
   const author = post.author?.name || (typeof post.author === 'string' ? post.author : SITE_NAME);
   const category = post.category || '';

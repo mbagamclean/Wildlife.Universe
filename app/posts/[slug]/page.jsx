@@ -1,4 +1,4 @@
-import { notFound } from 'next/navigation';
+import { notFound, redirect, RedirectType } from 'next/navigation';
 import { categories, findLabelBySlug, labelSlug } from '@/lib/mock/categories';
 import { LabelView } from '@/components/posts/LabelView';
 import { PostView } from '@/components/posts/PostView';
@@ -11,6 +11,7 @@ import {
   fetchPublishedPosts,
   fetchInternalLinkCatalog,
 } from '@/lib/seo-data';
+import { postUrl } from '@/lib/posts/url';
 import {
   buildPostMetadata,
   buildCategoryMetadata,
@@ -41,6 +42,9 @@ export async function generateMetadata({ params, searchParams }) {
   if (!post) {
     return { title: 'Post not found', robots: { index: false, follow: false } };
   }
+  // For non-'posts' category posts the canonical URL is /<category>/<slug>;
+  // we still build their metadata here so the 301 path emits the right
+  // OG/twitter cards if a crawler somehow doesn't follow the redirect.
   return buildPostMetadata(post);
 }
 
@@ -49,15 +53,20 @@ export async function generateMetadata({ params, searchParams }) {
 // editor publishes or updates a post.
 export const revalidate = 300;
 
-// Pre-render every published post at build time so they ship as
-// proper static HTML with edge caching (Cache-Control: public). Pages
-// not in this list (label landings, drafts) are still dynamic-rendered
-// on demand. Failures here must not break the build — return [] and
-// rely on dynamic rendering as a fallback.
+// Pre-render only posts that canonically live at /posts/<slug> — i.e.,
+// posts-category posts WITHOUT a label. Labeled posts (including most
+// of the posts-category articles) live at /posts/<label>/<slug> via
+// app/[category]/[label]/[slug]/page.jsx. Slugs not matching this
+// filter that still hit /posts/<slug> 301-redirect to the canonical
+// URL via the default export below.
 export async function generateStaticParams() {
   try {
     const posts = await fetchPublishedPosts();
-    return (posts || []).map((p) => ({ slug: p.slug })).filter((p) => p.slug);
+    return (posts || [])
+      .filter((p) => p?.slug
+        && (p.category || 'posts').toLowerCase() === 'posts'
+        && !p.label)
+      .map((p) => ({ slug: p.slug }));
   } catch {
     return [];
   }
@@ -107,6 +116,21 @@ export default async function PostDetailPage({ params, searchParams }) {
     fetchPostBySlug(slug),
     fetchInternalLinkCatalog().catch(() => []),
   ]);
+
+  // Restructure 2026-05-27: every published post now has a canonical
+  // URL built by postUrl() — /<category>/<label>/<slug> for labeled
+  // posts (most of them) or /<category>/<slug> for label-less ones.
+  // Anyone hitting the legacy /posts/<slug> URL gets a permanent 301
+  // so external links, backlinks, and prior Google indexing all flow
+  // to the new home without ranking loss. Includes posts-category
+  // posts when their canonical URL has a label segment.
+  if (post) {
+    const canonical = postUrl(post);
+    if (canonical && canonical !== `/posts/${slug}`) {
+      redirect(canonical, RedirectType.replace);
+    }
+  }
+
   const jsonLd = post ? buildArticleJsonLd(post) : null;
   const crumbs = post
     ? buildBreadcrumbJsonLd([
@@ -120,7 +144,7 @@ export default async function PostDetailPage({ params, searchParams }) {
               },
             ]
           : []),
-        { name: post.title || 'Post', url: `/posts/${post.slug}` },
+        { name: post.title || 'Post', url: postUrl(post) },
       ])
     : null;
   const related = post ? await fetchRelatedPosts(post, { limit: 8 }) : [];

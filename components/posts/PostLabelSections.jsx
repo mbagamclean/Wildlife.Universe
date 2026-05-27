@@ -7,6 +7,7 @@ import { ShareButton } from '@/components/ui/ShareButton';
 import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 import { db } from '@/lib/storage/db';
 import { categories, labelSlug } from '@/lib/mock/categories';
+import { postUrl } from '@/lib/posts/url';
 
 /* ── Magazine-style card matching Image #5 ── */
 function LabelPostCard({ post }) {
@@ -16,7 +17,7 @@ function LabelPostCard({ post }) {
     : '';
 
   return (
-    <Link href={`/posts/${post.slug}`} className="group flex flex-col overflow-hidden rounded-2xl bg-[var(--color-bg-deep)] border border-[var(--glass-border)] transition-all hover:border-[var(--glass-border)] hover:shadow-xl hover:shadow-black/10">
+    <Link href={postUrl(post)} className="group flex flex-col overflow-hidden rounded-2xl bg-[var(--color-bg-deep)] border border-[var(--glass-border)] transition-all hover:border-[var(--glass-border)] hover:shadow-xl hover:shadow-black/10">
       {/* Cover image */}
       <div
         className="relative aspect-[16/10] overflow-hidden"
@@ -55,7 +56,7 @@ function LabelPostCard({ post }) {
         <div className="flex items-center justify-between text-xs text-[var(--color-fg-soft)]">
           <span>{date}</span>
           <div onClick={(e) => e.preventDefault()}>
-            <ShareButton title={post.title} slug={post.slug} className="text-[var(--color-fg-soft)] hover:text-[var(--color-fg)]/70" />
+            <ShareButton title={post.title} slug={post.slug} category={post.category} className="text-[var(--color-fg-soft)] hover:text-[var(--color-fg)]/70" />
           </div>
         </div>
       </div>

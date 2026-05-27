@@ -7,6 +7,7 @@ import { ChevronLeft, ChevronRight, BookOpen, ShoppingBag, BookMarked } from 'lu
 import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
 import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
+import { postUrl } from '@/lib/posts/url';
 
 function resolveCoverSrc(cover) {
   if (!cover) return null;
@@ -234,7 +235,7 @@ export function BooksSection({ initialBooks = null }) {
                              href={
                                item.price > 0
                                  ? `/subscribe?mode=book&slug=${item.slug}&title=${encodeURIComponent(item.title)}&price=${item.price}`
-                                 : `/posts/${item.slug}`
+                                 : postUrl(item)
                              }
                              onClick={(e) => !isCenter && e.preventDefault()}
                              className="inline-flex w-[160px] items-center justify-center gap-2 rounded-full px-5 py-3 text-sm font-bold uppercase tracking-wider transition-all duration-300 hover:scale-105 active:scale-95"

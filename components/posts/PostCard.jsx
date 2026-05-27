@@ -3,6 +3,7 @@ import { ArrowRight } from 'lucide-react';
 import { ShareButton } from '@/components/ui/ShareButton';
 import { GlassPanel } from '@/components/ui/GlassPanel';
 import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
+import { postUrl } from '@/lib/posts/url';
 
 export function PostCard({ post }) {
   const palette = post.coverPalette || {
@@ -11,7 +12,7 @@ export function PostCard({ post }) {
     to: '#d4af37',
   };
   return (
-    <Link href={`/posts/${post.slug}`} className="group block">
+    <Link href={postUrl(post)} className="group block">
       <GlassPanel className="flex h-full flex-col overflow-hidden p-0 transition-all duration-500 hover:scale-[1.02] hover:border-[var(--color-primary)]/40 hover:shadow-2xl hover:shadow-[var(--color-primary)]/15">
         <div
           className="relative aspect-[16/10] overflow-hidden"
@@ -67,7 +68,7 @@ export function PostCard({ post }) {
               View Post <ArrowRight className="h-3.5 w-3.5" />
             </span>
             <span className="z-10">
-              <ShareButton title={post.title} slug={post.slug} className="h-7 w-7 text-[var(--color-fg-soft)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10" />
+              <ShareButton title={post.title} slug={post.slug} category={post.category} className="h-7 w-7 text-[var(--color-fg-soft)] hover:text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10" />
             </span>
           </div>
         </div>

@@ -408,6 +408,10 @@ export async function GET(req) {
   const timeseries = fillTimeseries(rows, start, end, granularity);
 
   // ── Top pages (prefer pathname; fall back to /posts/<slug>)
+  // TODO: analytics rows from before the May 2026 URL restructure only
+  // store post_slug (no category), so we emit the legacy /posts/<slug>
+  // form here. The 301 redirect in app/posts/[slug]/page.jsx resolves it
+  // for any non-'posts' category post; new rows store pathname directly.
   const pageOf = (r) => r.pathname || (r.post_slug ? `/posts/${r.post_slug}` : null);
   const topPages = topN(rows.map(pageOf), 10);
 

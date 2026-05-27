@@ -42,9 +42,21 @@ const INDEXNOW_KEY = process.env.INDEXNOW_KEY || '';
 // OAuth (see /api/auth/google-indexing/start). The internal ping is
 // best-effort — if the Next.js server isn't reachable from wherever
 // this script runs, IndexNow on its own still covers Bing/Yandex/etc.
-async function pingIndexNow(slug) {
+function buildPostUrl(category, slug, label) {
+  // Mirrors lib/posts/url.js — duplicated here so this Node CLI script
+  // doesn't depend on Next's `@/` alias resolver. Always 3-segment when
+  // the post has a label (which is the common case post-restructure).
+  const cat = String(category || 'posts').toLowerCase();
+  const lbl = label
+    ? String(label).toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
+    : null;
+  if (lbl) return `${SITE_URL}/${cat}/${lbl}/${slug}`;
+  return `${SITE_URL}/${cat}/${slug}`;
+}
+
+async function pingIndexNow(slug, category, label) {
   if (!slug) return;
-  const url = `${SITE_URL}/posts/${slug}`;
+  const url = buildPostUrl(category, slug, label);
   const tasks = [];
 
   if (INDEXNOW_KEY) {
@@ -298,8 +310,8 @@ async function processOne(sb, row) {
 
   await sb.from('posts').update({ status: 'published' }).eq('id', result.post.id);
   await markGenerated(sb, row.id, result.post.id);
-  console.log(`[batch] PUBLISHED https://www.wildlifeuniverse.org/posts/${result.post.slug}`);
-  await pingIndexNow(result.post.slug);
+  console.log(`[batch] PUBLISHED ${buildPostUrl(result.post.category, result.post.slug, result.post.label)}`);
+  await pingIndexNow(result.post.slug, result.post.category, result.post.label);
   // Purge Next.js ISR + Vercel edge cache so the new post appears on
   // homepage / category / label listings on the very next page load.
   // Without this, the "needs several refreshes to see new posts" bug

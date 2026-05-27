@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createClient } from '@/lib/supabase/server';
+import { postUrl } from '@/lib/posts/url';
 
 export const runtime = 'nodejs';
 
@@ -41,7 +42,7 @@ export async function GET() {
       type: 'post',
       title: p.title || '(untitled)',
       secondary: `${p.status === 'draft' ? 'Draft created' : 'Post published'}${p.category ? ` in ${p.category}` : ''}`,
-      href: p.slug ? `/posts/${p.slug}` : null,
+      href: p.slug ? postUrl(p) : null,
       timestamp: p.created_at,
     });
   }
@@ -62,6 +63,10 @@ export async function GET() {
           type: 'comment',
           title: `${c.author || 'Anonymous'} commented`,
           secondary: snippet + (c.body && c.body.length > 80 ? '…' : ''),
+          // TODO: include category in comments table so we can build the
+          // canonical URL via postUrl(). For now this emits the legacy
+          // /posts/<slug> form; the 301 redirect in app/posts/[slug]/page.jsx
+          // resolves it for any non-'posts' category post.
           href: c.post_slug ? `/posts/${c.post_slug}` : null,
           flagged: c.flagged === true,
           timestamp: c.created_at,

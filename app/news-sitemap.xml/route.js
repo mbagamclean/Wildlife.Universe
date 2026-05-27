@@ -4,6 +4,7 @@
 
 import { SITE_URL, SITE_NAME } from '@/lib/seo';
 import { fetchRecentPosts } from '@/lib/seo-data';
+import { postAbsoluteUrl } from '@/lib/posts/url';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 600;
@@ -27,7 +28,7 @@ function isoDate(d) {
 }
 
 function buildUrlXml(post) {
-  const loc = `${SITE_URL}/posts/${post.slug}`;
+  const loc = postAbsoluteUrl(post);
   const title = escapeXml(post.title || 'Untitled');
   const pub = isoDate(post.createdAt);
   return `  <url>

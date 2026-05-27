@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
+import { postUrl } from '@/lib/posts/url';
 
 const CATEGORY_LABELS = {
   animals: 'Animal',
@@ -27,7 +28,7 @@ export function IUCNCard({ post, statusConfig, index = 0 }) {
 
   return (
     <Link
-      href={`/posts/${post.slug}`}
+      href={postUrl(post)}
       className="block shrink-0 cursor-pointer"
       style={{
         width: 'clamp(180px, 72vw, 280px)',

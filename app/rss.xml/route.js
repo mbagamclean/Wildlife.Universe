@@ -1,5 +1,6 @@
 import { SITE_URL, SITE_NAME, DEFAULT_DESCRIPTION, DEFAULT_OG_IMAGE, DEFAULT_LOGO } from '@/lib/seo';
 import { fetchPublishedPosts } from '@/lib/seo-data';
+import { postAbsoluteUrl } from '@/lib/posts/url';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 1800;
@@ -66,7 +67,7 @@ function isImageUrl(url) {
 }
 
 function buildItemXml(post) {
-  const link = `${SITE_URL}/posts/${post.slug}`;
+  const link = postAbsoluteUrl(post);
   const title = escapeXml(post.title || 'Untitled');
   const author = post.author?.name || SITE_NAME;
   const category = post.category || '';

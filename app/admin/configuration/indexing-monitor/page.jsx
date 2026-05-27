@@ -3,6 +3,7 @@ import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import { Search, Loader2, AlertCircle, ExternalLink, CheckCircle2, XCircle, HelpCircle, Clock, RefreshCw, Link2, Unlink } from 'lucide-react';
 import { AIPageHeader } from '@/components/admin/configuration/AIPageHeader';
+import { postUrl } from '@/lib/posts/url';
 
 const STORAGE_KEY = 'wu-indexing-checks';
 
@@ -91,7 +92,7 @@ export default function IndexingMonitorPage() {
   const checkAll = useCallback(async () => {
     if (checkingAll) return;
     setCheckingAll(true);
-    const urls = posts.map((p) => `${siteOrigin()}/posts/${p.slug}`);
+    const urls = posts.map((p) => `${siteOrigin()}${postUrl(p)}`);
     setBatchProgress({ done: 0, total: urls.length });
     let working = { ...cache };
     for (let i = 0; i < urls.length; i++) {
@@ -195,13 +196,13 @@ export default function IndexingMonitorPage() {
             </thead>
             <tbody>
               {posts.map((p) => {
-                const url = `${siteOrigin()}/posts/${p.slug}`;
+                const url = `${siteOrigin()}${postUrl(p)}`;
                 const entry = cache[url];
                 const checking = perRowChecking.has(url);
                 return (
                   <tr key={p.id} className="border-t" style={{ borderColor: 'var(--adm-border)' }}>
                     <td className="px-4 py-3">
-                      <Link href={`/posts/${p.slug}`} target="_blank" className="block truncate font-semibold hover:underline" style={{ color: 'var(--adm-text)' }}>
+                      <Link href={postUrl(p)} target="_blank" className="block truncate font-semibold hover:underline" style={{ color: 'var(--adm-text)' }}>
                         {p.title}
                       </Link>
                       <p className="mt-0.5 truncate text-[11px]" style={{ color: 'var(--adm-text-subtle)' }}>/posts/{p.slug}</p>

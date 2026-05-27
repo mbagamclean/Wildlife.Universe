@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { Plus, Pencil, Trash2, ExternalLink, Star } from 'lucide-react';
 import { db } from '@/lib/storage/db';
 import { PostEditor } from './PostEditor';
+import { postUrl } from '@/lib/posts/url';
 
 export function PostList() {
   const [posts, setPosts] = useState([]);
@@ -94,7 +95,7 @@ export function PostList() {
               </div>
               <div className="flex gap-1.5">
                 <Link
-                  href={`/posts/${p.slug}`}
+                  href={postUrl(p)}
                   target="_blank"
                   aria-label="View"
                   className="glass flex h-9 w-9 items-center justify-center rounded-full hover:text-[var(--color-primary)]"

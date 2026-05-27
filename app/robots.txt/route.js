@@ -178,16 +178,22 @@ Clean-param: source&campaign /
 
 `;
 
-  // Sitemap directives. List each individually so engines that don't
-  // follow the sitemap index still find the per-vertical sitemaps.
+  // Sitemap directives. List the index + every leaf so engines that
+  // don't follow the sitemap index still find each vertical. Per-category
+  // sitemap firsts (/sitemaps/<cat>/1) are listed explicitly; engines
+  // walk to /2, /3, ... when /1 reports total pages via Link headers.
   const sitemaps = [
     `${SITE_URL}/sitemap.xml`,
-    `${SITE_URL}/posts-sitemap.xml`,
+    `${SITE_URL}/authoritative-sitemap.xml`,
     `${SITE_URL}/category-sitemap.xml`,
     `${SITE_URL}/image-sitemap.xml`,
     `${SITE_URL}/video-sitemap.xml`,
     `${SITE_URL}/news-sitemap.xml`,
-    `${SITE_URL}/authoritative-sitemap.xml`,
+    `${SITE_URL}/sitemaps/animals/1`,
+    `${SITE_URL}/sitemaps/birds/1`,
+    `${SITE_URL}/sitemaps/insects/1`,
+    `${SITE_URL}/sitemaps/plants/1`,
+    `${SITE_URL}/sitemaps/posts/1`,
   ].map((u) => `Sitemap: ${u}`).join('\n');
 
   // Host directive — Yandex deprecated it in 2018 and replaced it

@@ -32,6 +32,7 @@ import { categories, labelSlug } from '@/lib/mock/categories';
 import { fetchPublishedPosts } from '@/lib/seo-data';
 import { staticPagesByGroup } from '@/lib/seo/static-pages';
 import { buildStaticMetadata, SITE_URL } from '@/lib/seo';
+import { postUrl } from '@/lib/posts/url';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
@@ -529,7 +530,7 @@ export default async function SitemapPage() {
                   {catPosts.slice(0, 100).map((post) => (
                     <LinkCard
                       key={post.id || post.slug}
-                      href={`/posts/${post.slug}`}
+                      href={postUrl(post)}
                       label={post.title || 'Untitled'}
                       icon={FileText}
                     />

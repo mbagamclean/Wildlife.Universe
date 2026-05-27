@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Search, X, Loader2 } from 'lucide-react';
+import { postUrl } from '@/lib/posts/url';
 
 export function SearchBox({
   initialQuery = '',
@@ -72,7 +73,7 @@ export function SearchBox({
     const q = value.trim();
     if (!q) return;
     if (activeIdx >= 0 && suggestions[activeIdx]) {
-      router.push(`/posts/${suggestions[activeIdx].slug}`);
+      router.push(postUrl(suggestions[activeIdx]));
       setOpen(false);
       return;
     }
@@ -167,7 +168,7 @@ export function SearchBox({
           {suggestions.map((s, i) => (
             <Link
               key={s.id}
-              href={`/posts/${s.slug}`}
+              href={postUrl(s)}
               onClick={() => setOpen(false)}
               onMouseEnter={() => setActiveIdx(i)}
               role="option"

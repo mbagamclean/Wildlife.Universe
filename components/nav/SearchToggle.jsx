@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { categories, allLabels, labelSlug } from '@/lib/mock/categories';
+import { postUrl } from '@/lib/posts/url';
 
 export function SearchToggle() {
   const router = useRouter();
@@ -204,7 +205,7 @@ export function SearchToggle() {
                         {results.length > 0 ? results.map((post) => (
                           <Link
                             key={post.id}
-                            href={`/posts/${post.slug}`}
+                            href={postUrl(post)}
                             onClick={close}
                             className="group flex items-center justify-between rounded-xl px-3 py-2.5 transition-colors hover:bg-black/5 dark:hover:bg-white/5"
                           >

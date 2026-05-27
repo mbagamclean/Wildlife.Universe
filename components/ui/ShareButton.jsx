@@ -3,13 +3,14 @@
 import { useState, useRef, useEffect } from 'react';
 import { Share2, Twitter, Facebook, Link as LinkIcon, Check } from 'lucide-react';
 import { SITE_URL } from '@/lib/seo';
+import { postUrl } from '@/lib/posts/url';
 
-export function ShareButton({ title, slug, className = '' }) {
+export function ShareButton({ title, slug, category, className = '' }) {
   const [isOpen, setIsOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const containerRef = useRef(null);
 
-  const url = typeof window !== 'undefined' ? `${window.location.origin}/posts/${slug}` : `${SITE_URL}/posts/${slug}`;
+  const url = typeof window !== 'undefined' ? `${window.location.origin}${postUrl({slug, category})}` : `${SITE_URL}${postUrl({slug, category})}`;
 
   useEffect(() => {
     function handleClickOutside(event) {

@@ -32,6 +32,7 @@ import { createClient } from '@supabase/supabase-js';
 import { anthropic } from '@ai-sdk/anthropic';
 import { generateObject } from 'ai';
 import { z } from 'zod';
+import { postUrl } from '@/lib/posts/url';
 
 export const runtime = 'nodejs';
 export const maxDuration = 30;
@@ -114,7 +115,7 @@ function buildUserPrompt({ field, post, currentValues }) {
     `- Category / Label: ${post.category || '—'} → ${post.label || '—'}`,
     post.scientific_name ? `- Scientific name: ${post.scientific_name}` : null,
     '',
-    `This hero will link to /posts/${post.slug}`,
+    `This hero will link to ${postUrl(post)}`,
     '',
   ].filter(Boolean);
 
@@ -204,7 +205,7 @@ export async function POST(req) {
   if (field === 'ctaHref') {
     return NextResponse.json({
       ok: true,
-      data: { ctaHref: `/posts/${post.slug}` },
+      data: { ctaHref: postUrl(post) },
       sourcePost,
     });
   }
@@ -213,7 +214,7 @@ export async function POST(req) {
     const generated = await callClaude({ field, post, currentValues });
     const data = { ...generated };
     // 'all' implicitly fills the CTA href too — saves an extra click.
-    if (field === 'all') data.ctaHref = `/posts/${post.slug}`;
+    if (field === 'all') data.ctaHref = postUrl(post);
     return NextResponse.json({ ok: true, data, sourcePost });
   } catch (err) {
     return NextResponse.json(

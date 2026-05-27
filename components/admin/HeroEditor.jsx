@@ -5,6 +5,7 @@ import { Sparkles, Loader2 } from 'lucide-react';
 import { MediaUpload } from './MediaUpload';
 import { db } from '@/lib/storage/db';
 import { categories } from '@/lib/mock/categories';
+import { postUrl } from '@/lib/posts/url';
 
 const SUBJECTS = ['lion', 'forest', 'eagle'];
 
@@ -417,7 +418,7 @@ function PickPost({ onPick }) {
           <button
             key={p.id}
             type="button"
-            onClick={() => { onPick(`/posts/${p.slug}`); setOpen(false); }}
+            onClick={() => { onPick(postUrl(p)); setOpen(false); }}
             className="flex w-full items-center justify-between gap-2 rounded-lg px-2 py-2 text-left text-sm hover:bg-[var(--color-primary)]/10"
           >
             <span className="truncate">{p.title || '(untitled)'}</span>

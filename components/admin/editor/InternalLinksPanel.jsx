@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { Link2, Loader2, AlertCircle, Plus, RefreshCw } from 'lucide-react';
 import { useAIStore } from '@/lib/stores/aiStore';
+import { postUrl } from '@/lib/posts/url';
 
 const PURPLE = '#7c3aed';
 
@@ -72,15 +73,21 @@ export function InternalLinksPanel({ editor }) {
     if (!editor) return;
     const { anchorText, targetSlug } = suggestion;
     if (!anchorText || !targetSlug) return;
+    // Look up the target post in our local list so we can build the
+    // canonical category-aware URL via postUrl(). Fall back to the legacy
+    // /posts/<slug> form if we can't find a match — the 301 redirect in
+    // app/posts/[slug]/page.jsx will resolve it.
+    const target = posts.find((p) => p.slug === targetSlug);
+    const href = target ? postUrl(target) : `/posts/${targetSlug}`;
     const html = editor.getHTML();
-    const linkHtml = `<a href="/posts/${targetSlug}">${anchorText}</a>`;
+    const linkHtml = `<a href="${href}">${anchorText}</a>`;
     if (html.includes(anchorText)) {
       const updated = html.replace(anchorText, linkHtml);
       editor.commands.setContent(updated);
     } else {
       editor.commands.insertContent(` ${linkHtml}`);
     }
-  }, [editor]);
+  }, [editor, posts]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>

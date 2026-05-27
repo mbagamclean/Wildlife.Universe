@@ -10,6 +10,7 @@ import {
   buildBreadcrumbJsonLd,
 } from '@/lib/seo';
 import { fetchPostsByAuthor, fetchAuthorDisplayName } from '@/lib/seo-data';
+import { postUrl } from '@/lib/posts/url';
 
 export const revalidate = 1800;
 
@@ -120,7 +121,7 @@ export default async function AuthorPage({ params }) {
                   return (
                     <li key={post.id || post.slug}>
                       <Link
-                        href={`/posts/${post.slug}`}
+                        href={postUrl(post)}
                         className="group flex flex-col gap-4 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4 transition-all duration-200 hover:border-[#008000]/40 hover:bg-[#008000]/5 sm:flex-row sm:p-5"
                       >
                         {thumb && (

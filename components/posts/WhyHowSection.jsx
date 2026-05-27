@@ -6,6 +6,7 @@ import { ArrowRight, ChevronLeft, ChevronRight, MousePointerClick, HelpCircle } 
 import { db } from '@/lib/storage/db';
 import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 import { Container } from '@/components/ui/Container';
+import { postUrl } from '@/lib/posts/url';
 
 function resolveCoverSrc(cover) {
   if (!cover) return null;
@@ -180,7 +181,7 @@ export function WhyHowSection({ initialPosts = null }) {
                   return (
                     <Link
                       key={post.id}
-                      href={`/posts/${post.slug}`}
+                      href={postUrl(post)}
                       className="group/card relative flex shrink-0 flex-col overflow-hidden rounded-[1.5rem] transition-all duration-500 hover:-translate-y-1 hover:shadow-[0_20px_40px_rgba(0,128,0,0.08)]"
                       style={{
                         background: 'var(--color-bg-deep)',

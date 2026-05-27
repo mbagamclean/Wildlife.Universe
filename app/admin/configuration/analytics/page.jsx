@@ -5,6 +5,7 @@ import { BarChart2, FileText, Eye, Layers, CalendarDays, Loader2, RefreshCw, Ale
 import { AIPageHeader } from '@/components/admin/configuration/AIPageHeader';
 import { StatCard } from '@/components/admin/configuration/StatCard';
 import { MiniBarChart } from '@/components/admin/configuration/MiniChart';
+import { postUrl } from '@/lib/posts/url';
 
 export default function AnalyticsOverviewPage() {
   const [data, setData] = useState(null);
@@ -105,7 +106,7 @@ export default function AnalyticsOverviewPage() {
                       <div className="flex min-w-0 items-start gap-3">
                         <span className="mt-0.5 flex h-6 w-6 flex-shrink-0 items-center justify-center rounded-md text-[11px] font-bold" style={{ background: 'var(--adm-surface-2)', color: 'var(--adm-text-muted)' }}>{i + 1}</span>
                         <div className="min-w-0">
-                          <Link href={p.slug ? `/posts/${p.slug}` : '#'} target="_blank" className="block truncate text-sm font-semibold hover:underline" style={{ color: 'var(--adm-text)' }}>
+                          <Link href={p.slug ? postUrl(p) : '#'} target="_blank" className="block truncate text-sm font-semibold hover:underline" style={{ color: 'var(--adm-text)' }}>
                             {p.title || '(untitled)'}
                           </Link>
                           <p className="mt-0.5 text-[11px]" style={{ color: 'var(--adm-text-subtle)' }}>

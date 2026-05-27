@@ -12,6 +12,7 @@ import { fetchPublishedPosts } from '@/lib/seo-data';
 import { categories, labelSlug } from '@/lib/mock/categories';
 import { indexableStaticPages } from '@/lib/seo/static-pages';
 import { SITE_URL } from '@/lib/seo';
+import { postAbsoluteUrl } from '@/lib/posts/url';
 
 export const runtime = 'nodejs';
 
@@ -47,7 +48,7 @@ export async function POST() {
   // Posts
   const posts = await fetchPublishedPosts();
   for (const post of posts) {
-    if (post?.slug) urls.add(`${SITE_URL}/posts/${post.slug}`);
+    if (post?.slug) urls.add(postAbsoluteUrl(post));
   }
 
   const list = [...urls];
