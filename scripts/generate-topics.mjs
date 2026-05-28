@@ -44,6 +44,13 @@ const TOPIC_MODEL = 'claude-haiku-4-5';
  * triggers evergreen-title format.
  */
 const TARGETS = [
+  // animals/* — 5 labels × 120 = 600 (added 2026-05-28)
+  { category: 'animals', label: 'Mammals',      kind: 'species', scope: 'mammal species across every order (Carnivora, Primates, Cetaceans, Rodents, Ungulates, Marsupials, Monotremes, Bats, etc.). Lean toward iconic, well-known, and ecologically/culturally significant species worldwide.' },
+  { category: 'animals', label: 'Reptiles',     kind: 'species', scope: 'reptile species (lizards, snakes, turtles, crocodilians, tuatara). Lean toward iconic and well-known species — from venomous snakes to giant tortoises.' },
+  { category: 'animals', label: 'Amphibians',   kind: 'species', scope: 'amphibian species (frogs, toads, salamanders, newts, caecilians). Lean toward iconic species and those of conservation concern.' },
+  { category: 'animals', label: 'Fish',         kind: 'species', scope: 'fish species (bony fish, cartilaginous fish — sharks/rays, jawless fish). Lean toward iconic freshwater and marine species worldwide.' },
+  { category: 'animals', label: 'IUCN Redlist', kind: 'species', scope: 'IUCN Red List vertebrate species at threatened conservation status (Vulnerable, Endangered, Critically Endangered, Extinct in the Wild) — mammals, reptiles, amphibians, fish. Use real documented species. Lean toward globally significant cases (Vaquita, Amur Leopard, Sumatran Rhino, Hawksbill Sea Turtle, Yangtze Finless Porpoise, etc.).' },
+
   // plants/* — 4 labels × 120 = 480
   { category: 'plants',  label: 'Trees',  kind: 'species', scope: 'tree species (broadleaf trees, conifers, palms, mangroves) from around the world. Lean toward iconic, well-known, and culturally significant species.' },
   { category: 'plants',  label: 'Shrubs', kind: 'species', scope: 'shrub species (woody plants smaller than trees, including ornamental and native shrubs). Lean toward well-known and ecologically significant species.' },
@@ -61,14 +68,16 @@ const TARGETS = [
   { category: 'insects', label: 'Mollusca',        kind: 'species', scope: 'mollusc species (Phylum Mollusca — snails, slugs, octopuses, squids, clams, oysters, cuttlefish). Lean toward iconic and well-known species.' },
   { category: 'insects', label: 'Arthropoda',      kind: 'species', scope: 'arthropod species (Phylum Arthropoda — insects, arachnids, crustaceans, myriapods). Lean toward iconic insects, well-known spiders, famous crustaceans.' },
   { category: 'insects', label: 'Echinodermata',   kind: 'species', scope: 'echinoderm species (Phylum Echinodermata — starfish, sea urchins, sea cucumbers, brittle stars, crinoids). Lean toward iconic species.' },
+  { category: 'insects', label: 'IUCN Redlist',    kind: 'species', scope: 'IUCN Red List invertebrate species at threatened conservation status (Vulnerable, Endangered, Critically Endangered, Extinct in the Wild) across any invertebrate phylum — molluscs, corals, crustaceans, insects, etc. Use real documented species with accurate scientific names.' },
 
-  // birds/* — 6 labels × 120 = 720. These match the site\'s avian taxonomy buckets.
+  // birds/* — 7 labels × 120 = 840 (added IUCN Redlist 2026-05-28). These match the site\'s avian taxonomy buckets.
   { category: 'birds',   label: 'Basal',     kind: 'species', scope: 'basal bird species (early-diverging lineages: ratites like ostriches, emus, kiwis, cassowaries, rheas, tinamous; and other basal groups like fowl-like birds). Lean toward iconic species.' },
   { category: 'birds',   label: 'Waterfowl', kind: 'species', scope: 'waterfowl species (Anseriformes: ducks, geese, swans). Lean toward iconic and well-known species.' },
   { category: 'birds',   label: 'Coastal',   kind: 'species', scope: 'coastal and seabird species (shorebirds, gulls, terns, pelicans, cormorants, albatrosses, petrels, penguins, puffins, herons, egrets, flamingos). Lean toward iconic species.' },
   { category: 'birds',   label: 'Raptors',   kind: 'species', scope: 'raptor species (eagles, hawks, falcons, owls, vultures, kites, ospreys). Lean toward iconic and well-known species.' },
   { category: 'birds',   label: 'Land',      kind: 'species', scope: 'terrestrial land bird species (parrots, pigeons, doves, woodpeckers, kingfishers, hornbills, toucans, cuckoos, bee-eaters, rollers, hoopoes, turacos, swifts, hummingbirds). Lean toward iconic species.' },
   { category: 'birds',   label: 'Song',      kind: 'species', scope: 'songbird species (Passeriformes / oscines — warblers, finches, thrushes, sparrows, crows, jays, mockingbirds, larks, swallows, wrens, tits, chickadees). Lean toward iconic and well-known species.' },
+  { category: 'birds',   label: 'IUCN Redlist', kind: 'species', scope: 'IUCN Red List bird species at threatened conservation status (Vulnerable, Endangered, Critically Endangered, Extinct in the Wild) across every avian family. Use real documented species with accurate scientific names. Lean toward globally significant cases (California Condor, Spix\'s Macaw, Kakapo, Philippine Eagle, Northern Bald Ibis, etc.).' },
 
   // posts/* — 5 labels × 120 = 600
   { category: 'posts',   label: 'How Questions',  kind: 'posts', scope: 'questions starting with "How" about wildlife, nature, animal behavior, biology, ecology, conservation. Examples: "How Do Whales Sing Across Oceans?", "How Do Elephants Mourn Their Dead?". Must be evergreen, trending, high-search-volume, AdSense-safe.' },

@@ -59,8 +59,33 @@ for (const cat of CATEGORIES) {
   console.log(`  → pacer:${cat.padEnd(8)} pid=${child.pid} log=${logPath}`);
 }
 
-console.log(`\nLaunched ${pids.length} pacers in detached mode.`);
-console.log(`Tail any:  tail -f ${pids.map((p) => p.log).join(' ')}`);
+// Topic-pump daemon: keeps every (category, label) queue refilled so
+// the 3 categories currently sitting idle (animals/birds/posts) start
+// producing as soon as topics land. Same fd-bypass logging trick.
+const pumpLog = path.join(LOGS_DIR, 'topic-pump.log');
+const pumpBanner = openSync(pumpLog, 'a');
+writeSync(pumpBanner, `\n${'='.repeat(60)}\n[orchestrator] spawning topic-pump at ${new Date().toISOString()}\n${'='.repeat(60)}\n`);
+closeSync(pumpBanner);
+const pumpChild = spawn(
+  'node',
+  [
+    '--env-file=.env.local',
+    'scripts/topic-pump.mjs',
+    `--log-file=${pumpLog}`,
+  ],
+  {
+    stdio: 'ignore',
+    env: process.env,
+    detached: true,
+    shell: false,
+    windowsHide: true,
+  },
+);
+pumpChild.unref();
+console.log(`  → topic-pump      pid=${pumpChild.pid} log=${pumpLog}`);
+
+console.log(`\nLaunched ${pids.length} pacers + 1 topic-pump in detached mode.`);
+console.log(`Tail any:  tail -f ${pids.map((p) => p.log).join(' ')} ${pumpLog}`);
 console.log(`Stop all:  node scripts/kill-all-pacers.mjs`);
 
 // Exit the orchestrator — detached pacers keep running.

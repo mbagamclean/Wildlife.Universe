@@ -16,7 +16,7 @@ function listPacerPids() {
       );
       return out
         .split('\n')
-        .filter((l) => l.includes('pacer.mjs') || l.includes('cron-batch.mjs'))
+        .filter((l) => l.includes('pacer.mjs') || l.includes('cron-batch.mjs') || l.includes('topic-pump.mjs') || l.includes('generate-topics.mjs'))
         .map((l) => {
           const parts = l.trim().split(',');
           const pid = Number.parseInt(parts[parts.length - 1], 10);
@@ -31,7 +31,7 @@ function listPacerPids() {
       const out = execSync('ps -eo pid,command', { encoding: 'utf8' });
       return out
         .split('\n')
-        .filter((l) => l.includes('pacer.mjs') || l.includes('cron-batch.mjs'))
+        .filter((l) => l.includes('pacer.mjs') || l.includes('cron-batch.mjs') || l.includes('topic-pump.mjs') || l.includes('generate-topics.mjs'))
         .map((l) => Number.parseInt(l.trim().split(/\s+/)[0], 10))
         .filter((n) => Number.isFinite(n));
     } catch {
