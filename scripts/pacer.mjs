@@ -48,7 +48,12 @@ import { appendFileSync } from 'node:fs';
 const BATCH_SIZE = 4;
 const PAUSE_BETWEEN_RUNS_MS = 5_000;
 const POST_RESET_BUFFER_MS = 60_000;        // Max windows can be sticky; add a minute
-const FALLBACK_SESSION_SLEEP_MS = 5 * 3600_000; // worst-case if we can't parse reset
+// When the session-limit error doesn't include a parseable reset
+// time, we used to sleep a worst-case 5h — which froze the entire
+// fleet for hours when the error was actually transient. Drop to
+// 10 min so we re-test the CLI quickly; if the limit is real we
+// hit it again immediately and just keep idling cheaply.
+const FALLBACK_SESSION_SLEEP_MS = 10 * 60_000;
 // Infinite-mode (May 28 2026): the pacer no longer bails on stagnation.
 // When the scoped category's queue is temporarily empty (e.g. topic-pump
 // hasn't refilled yet) we just idle-poll for new pending items. 30s is
