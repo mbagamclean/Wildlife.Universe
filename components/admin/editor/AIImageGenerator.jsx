@@ -191,6 +191,7 @@ export function AIImageGenerator({ editor, cover, category, label, title, onCove
           provider: effectiveProvider,
           inputImageUrl: useFeaturedAsReference ? coverUrl : undefined,
           speciesContext,
+          category,
         }),
       });
       const json = await res.json();
@@ -216,10 +217,11 @@ export function AIImageGenerator({ editor, cover, category, label, title, onCove
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          prompt: `${store.transformPrompt}. Maintain animal anatomy accuracy and wildlife realism.`,
+          prompt: `${store.transformPrompt}. Maintain anatomy accuracy and realism.`,
           mode: 'transform',
           provider,
           inputImageUrl: store.transformSourceUrl,
+          category,
         }),
       });
       const json = await res.json();
@@ -274,6 +276,7 @@ export function AIImageGenerator({ editor, cover, category, label, title, onCove
             headings: [headingData[i]],
             inputImageUrl: useFeaturedAsReference ? coverUrl : undefined,
             speciesContext,
+            category,
           }),
         });
         const json = await res.json();
