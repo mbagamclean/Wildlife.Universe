@@ -51,8 +51,10 @@ const POST_RESET_BUFFER_MS = 60_000;        // Max windows can be sticky; add a 
 const FALLBACK_SESSION_SLEEP_MS = 5 * 3600_000; // worst-case if we can't parse reset
 // Infinite-mode (May 28 2026): the pacer no longer bails on stagnation.
 // When the scoped category's queue is temporarily empty (e.g. topic-pump
-// hasn't refilled yet) we just idle-poll for new pending items.
-const IDLE_POLL_MS = 5 * 60_000;            // re-check queue every 5 min while idle
+// hasn't refilled yet) we just idle-poll for new pending items. 30s is
+// tight enough that pacers pick up freshly-pumped topics nearly
+// immediately, without hammering Supabase.
+const IDLE_POLL_MS = 30_000;
 const MAX_TOTAL_HOURS = 365 * 24;           // 1-year safety hard-stop
 
 function admin() {
@@ -165,7 +167,7 @@ async function main() {
   console.log(`  pending+generating: ${await countByStatus(sb, ['pending', 'generating'], category)}`);
   console.log(`  failed: ${await countByStatus(sb, ['failed'], category)}`);
   console.log(`[${tag}] expected throughput: ~26 articles per 5h, ~125/day per pacer.`);
-  console.log(`[${tag}] infinite mode — never bails on empty queue, polls every ${IDLE_POLL_MS / 60000}min when idle.`);
+  console.log(`[${tag}] infinite mode — never bails on empty queue, polls every ${IDLE_POLL_MS / 1000}s when idle.`);
 
   while (true) {
     iteration += 1;
@@ -181,7 +183,7 @@ async function main() {
       // refilled this category yet). Sleep and re-check instead of
       // bailing — the 10M-species north-star requires us to come
       // back the moment topics arrive.
-      console.log(`\n[${tag}] queue empty — idle-polling every ${IDLE_POLL_MS / 60000}min until topics arrive`);
+      console.log(`\n[${tag}] queue empty — idle-polling every ${IDLE_POLL_MS / 1000}s until topics arrive`);
       await new Promise((r) => setTimeout(r, IDLE_POLL_MS));
       continue;
     }
