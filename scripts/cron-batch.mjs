@@ -20,6 +20,15 @@ import { generateAndInsertPost } from '../lib/content-pipeline/generate.mjs';
 import { validateGeneratedPost } from '../lib/content-pipeline/quality.mjs';
 import { isDuplicateOfExisting, isPreGenerationDuplicate } from '../lib/content-pipeline/dedup.mjs';
 import { pingRevalidate } from './_lib/revalidate.mjs';
+import {
+  readState,
+  currentTarget,
+  forceAdvance,
+  recordPublish,
+  rotationFor,
+  LABELS_BY_CATEGORY,
+  PUBLISHES_PER_LABEL,
+} from './_lib/rotation-state.mjs';
 
 const MAX_ATTEMPTS = 3;
 const MAX_BATCH_SIZE = 4;
@@ -322,10 +331,27 @@ async function processOne(sb, row) {
   return { ok: true, queueId: row.id, postId: result.post.id, slug: result.post.slug };
 }
 
+function parseArgs(argv) {
+  // Backwards-compat: first positional arg is still the batch size.
+  // New: --category=<slug>  pins this batch to one category.
+  let batchSize = 1;
+  let category = null;
+  for (const arg of argv.slice(2)) {
+    if (arg.startsWith('--category=')) category = arg.slice('--category='.length).toLowerCase();
+    else if (!Number.isNaN(Number.parseInt(arg, 10))) batchSize = Number.parseInt(arg, 10);
+  }
+  if (category && !LABELS_BY_CATEGORY[category]) {
+    console.error(`Unknown category "${category}". Allowed: ${Object.keys(LABELS_BY_CATEGORY).join(', ')}`);
+    process.exit(2);
+  }
+  return { batchSize, category };
+}
+
 async function main() {
-  const requested = Math.max(1, Math.min(MAX_BATCH_SIZE, Number.parseInt(process.argv[2], 10) || 1));
+  const { batchSize, category: scopedCategory } = parseArgs(process.argv);
+  const requested = Math.max(1, Math.min(MAX_BATCH_SIZE, batchSize));
   console.log(`=== Wildlife.Universe batch worker ===`);
-  console.log(`requested=${requested} max_daily=${MAX_DAILY_ARTICLES}`);
+  console.log(`requested=${requested} max_daily=${MAX_DAILY_ARTICLES}${scopedCategory ? ` category=${scopedCategory}` : ''}`);
 
   for (const k of [
     'ANTHROPIC_API_KEY',
@@ -358,21 +384,64 @@ async function main() {
   const n = Math.min(requested, remaining);
   console.log(`generated last 24h: ${last24h}, will process up to ${n} this run`);
 
-  const { data: rows, error } = await sb
-    .from('content_queue')
-    .select('id, category, label, topic, attempts, priority')
-    .eq('status', 'pending')
-    .lt('attempts', MAX_ATTEMPTS)
-    .order('priority', { ascending: false })
-    .order('created_at', { ascending: true })
-    .limit(n);
-  if (error) {
-    console.error('queue read failed:', error);
+  // Label-rotation pick. With --category=<slug> the rotation is
+  // scoped to one category; without it (legacy mode) cron-batch picks
+  // anything pending. Each batch processes from ONE (category, label)
+  // tuple; the rotation advances only when the per-label quota (50)
+  // is hit or the current tuple's queue is empty.
+  let state = null;
+  let rows = null;
+  let lastError = null;
+
+  if (scopedCategory) {
+    state = await readState(scopedCategory);
+    const rotLen = rotationFor(scopedCategory).length;
+    for (let attempt = 0; attempt < rotLen; attempt += 1) {
+      const tgt = currentTarget(scopedCategory, state);
+      console.log(
+        `[rotation:${scopedCategory}] cycle ${state.cycleNumber} · ` +
+        `tuple ${state.rotationIndex + 1}/${rotLen} → ${tgt.category}/${tgt.label} ` +
+        `(${state.publishedInLabel}/${PUBLISHES_PER_LABEL} so far)`,
+      );
+      const res = await sb
+        .from('content_queue')
+        .select('id, category, label, topic, attempts, priority')
+        .eq('status', 'pending')
+        .lt('attempts', MAX_ATTEMPTS)
+        .eq('category', tgt.category)
+        .eq('label', tgt.label)
+        .order('created_at', { ascending: true })
+        .limit(n);
+      lastError = res.error;
+      if (res.data && res.data.length > 0) {
+        rows = res.data;
+        break;
+      }
+      console.log(`[rotation:${scopedCategory}] no pending in ${tgt.category}/${tgt.label}, advancing`);
+      state = await forceAdvance(scopedCategory, state);
+    }
+  } else {
+    // Legacy global mode — pick anything pending by priority/created.
+    const res = await sb
+      .from('content_queue')
+      .select('id, category, label, topic, attempts, priority')
+      .eq('status', 'pending')
+      .lt('attempts', MAX_ATTEMPTS)
+      .order('priority', { ascending: false })
+      .order('created_at', { ascending: true })
+      .limit(n);
+    lastError = res.error;
+    rows = res.data;
+  }
+
+  if (lastError) {
+    console.error('queue read failed:', lastError);
     process.exit(1);
   }
   if (!rows || rows.length === 0) {
-    console.log('::warning title=Queue empty::no pending content_queue rows — seed via /admin/queue');
-    console.log('queue empty — nothing to do');
+    const where = scopedCategory ? `in ${scopedCategory}` : 'globally';
+    console.log(`::warning title=Queue empty::no pending content ${where} — seed via topic-pump`);
+    console.log(`queue empty ${where} — nothing to do`);
     process.exit(0);
   }
 
@@ -387,8 +456,21 @@ async function main() {
     }
     try {
       const r = await processOne(sb, row);
-      if (r.ok) succeeded += 1;
-      else failed += 1;
+      if (r.ok) {
+        succeeded += 1;
+        // Rotation accounting — successful publish only. Skipped /
+        // failed items don't count toward the 50-per-label budget so
+        // dedup hits or quality-gate rejects don't burn the quota.
+        if (scopedCategory) {
+          try {
+            state = await recordPublish(scopedCategory, state);
+          } catch (rotErr) {
+            console.warn(`[rotation:${scopedCategory}] recordPublish failed: ${rotErr.message}`);
+          }
+        }
+      } else {
+        failed += 1;
+      }
     } catch (err) {
       if (err.sessionLimit) {
         // Pacer signal: stop processing the rest of this batch. processOne
