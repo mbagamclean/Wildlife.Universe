@@ -244,7 +244,19 @@ async function processOne(sb, row) {
     // retire the row after ~3 unlucky window-boundaries. Roll attempts back
     // to the pre-claim value and throw a sentinel so the outer loop can
     // abort the rest of the batch (the pacer will sleep until reset).
-    if (/session limit/i.test(err.message)) {
+    //
+    // Detection: claude-cli-fallback.mjs embeds the last 800 chars of CLI
+    // stderr/stdout into err.message. For posts-category bodies that
+    // legitimately discuss session limits (Conservation, Tourism, How-
+    // Question content about "session time limits") the prior loose
+    // `/session limit/i` regex false-fired and stalled the posts pacer
+    // for ~12h. Only match the actual Claude session-limit error phrases.
+    const isSessionLimit =
+      err.sessionLimit === true ||
+      /(?:hit|reached|exceeded)\s+your\s+session\s+limit/i.test(err.message) ||
+      /session\s+limit\s*[·•:]\s*resets?/i.test(err.message) ||
+      /max-?subscription\s+session\s+limit/i.test(err.message);
+    if (isSessionLimit) {
       await sb
         .from('content_queue')
         .update({
