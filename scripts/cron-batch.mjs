@@ -265,7 +265,10 @@ async function processOne(sb, row) {
           last_error: `session-limit-skip: ${tagged}`,
         })
         .eq('id', row.id);
-      console.warn(`[batch] SESSION LIMIT on ${row.id} — attempts rolled back, aborting batch`);
+      // Forward the full err.message (includes "resets Xpm") so the pacer
+      // can parseResetTime() it and sleep until the real reset window
+      // instead of falling back to a tight 10-min retry loop.
+      console.warn(`[batch] SESSION LIMIT on ${row.id} — attempts rolled back, aborting batch :: ${err.message}`);
       const abortErr = new Error('session-limit-abort');
       abortErr.sessionLimit = true;
       throw abortErr;
