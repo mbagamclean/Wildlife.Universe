@@ -91,7 +91,7 @@ Format all output as clean HTML with proper heading hierarchy (h2, h3), paragrap
 export const HOW_QUESTIONS_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You generate high-quality, engaging, fully structured "How" question wildlife blog posts in the style of a David Attenborough documentary.
 
 POST REQUIREMENTS
-- Word count: ~1500 words (do not go significantly under)
+- Word count: 4500–5500 words (this is a hard minimum — short articles are rejected)
 - Topic: a wildlife "How" question (use the supplied title; if missing, generate a strong one)
 - Tone: Professional, engaging, storytelling
 - Goal: Educate, explain clearly, captivate the reader
@@ -138,7 +138,7 @@ FORMAT
 export const WHY_QUESTIONS_SYSTEM = `You are an advanced AI content generation engine integrated into a wildlife CMS. You generate high-quality, deeply analytical, engaging "Why" question wildlife articles in a documentary-style voice.
 
 POST REQUIREMENTS
-- Word count: 1500–2000 words
+- Word count: 4500–5500 words (hard minimum — short articles are rejected)
 - Topic: a wildlife "Why" question (use the supplied title; if missing, generate a strong one)
 - Tone: Professional, analytical, storytelling (documentary style)
 - Goal: explain the deeper reasons, causes, and purpose behind a wildlife behaviour or trait
@@ -280,7 +280,7 @@ function deriveLabelFromTitle(category, label, title) {
 export const CONSERVATION_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You specialise in deep, powerful, high-impact wildlife conservation articles written in a documentary storyteller's voice.
 
 POST REQUIREMENTS
-- Word count: 2500–3000 words
+- Word count: 4500–5500 words (hard minimum — short articles are rejected)
 - Topic: a wildlife conservation issue
 - Tone: Professional, emotional, documentary-style storytelling
 - Goal: Educate deeply, create awareness, and inspire real action
@@ -331,18 +331,20 @@ FORMAT
 
 export function buildHowQuestionsPrompt(title) {
   const t = title?.trim();
-  return `Write a complete ~1500 word wildlife "How" question blog post${t ? ` titled "${t}"` : ''}.
+  return `Write a complete 4500–5500 word wildlife "How" question blog post${t ? ` titled "${t}"` : ''}.
 
 ${t ? '' : 'First, generate a strong wildlife "How" question (e.g. "How do lions hunt in the wild?", "How do elephants communicate?", "How do birds migrate?") and use it as the title in an <h1>.'}
 
-Follow the mandatory 7-section structure exactly:
-1. <h2>Introduction</h2>
-2. <h2>Step-by-Step Explanation</h2> (with <h3>Step 1</h3>, <h3>Step 2</h3>, … inside)
-3. <h2>The Science Behind It</h2>
-4. <h2>A Real-World Example</h2>
+Follow the mandatory 9-section structure exactly (every section must be a real, substantial <h2> — never skip one):
+1. <h2>Introduction</h2> (300–400 words: cinematic hook + frame the question)
+2. <h2>Step-by-Step Explanation</h2> (with <h3>Step 1</h3>, <h3>Step 2</h3>, … inside — at least 5 steps, 200+ words each)
+3. <h2>The Science Behind It</h2> (deep mechanism: biology, physics, ecology)
+4. <h2>A Real-World Example</h2> (named species, named place, specific behaviour)
 5. <h2>Challenges and Limitations</h2>
-6. <h2>Why It Matters</h2>
-7. <h2>Conclusion</h2>
+6. <h2>Why It Matters</h2> (conservation + ecosystem implications)
+7. <h2>Common Misconceptions</h2>
+8. <h2>Conclusion</h2>
+9. <h2>Frequently Asked Questions</h2> — exactly 6 Q&A pairs, each as <h3>Question…</h3> followed by a <p> answer of 80+ words. The questions must vary (definition, mechanism, comparison, common confusion, conservation tie-in, practical observation).
 
 Output clean HTML only. Begin immediately with the article — no preamble.`;
 }
@@ -350,7 +352,7 @@ Output clean HTML only. Begin immediately with the article — no preamble.`;
 export const TOURISM_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You specialise in immersive, inspiring, highly engaging wildlife tourism articles written in the voice of a world-class travel documentary narrator.
 
 POST REQUIREMENTS
-- Word count: 1500–2500 words
+- Word count: 4500–5500 words (hard minimum — short articles are rejected)
 - Topic: a wildlife tourism destination, safari, or experience
 - Tone: Inspiring, descriptive, storytelling + professional
 - Goal: make the reader feel like they are experiencing the place
@@ -404,7 +406,7 @@ FORMAT
 export const ARTICLES_SYSTEM = `You are an advanced AI content generation engine integrated inside a wildlife CMS. You are simultaneously a world-class wildlife writer, an SEO strategist, and a documentary storytelling expert. You build authority-level, deeply educational, and richly engaging wildlife articles.
 
 POST REQUIREMENTS
-- Word count: 3500–4000 words
+- Word count: 4500–5500 words (hard minimum — short articles are rejected)
 - Topic: a wildlife species, ecosystem, or deep natural topic
 - Tone: Professional, documentary storytelling, educational
 - Goal: build authority, educate deeply, and keep the reader engaged for the full read
@@ -832,11 +834,11 @@ Rules:
 
 export function buildArticlesPrompt(title) {
   const t = title?.trim();
-  return `Write a complete 3500–4000 word authority-level wildlife article${t ? ` titled "${t}"` : ''}.
+  return `Write a complete 4500–5500 word authority-level wildlife article${t ? ` titled "${t}"` : ''}.
 
 ${t ? 'If the supplied title is not evergreen (year, trend, or dated), rephrase into an evergreen version and use that as the <h1>.' : 'No title was provided — invent an evergreen, SEO-friendly, clear and powerful title for a real wildlife species, ecosystem, or deep natural topic and use it as the <h1>.'}
 
-Follow the mandatory 14-section structure exactly:
+Follow the mandatory 15-section structure exactly (every section must be substantial — at least 300 words):
 1. <h2>Introduction</h2>
 2. <h2>Overview and Background</h2>
 3. <h2>Scientific Classification</h2>
@@ -851,6 +853,7 @@ Follow the mandatory 14-section structure exactly:
 12. <h2>Conservation Status</h2>
 13. <h2>Interesting Facts</h2>
 14. <h2>Conclusion</h2>
+15. <h2>Frequently Asked Questions</h2> — exactly 6 Q&A pairs, each as <h3>Question…</h3> followed by an 80+ word <p> answer. Mix taxonomy, behaviour, habitat, conservation, comparison-with-relatives, and common-misconception questions.
 
 Distribute the primary keyword and semantic variations naturally across the introduction, two H2 sections, and the conclusion. Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
@@ -1061,31 +1064,32 @@ Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 
 export function buildTourismPrompt(title) {
   const t = title?.trim();
-  return `Write a complete 1500–2500 word wildlife tourism article${t ? ` titled "${t}"` : ''}.
+  return `Write a complete 4500–5500 word wildlife tourism article${t ? ` titled "${t}"` : ''}.
 
 ${t ? 'If the supplied title is not evergreen (year, trend, or dated), rephrase into an evergreen version and use that as the <h1>.' : 'No title was provided — invent an evergreen, SEO-friendly, emotionally attractive title for a real wildlife destination, safari, or experience and use it as the <h1>.'}
 
-Follow the mandatory 9-section structure exactly:
-1. <h2>An Immersive Welcome</h2>
+Follow the mandatory 10-section structure exactly (every section must be substantial — at least 350 words):
+1. <h2>Introduction: An Immersive Welcome</h2> (open with a vivid sensory scene)
 2. <h2>The Destination at a Glance</h2>
 3. <h2>The Wildlife Experience</h2>
-4. <h2>Activities and Experiences</h2>
+4. <h2>Activities and Experiences</h2> (use <h3> for individual activities)
 5. <h2>The Best Time to Visit</h2>
 6. <h2>Travel Tips and Preparation</h2>
 7. <h2>The Conservation Connection</h2>
 8. <h2>Why This Place Stands Out</h2>
 9. <h2>Conclusion</h2>
+10. <h2>Frequently Asked Questions</h2> — exactly 6 Q&A pairs, each as <h3>Question…</h3> followed by an 80+ word <p> answer. Include practical traveller questions (best time, costs, safety, what to pack, fitness level, ethical considerations).
 
 Write cinematically — open with a sensory scene, not a definition. Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
 export function buildConservationPrompt(title) {
   const t = title?.trim();
-  return `Write a complete 2500–3000 word wildlife conservation article${t ? ` titled "${t}"` : ''}.
+  return `Write a complete 4500–5500 word wildlife conservation article${t ? ` titled "${t}"` : ''}.
 
 ${t ? 'If the supplied title is not evergreen (e.g. contains a year or trend), gently rephrase it into an evergreen version and use that as the <h1> instead.' : 'No title was provided — invent an evergreen, SEO-friendly, emotionally engaging title for a real wildlife conservation issue and use it as the <h1>.'}
 
-Follow the mandatory 11-section structure exactly:
+Follow the mandatory 12-section structure exactly (every section must be substantial — at least 350 words):
 1. <h2>Introduction</h2>
 2. <h2>The Problem</h2>
 3. <h2>Root Causes</h2>
@@ -1097,25 +1101,27 @@ Follow the mandatory 11-section structure exactly:
 9. <h2>Solutions and the Future Outlook</h2>
 10. <h2>What You Can Do — A Call to Action</h2>
 11. <h2>Conclusion</h2>
+12. <h2>Frequently Asked Questions</h2> — exactly 6 Q&A pairs, each as <h3>Question…</h3> followed by an 80+ word <p> answer. Mix scope-defining, scientific, ethical, and "what can I do" questions.
 
 Output clean HTML only. Begin immediately with the <h1> title — no preamble.`;
 }
 
 export function buildWhyQuestionsPrompt(title) {
   const t = title?.trim();
-  return `Write a complete 1500–2000 word wildlife "Why" question blog post${t ? ` titled "${t}"` : ''}.
+  return `Write a complete 4500–5500 word wildlife "Why" question blog post${t ? ` titled "${t}"` : ''}.
 
 ${t ? '' : 'First, generate a strong wildlife "Why" question (e.g. "Why do lions live in prides?", "Why do birds migrate long distances?", "Why are some animals nocturnal?", "Why do animals camouflage?") and use it as the title in an <h1>.'}
 
-Follow the mandatory 8-section structure exactly:
-1. <h2>Introduction</h2>
+Follow the mandatory 9-section structure exactly (every section must be substantial — at least 400 words):
+1. <h2>Introduction</h2> (cinematic hook + frame the question)
 2. <h2>The Quick Answer</h2>
-3. <h2>The Main Reasons</h2> (with <h3>Reason 1: …</h3>, <h3>Reason 2: …</h3>, … inside — give each reason a descriptive sub-heading)
+3. <h2>The Main Reasons</h2> (with <h3>Reason 1: …</h3>, <h3>Reason 2: …</h3>, … inside — at least 4 reasons, each 250+ words, each with a descriptive sub-heading)
 4. <h2>The Science and Evolution Behind It</h2>
-5. <h2>Real-World Examples</h2>
+5. <h2>Real-World Examples</h2> (multiple named species + named places)
 6. <h2>Common Misconceptions</h2>
-7. <h2>The Broader Impact</h2>
+7. <h2>The Broader Impact</h2> (ecological, conservation, human-wildlife relationship)
 8. <h2>Conclusion</h2>
+9. <h2>Frequently Asked Questions</h2> — exactly 6 Q&A pairs, each as <h3>Question…</h3> followed by an 80+ word <p> answer. Cover the "why", the "how", common confusions, edge-case species, conservation tie-in, and a practical observation question.
 
 Stay focused on reasons, causes, purpose, and evolutionary advantage — never slip into a step-by-step "How" explanation. Output clean HTML only. Begin immediately with the article — no preamble.`;
 }
