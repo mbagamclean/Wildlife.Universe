@@ -199,7 +199,14 @@ async function main() {
 
     const { code, captured } = await runCronBatch(BATCH_SIZE, category);
 
-    const sessionLimit = code === 3 || /session limit/i.test(captured);
+    // Trust cron-batch's explicit exit-code-3 signal only. The previous
+    // substring regex (`/session limit/i.test(captured)`) false-fired
+    // any time an article body happened to contain the words "session
+    // limit" — which happens often for posts-category articles about
+    // session caps, screen-time, conservation policy, etc. The
+    // posts pacer wasted 11h in a row in this trap. cron-batch already
+    // detects real session limits and exits 3, so we trust that.
+    const sessionLimit = code === 3;
 
     if (sessionLimit) {
       totalSessionLimitHits += 1;
