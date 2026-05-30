@@ -47,13 +47,14 @@ export const metadata = {
   // Per-page metadata can override; the root keeps the site-wide claim
   // alive for unverified paths too.
   verification: buildVerificationMetadata(),
-  // Default site-wide hreflang — English target, x-default fallback.
-  // Per-page metadata overrides the URL but inherits the language map.
+  // Site-wide hreflang + canonical + RSS link.
+  // Trailing slash on the homepage canonical to match the request URL
+  // (Google treats `/` and `` as different; the request is always `/`).
   alternates: {
-    canonical: '/',
+    canonical: `${SITE_URL}/`,
     languages: buildHreflangMap(`${SITE_URL}/`),
     types: {
-      'application/rss+xml': '/rss.xml',
+      'application/rss+xml': [{ url: '/rss.xml', title: `${SITE_NAME} — RSS` }],
     },
   },
   formatDetection: { email: false, address: false, telephone: false },
@@ -67,7 +68,7 @@ export const metadata = {
     siteName: SITE_NAME,
     title: SITE_NAME,
     description: DEFAULT_DESCRIPTION,
-    url: SITE_URL,
+    url: `${SITE_URL}/`,
     locale: 'en_US',
     images: [{ url: DEFAULT_OG_IMAGE, width: 1200, height: 630, alt: SITE_NAME }],
   },
@@ -76,12 +77,6 @@ export const metadata = {
     title: SITE_NAME,
     description: DEFAULT_DESCRIPTION,
     images: [DEFAULT_OG_IMAGE],
-  },
-  alternates: {
-    canonical: SITE_URL,
-    types: {
-      'application/rss+xml': [{ url: '/rss.xml', title: `${SITE_NAME} — RSS` }],
-    },
   },
   robots: {
     index: true,

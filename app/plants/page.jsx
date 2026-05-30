@@ -17,7 +17,8 @@ export async function generateMetadata({ searchParams }) {
   const sp = await searchParams;
   const page = readPage(sp);
   const cat = categories.find((c) => c.slug === CATEGORY_SLUG);
-  return buildCategoryMetadata(cat, null, { page });
+  const rich = await fetchCategoryRichBySlug(CATEGORY_SLUG).catch(() => null);
+  return buildCategoryMetadata(cat, null, { page, rich });
 }
 
 // ISR — admin saves call revalidatePath for instant invalidation.

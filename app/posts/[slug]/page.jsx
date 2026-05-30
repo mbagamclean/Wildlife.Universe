@@ -35,7 +35,8 @@ export async function generateMetadata({ params, searchParams }) {
   // Label landing page lives at the same /posts/<slug> route
   const label = findLabelBySlug(slug, cat.labels);
   if (label) {
-    return buildCategoryMetadata(cat, { label, slug }, { page: readPage(sp) });
+    const rich = await fetchLabelRichBySlug('posts', slug).catch(() => null);
+    return buildCategoryMetadata(cat, { label, slug }, { page: readPage(sp), rich });
   }
 
   const post = await fetchPostBySlug(slug);

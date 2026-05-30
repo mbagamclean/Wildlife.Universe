@@ -3,6 +3,11 @@ import { Container } from '@/components/ui/Container';
 import { PostGrid } from './PostGrid';
 import { Pagination } from './Pagination';
 import { labelSlug } from '@/lib/mock/categories';
+import {
+  JsonLd,
+  buildBreadcrumbJsonLd,
+  buildItemListJsonLd,
+} from '@/lib/seo';
 
 /**
  * CategoryView accepts the rich admin-edited metadata when present:
@@ -41,8 +46,16 @@ export function CategoryView({
   // — a full-bleed category hero is informational, not decorative.
   const heroAlt = imageAlt?.trim() || `${name} category cover — Wildlife Universe`;
 
+  const breadcrumb = buildBreadcrumbJsonLd([
+    { name: 'Home', url: '/' },
+    { name, url: basePath },
+  ]);
+  const itemList = buildItemListJsonLd(posts || [], name, basePath);
+
   return (
     <>
+      <JsonLd data={breadcrumb} />
+      <JsonLd data={itemList} />
       <section className="relative flex h-[88vh] min-h-[640px] items-center justify-center overflow-hidden">
         {hasHero ? (
           <>

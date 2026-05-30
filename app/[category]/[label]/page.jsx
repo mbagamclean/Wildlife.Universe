@@ -52,7 +52,8 @@ export async function generateMetadata({ params, searchParams }) {
 
   const label = findLabelBySlug(rawSlug, cat.labels);
   if (label) {
-    return buildCategoryMetadata(cat, { label, slug: rawSlug }, { page });
+    const rich = await fetchLabelRichBySlug(cat.slug, rawSlug).catch(() => null);
+    return buildCategoryMetadata(cat, { label, slug: rawSlug }, { page, rich });
   }
 
   // Maybe it's a label-less post at the canonical 2-segment URL.

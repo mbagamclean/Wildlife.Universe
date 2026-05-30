@@ -178,22 +178,19 @@ Clean-param: source&campaign /
 
 `;
 
-  // Sitemap directives. List the index + every leaf so engines that
-  // don't follow the sitemap index still find each vertical. Per-category
-  // sitemap firsts (/sitemaps/<cat>/1) are listed explicitly; engines
-  // walk to /2, /3, ... when /1 reports total pages via Link headers.
+  // Sitemap directives. Modern best practice (per Google Search Central
+  // docs) is to advertise the SITEMAP INDEX and let crawlers discover
+  // children from it — listing every leaf both here and inside the index
+  // creates redundant work and ambiguity around lastmod precedence.
+  //
+  // We also list image-sitemap.xml directly so image-specific crawlers
+  // (Googlebot-Image, Yandex Images) can pick it up without parsing the
+  // full XML index. news-sitemap.xml is intentionally NOT advertised —
+  // this is an evergreen wildlife site, not a Google News publication,
+  // and an empty news sitemap is a Search Console warning.
   const sitemaps = [
     `${SITE_URL}/sitemap.xml`,
-    `${SITE_URL}/authoritative-sitemap.xml`,
-    `${SITE_URL}/category-sitemap.xml`,
     `${SITE_URL}/image-sitemap.xml`,
-    `${SITE_URL}/video-sitemap.xml`,
-    `${SITE_URL}/news-sitemap.xml`,
-    `${SITE_URL}/sitemaps/animals/1`,
-    `${SITE_URL}/sitemaps/birds/1`,
-    `${SITE_URL}/sitemaps/insects/1`,
-    `${SITE_URL}/sitemaps/plants/1`,
-    `${SITE_URL}/sitemaps/posts/1`,
   ].map((u) => `Sitemap: ${u}`).join('\n');
 
   // Host directive — Yandex deprecated it in 2018 and replaced it

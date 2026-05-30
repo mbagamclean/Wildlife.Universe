@@ -3,6 +3,11 @@ import { Container } from '@/components/ui/Container';
 import { PostGrid } from './PostGrid';
 import { Pagination } from './Pagination';
 import { labelSlug } from '@/lib/mock/categories';
+import {
+  JsonLd,
+  buildBreadcrumbJsonLd,
+  buildItemListJsonLd,
+} from '@/lib/seo';
 
 export function LabelView({
   category,
@@ -24,8 +29,18 @@ export function LabelView({
   // admin-set text, then a sensible default derived from the label name.
   const heroAlt = imageAlt?.trim() || `${label} — ${categoryName} on Wildlife Universe`;
 
+  const labelName = typeof label === 'string' ? label : (label?.label || label?.name || '');
+  const breadcrumb = buildBreadcrumbJsonLd([
+    { name: 'Home', url: '/' },
+    { name: categoryName, url: `/${category}` },
+    { name: labelName, url: basePath },
+  ]);
+  const itemList = buildItemListJsonLd(posts || [], labelName, basePath);
+
   return (
     <>
+      <JsonLd data={breadcrumb} />
+      <JsonLd data={itemList} />
       {/* ── Hero banner ── */}
       <section className="relative flex h-[88vh] min-h-[640px] items-center justify-center overflow-hidden">
         {hasHero ? (
