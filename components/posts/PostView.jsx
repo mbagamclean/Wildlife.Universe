@@ -8,6 +8,7 @@ import {
   Calendar, List, ChevronDown, Bookmark, BookmarkCheck, Share2, User,
 } from 'lucide-react';
 import { db } from '@/lib/storage/db';
+import { getAuthorBySlug } from '@/lib/seo/authors';
 import { Container } from '@/components/ui/Container';
 import { VideoPlayer } from '@/components/ui/VideoPlayer';
 import { GlassPanel } from '@/components/ui/GlassPanel';
@@ -812,10 +813,30 @@ export function PostView({
 
           {/* ── Meta chips ── */}
           <div className="mt-5 flex flex-wrap items-center gap-2">
-            <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3.5 py-1.5 text-xs font-medium text-[var(--color-fg)] backdrop-blur-sm transition-all duration-200 hover:border-[#008000]/35 hover:text-[#008000]">
-              <User className="h-3.5 w-3.5 text-[#008000]" />
-              Wildlife Universe
-            </span>
+            {(() => {
+              // Byline — resolves the post's author_id against the static
+              // roster and renders a link to /author/<slug>. Falls back to
+              // the site name only if the author slug is unknown.
+              const author = getAuthorBySlug(post.author_id || post.authorId);
+              if (author) {
+                return (
+                  <Link
+                    href={`/author/${author.slug}`}
+                    className="inline-flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3.5 py-1.5 text-xs font-medium text-[var(--color-fg)] backdrop-blur-sm transition-all duration-200 hover:border-[#008000]/35 hover:text-[#008000]"
+                    title={author.title || 'Contributor'}
+                  >
+                    <User className="h-3.5 w-3.5 text-[#008000]" />
+                    {author.name}
+                  </Link>
+                );
+              }
+              return (
+                <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3.5 py-1.5 text-xs font-medium text-[var(--color-fg)] backdrop-blur-sm transition-all duration-200 hover:border-[#008000]/35 hover:text-[#008000]">
+                  <User className="h-3.5 w-3.5 text-[#008000]" />
+                  Wildlife Universe
+                </span>
+              );
+            })()}
             <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--glass-border)] bg-[var(--glass-bg)] px-3.5 py-1.5 text-xs font-medium text-[var(--color-fg)] backdrop-blur-sm transition-all duration-200 hover:border-[#008000]/35 hover:text-[#008000]">
               <Clock className="h-3.5 w-3.5 text-[#008000]" />
               {mins} min read

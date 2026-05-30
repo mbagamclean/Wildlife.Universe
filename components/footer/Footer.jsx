@@ -11,6 +11,7 @@ const quickLinks = [
   { name: 'Home', href: '/' },
   { name: 'Wildlife Content', href: '/wildlife-content' },
   { name: 'Popular Posts', href: '/posts' },
+  { name: 'Contributors', href: '/author' },
   { name: 'About Us', href: '/about' },
   { name: 'Contact', href: '/contact' },
   { name: 'Advertise With Us', href: '/advertise' },

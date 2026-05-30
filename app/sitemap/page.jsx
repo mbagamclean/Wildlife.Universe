@@ -209,7 +209,10 @@ function LinkCard({ href, label, sub, icon: Icon, external, accent = '#d4af37' }
 /* ── main page ─────────────────────────────────────────── */
 
 export default async function SitemapPage() {
-  const posts = await fetchPublishedPosts();
+  // Use the slim shape — title / slug / category / label / cover are
+  // all this page renders, no need to pull 30+ MB of body HTML across
+  // ~1,000 posts every request.
+  const posts = await fetchPublishedPosts({ slim: true });
   const groups = staticPagesByGroup();
 
   // Bucket posts by category slug for the per-category lists below.
@@ -520,6 +523,11 @@ export default async function SitemapPage() {
               )}
 
               {catPosts.length > 0 ? (
+                // EVERY post in the category is linked here — no slice cap.
+                // This page is the single navigable HTML map Googlebot uses
+                // to reach posts on pages 4-47 of a paginated category
+                // without traversing a long pagination chain (the #1 cause
+                // of "Discovered – currently not indexed" verdicts).
                 <div
                   style={{
                     display: 'grid',
@@ -527,7 +535,7 @@ export default async function SitemapPage() {
                     gap: '0.55rem',
                   }}
                 >
-                  {catPosts.slice(0, 100).map((post) => (
+                  {catPosts.map((post) => (
                     <LinkCard
                       key={post.id || post.slug}
                       href={postUrl(post)}

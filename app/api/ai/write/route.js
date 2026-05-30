@@ -13,6 +13,140 @@ export const maxDuration = 120;
 // styles each pattern in both light and dark mode. These elements DO NOT
 // count toward the article's word target.
 // ────────────────────────────────────────────────────────────────────────────
+// STYLE_DIVERSIFICATION_BLOCK — appended to every full_article system
+// prompt so the autopilot doesn't ship 1,000 articles with the same opening
+// formula, same closing formula, and same FAQ heading. The audit found
+// 100% structural consistency across all samples — a recognisable AI
+// fingerprint. The block asks the model to vary each per post.
+// ────────────────────────────────────────────────────────────────────────────
+export const STYLE_DIVERSIFICATION_BLOCK = `
+══════════════════════════════════════════════════════════════════════════════
+PATTERN DIVERSIFICATION (anti-fingerprint requirement)
+══════════════════════════════════════════════════════════════════════════════
+
+Other articles produced by this same system have used identical opening
+formulas, identical closing formulas, and an identical FAQ heading. For THIS
+article you MUST diversify all three. Vary the format from any prior post
+you have produced — do NOT default to the most familiar template.
+
+OPENING: Pick ONE of these styles for the first paragraph and the opening
+H2 wording — vary across articles, never use the same style twice in
+sequence:
+
+  Style A — Vivid sensory scene: open with a place-anchored sensory image
+            ("Beneath the murky surface…", "Stand at the edge of…").
+            Opening H2: "Introduction" or "Overview".
+  Style B — Behavioural hook: open with the species' most striking
+            behaviour described actively ("When threatened, the species
+            X performs…", "Every spring, X migrates…").
+            Opening H2: "Meet the [species]", "The [species] in brief".
+  Style C — Ecological-role lens: open with the species' systemic role
+            ("Without this species, X ecosystem collapses…").
+            Opening H2: "Why the [species] matters", "Ecological position".
+  Style D — Discovery / mystery: open with the science puzzle ("For
+            decades biologists could not explain how X did Y…").
+            Opening H2: "The puzzle of [species]", "Unraveling [topic]".
+
+CLOSING: Pick ONE of these styles for the final paragraph and the closing
+H2 wording — do not repeat what you have used in prior articles:
+
+  Style A — Philosophical reflection on the species' significance.
+            Closing H2: "Conclusion", "Closing reflections".
+  Style B — Conservation forward-look: what happens next, what action
+            is required, who's working on it.
+            Closing H2: "What comes next", "The road ahead".
+  Style C — Ecological interconnection: tie the species back into the
+            larger web of life, ecosystem dependencies.
+            Closing H2: "Threads in the web of life", "Summary & connections".
+  Style D — Personal witness: a first-person field-observation tone
+            without saying "I" — describe what an observer notices.
+            Closing H2: "In the field", "Final notes".
+
+FAQ HEADING: Vary the wording — DO NOT use exactly "Frequently Asked
+Questions" every time. Pick from:
+
+  • "Frequently Asked Questions"   (default fallback)
+  • "Common Questions"
+  • "Questions Readers Ask"
+  • "Reader Questions Answered"
+  • "FAQs"
+
+ADDITIONAL FORMATTING DIVERSIFICATION: where the article asks for a list
+(e.g. Scientific Classification), randomly choose between a <ul>, a
+<table>, or a prose paragraph — vary across articles. Where the article
+asks for emphasis, sometimes use <strong>, sometimes <em>, never both
+in the same paragraph.
+
+CRITICAL: All of the above must still satisfy the quality gate — opening
+H2 must contain one of (introduction, overview, intro, opening, the problem,
+the question, hook, meet, why, puzzle); closing H2 must contain one of
+(conclusion, summary, takeaway, final thoughts, closing, call to action,
+road, web, field, notes); FAQ heading must match (frequently asked, faq,
+common questions). All those alternatives are already supported.
+`;
+
+// ────────────────────────────────────────────────────────────────────────────
+// SOURCES_BLOCK — appended to every full_article system prompt so every
+// generated post ships with a citation surface Google's quality models can
+// read as a research signal. Wildlife.Universe was generating 0 external
+// links per post site-wide, which the audit identified as a primary E-E-A-T
+// failure causing "Crawled — currently not indexed" verdicts.
+//
+// The block does NOT count toward the article's word-count quality gate
+// (word counter strips href URLs). The model is told what domains are
+// acceptable and what shape the section must take.
+// ────────────────────────────────────────────────────────────────────────────
+export const SOURCES_BLOCK = `
+══════════════════════════════════════════════════════════════════════════════
+MANDATORY: Sources & Attribution section (E-E-A-T citation surface)
+══════════════════════════════════════════════════════════════════════════════
+
+Every article you produce MUST end with a "<h2>Sources &amp; Attribution</h2>"
+section IMMEDIATELY BEFORE the "Frequently Asked Questions" section.
+
+The section must contain a UL of 6–10 external links to authoritative sources
+in this exact shape:
+
+<h2>Sources &amp; Attribution</h2>
+<ul>
+  <li><a href="https://www.iucnredlist.org/search?query=SPECIES&searchType=species" rel="noopener nofollow" target="_blank">IUCN Red List — SPECIES_NAME</a> — official IUCN Red List assessment of population trend, threats, and conservation actions.</li>
+  <li><a href="https://en.wikipedia.org/wiki/SPECIES_NAME_WITH_UNDERSCORES" rel="noopener nofollow" target="_blank">Wikipedia — SPECIES_NAME</a> — taxonomy, distribution, and a general overview with onward citations.</li>
+  <li><a href="https://www.nature.com/search?q=SPECIES" rel="noopener nofollow" target="_blank">Nature — research on SPECIES</a> — peer-reviewed studies relevant to behaviour, ecology, or evolution.</li>
+  <li><a href="https://www.gbif.org/species/search?q=SPECIES" rel="noopener nofollow" target="_blank">GBIF — global biodiversity occurrence records for SPECIES</a> — observation and distribution data from the Global Biodiversity Information Facility.</li>
+  ... 2–6 more links ...
+</ul>
+
+REQUIRED DOMAINS (use at least 4 of these per article):
+  • iucnredlist.org              — IUCN Red List species assessment
+  • en.wikipedia.org             — foundational overview + onward citations
+  • gbif.org                     — Global Biodiversity Information Facility
+  • inaturalist.org              — observation + photographic records
+  • eol.org                      — Encyclopedia of Life
+  • itis.gov                     — Integrated Taxonomic Information System
+  • nature.com / sciencedirect.com / jstor.org / link.springer.com — peer-reviewed research
+  • worldwildlife.org / wcs.org / fauna-flora.org / birdlife.org / plantlife.org — major conservation NGOs
+  • si.edu (Smithsonian) / nhm.ac.uk (Natural History Museum London) / amnh.org — natural-history institutions
+  • un.org/biodiversity / cbd.int — biodiversity policy / UN Convention on Biological Diversity
+
+ALSO REQUIRED: At least 2 of those links should appear INLINE in the article
+body — not only in the Sources list. E.g.: "The
+<a href=\\"https://www.iucnredlist.org/...\\">IUCN Red List</a> classifies
+this species as Endangered…" Inline citations are stronger signals than
+end-of-article reference lists.
+
+RULES:
+  - Every link must use rel="noopener nofollow" target="_blank".
+  - Substitute the real species / topic name into the URLs. If you don't
+    know a specific URL path with certainty, use the search URL form
+    (e.g., iucnredlist.org/search?query=…) — never invent a path that
+    won't resolve.
+  - DO NOT link to: AI-generated content sites, content farms, generic
+    wildlife blogs without institutional backing, or promotional pages.
+  - The Sources & Attribution section AND its links DO NOT count toward
+    the article's word-count target. Generate it separately.
+`;
+
+// ────────────────────────────────────────────────────────────────────────────
 export const RICH_FORMATTING_TOOLKIT = `
 
 RICH FORMATTING TOOLKIT (use throughout the article — these elements DO NOT count toward the word-count target)
@@ -1295,9 +1429,19 @@ export async function POST(req) {
     // story callouts, heading rhythm) to every full_article generation so
     // every species/post prompt automatically uses the supported HTML
     // patterns. Toolkit elements do NOT count toward the word target.
+    //
+    // Then append SOURCES_BLOCK — mandates a "## Sources & Attribution"
+    // section with 6-10 external citations from authoritative domains.
+    // The autopilot was generating 0 external links per post site-wide,
+    // which Google's quality models read as a "no demonstrated research"
+    // E-E-A-T signal — a primary driver of "Crawled — currently not
+    // indexed" verdicts.
     const finalSystemPrompt =
       task === 'full_article'
-        ? systemPrompt + '\n' + RICH_FORMATTING_TOOLKIT
+        ? systemPrompt
+          + '\n' + RICH_FORMATTING_TOOLKIT
+          + '\n' + SOURCES_BLOCK
+          + '\n' + STYLE_DIVERSIFICATION_BLOCK
         : systemPrompt;
 
     // Vercel AI SDK v6 renamed `maxTokens` → `maxOutputTokens`. Passing
