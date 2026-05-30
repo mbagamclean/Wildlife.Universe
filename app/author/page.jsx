@@ -9,6 +9,9 @@ import {
   buildBreadcrumbJsonLd,
 } from '@/lib/seo';
 import { allAuthors } from '@/lib/seo/authors';
+import { fetchAllAuthorsLive } from '@/lib/seo/authors-runtime';
+
+// Keep allAuthors imported for the synchronous generateMetadata count below.
 
 export const revalidate = 3600;
 
@@ -26,8 +29,8 @@ function initials(name) {
   return (parts[0]?.[0] || '') + (parts[parts.length - 1]?.[0] || '');
 }
 
-export default function AuthorsIndexPage() {
-  const authors = allAuthors();
+export default async function AuthorsIndexPage() {
+  const authors = await fetchAllAuthorsLive();
 
   const breadcrumb = buildBreadcrumbJsonLd([
     { name: 'Home', url: '/' },

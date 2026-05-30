@@ -43,6 +43,7 @@ const NAV = [
     section: 'TEAM',
     items: [
       { href: '/admin/team', label: 'Team Members', icon: Users },
+      { href: '/admin/content/authors', label: 'Author Profiles', icon: Users },
     ],
   },
   {

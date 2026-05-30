@@ -11,7 +11,7 @@ import {
   JsonLd,
   buildBreadcrumbJsonLd,
 } from '@/lib/seo';
-import { getAuthorBySlug } from '@/lib/seo/authors';
+import { fetchAuthorBySlug } from '@/lib/seo/authors-runtime';
 import { fetchPostsByAuthor } from '@/lib/seo-data';
 
 export const revalidate = 1800;
@@ -59,7 +59,7 @@ function buildAuthorJsonLd(author) {
 
 export async function generateMetadata({ params }) {
   const { slug } = await params;
-  const author = getAuthorBySlug(slug);
+  const author = await fetchAuthorBySlug(slug);
   if (!author || author.slug !== slug) {
     return { title: 'Author not found', robots: { index: false, follow: false } };
   }
@@ -78,7 +78,7 @@ export async function generateMetadata({ params }) {
 export default async function AuthorPage({ params }) {
   const { slug } = await params;
   if (!slug) notFound();
-  const author = getAuthorBySlug(slug);
+  const author = await fetchAuthorBySlug(slug);
   if (!author || author.slug !== slug) notFound();
 
   const posts = await fetchPostsByAuthor(slug, { limit: 30 });
