@@ -673,17 +673,43 @@ export function PostView({
     // Build a term → {slug, title} map, longest term first so
     // multi-word matches beat single-word matches ("Bald Eagle" beats
     // "Eagle"). Drop entries that match the current post itself.
+    //
+    // For species titles in the form "Common Name (Scientific name)",
+    // we ALSO register the common name on its own — articles rarely
+    // refer to the combined bracketed form inline, so adding only the
+    // full title catches almost no matches in practice.
     const entries = [];
+    const seenTerm = new Set();
+    const addTerm = (term, item) => {
+      const t = (term || '').trim();
+      if (!t) return;
+      if (t.length < 4) return;            // skip ultra-short terms (avoid linking "ant", "owl" etc when they're substrings of words)
+      const k = t.toLowerCase();
+      if (seenTerm.has(k)) return;          // first-wins for terms that two posts share (longer title wins via sort below)
+      seenTerm.add(k);
+      entries.push([t, item]);
+    };
     for (const item of internalLinkCatalog) {
       if (!item?.slug || item.slug === slug) continue;
-      if (item.title) entries.push([item.title, item]);
-      if (item.scientificName) entries.push([item.scientificName, item]);
+      if (item.title) {
+        addTerm(item.title, item);
+        // Strip a trailing " (Scientific name)" if present and register
+        // the bare common name too. Matches "Bald Eagle (Haliaeetus
+        // leucocephalus)" → also registers "Bald Eagle".
+        const bare = item.title.replace(/\s*\([^)]+\)\s*$/, '').trim();
+        if (bare && bare !== item.title) addTerm(bare, item);
+      }
+      if (item.scientificName) addTerm(item.scientificName, item);
     }
     entries.sort((a, b) => b[0].length - a[0].length);
     return new Map(entries);
   }, [internalLinkCatalog, slug]);
   const linkedSafeHtml = useMemo(
-    () => (linkMap && linkMap.size > 0 ? injectInternalLinks(safeHtml, linkMap, { maxLinks: 8 }) : safeHtml),
+    // Lifted from 8 → 25 so a long-form 5,000-word article actually
+    // gets meaningful internal linking. The injector still hits at
+    // most one term per text node and deduplicates terms across the
+    // whole article, so spam density isn't a risk.
+    () => (linkMap && linkMap.size > 0 ? injectInternalLinks(safeHtml, linkMap, { maxLinks: 25 }) : safeHtml),
     [safeHtml, linkMap],
   );
   const { html: bodyHtml, toc: headingToc } = injectHeadingIdsAndBuildToc(linkedSafeHtml);
