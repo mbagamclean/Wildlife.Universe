@@ -1,6 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { fetchPostBySlug } from '@/lib/seo-data';
 import { SITE_NAME, SITE_URL } from '@/lib/seo';
+import { getAuthorBySlug } from '@/lib/seo/authors';
 
 export const runtime = 'nodejs';
 export const alt = `${SITE_NAME} — story`;
@@ -208,9 +209,9 @@ export default async function PostOG({ params }) {
                 {SITE_NAME}
               </span>
             </div>
-            {post.author?.name && (
-              <div style={{ display: 'flex', fontSize: 20 }}>by {post.author.name}</div>
-            )}
+            <div style={{ display: 'flex', fontSize: 20 }}>
+              by {getAuthorBySlug(post.author_id || post.authorId).name}
+            </div>
           </div>
         </div>
       </div>

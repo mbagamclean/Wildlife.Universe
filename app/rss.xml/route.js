@@ -1,6 +1,7 @@
 import { SITE_URL, SITE_NAME, DEFAULT_DESCRIPTION, DEFAULT_OG_IMAGE, DEFAULT_LOGO } from '@/lib/seo';
 import { fetchPublishedPosts } from '@/lib/seo-data';
 import { postAbsoluteUrl } from '@/lib/posts/url';
+import { getAuthorBySlug } from '@/lib/seo/authors';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 1800;
@@ -69,7 +70,10 @@ function isImageUrl(url) {
 function buildItemXml(post) {
   const link = postAbsoluteUrl(post);
   const title = escapeXml(post.title || 'Untitled');
-  const author = post.author?.name || SITE_NAME;
+  // dc:creator must be a real Person — fall back to the post's
+  // assigned author from the static roster (matt-mclean default) so
+  // the feed never advertises "Wildlife Universe" as a writer.
+  const author = getAuthorBySlug(post.author_id || post.authorId).name;
   const category = post.category || '';
   const label = post.label || '';
   const cover = pickCoverImageUrl(post);

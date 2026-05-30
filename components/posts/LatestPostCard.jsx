@@ -3,6 +3,7 @@ import { ShareButton } from '@/components/ui/ShareButton';
 import { ResponsiveImage } from '@/components/ui/ResponsiveImage';
 import { User } from 'lucide-react';
 import { postUrl } from '@/lib/posts/url';
+import { getAuthorBySlug } from '@/lib/seo/authors';
 
 const BADGE_MAP = {
   animals:    ['#1a5c34', '#2e9958'],
@@ -144,7 +145,7 @@ export function LatestPostCard({ post, index = 0 }) {
             <div className="flex items-center gap-3">
               <span className="flex items-center gap-1.5 font-medium">
                 <User className="h-3 w-3 opacity-70" />
-                {post.author?.name || 'Wildlife Universe'}
+                {getAuthorBySlug(post.author_id || post.authorId).name}
               </span>
               <span className="flex items-center" style={{ zIndex: 10 }}>
                 <ShareButton title={post.title} slug={post.slug} category={post.category} className="h-6 w-6 text-[var(--color-fg-soft)] hover:text-white" />

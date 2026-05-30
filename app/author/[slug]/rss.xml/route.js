@@ -10,6 +10,7 @@ import {
   fetchAuthorDisplayName,
 } from '@/lib/seo-data';
 import { postAbsoluteUrl } from '@/lib/posts/url';
+import { getAuthorBySlug } from '@/lib/seo/authors';
 
 export const dynamic = 'force-dynamic';
 export const revalidate = 1800;
@@ -75,7 +76,9 @@ function isImageUrl(url) {
 function buildItemXml(post) {
   const link = postAbsoluteUrl(post);
   const title = escapeXml(post.title || 'Untitled');
-  const author = post.author?.name || (typeof post.author === 'string' ? post.author : SITE_NAME);
+  // Author RSS is scoped to one persona; resolve every item's byline
+  // through the roster so the feed never shows SITE_NAME as a writer.
+  const author = getAuthorBySlug(post.author_id || post.authorId).name;
   const category = post.category || '';
   const label = post.label || '';
   const cover = pickCoverImageUrl(post);

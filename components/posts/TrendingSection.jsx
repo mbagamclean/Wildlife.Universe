@@ -8,6 +8,7 @@ import { ShareButton } from '@/components/ui/ShareButton';
 import { db } from '@/lib/storage/db';
 import { Container } from '@/components/ui/Container';
 import { postUrl } from '@/lib/posts/url';
+import { getAuthorBySlug } from '@/lib/seo/authors';
 
 const MAX_POSTS        = 6;
 const DISPLAY_DURATION = 5200; // ms each post stays featured
@@ -95,7 +96,7 @@ function FeaturedContent({ post }) {
         <div className="flex items-center gap-3 z-10 w-fit">
           <span className="flex items-center gap-1.5 font-medium text-white/70 text-xs">
             <User className="h-3 w-3 opacity-90" />
-            {post.author?.name || 'Wildlife Universe'}
+            {getAuthorBySlug(post.author_id || post.authorId).name}
           </span>
           <ShareButton title={post.title} slug={post.slug} category={post.category} className="text-white bg-white/10 hover:bg-white/25 h-8 w-8 !p-1.5 shadow-sm" />
         </div>
@@ -164,7 +165,7 @@ function TrendingCard({ post, rank, onActivate }) {
         <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-2">
           <span className="flex items-center gap-1 text-[9px] font-medium" style={{ color: 'var(--color-fg-soft)', opacity: 0.8 }}>
             <User className="h-2.5 w-2.5" />
-            {post.author?.name || 'Wildlife Universe'}
+            {getAuthorBySlug(post.author_id || post.authorId).name}
           </span>
           <ShareButton title={post.title} slug={post.slug} category={post.category} className="h-7 w-7 text-[var(--color-fg-soft)] hover:bg-white/10 opacity-0 group-hover/card:opacity-100 transition-opacity" />
         </div>
