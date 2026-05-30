@@ -48,23 +48,30 @@ export function LatestPostCard({ post, index = 0 }) {
   const palette  = post.coverPalette || { from: '#0c4a1a', via: '#3aa15a', to: '#d4af37' };
   const showCover = hasCover(post.cover);
   const label    = post.label || post.category || '';
+  const author   = getAuthorBySlug(post.author_id || post.authorId);
 
   return (
-    <Link
-      href={postUrl(post)}
-      className="group block h-full"
+    <article
+      className="group relative flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-500
+                 hover:shadow-[0_16px_40px_rgba(0,128,0,0.14)]"
       style={{
+        background: 'var(--color-bg-deep)',
+        boxShadow: '0 2px 12px rgba(0,0,0,0.07), 0 0 0 1px var(--glass-border)',
         animation: 'wu-fadeUp 0.55s cubic-bezier(0.22,1,0.36,1) both',
         animationDelay: `${index * 95}ms`,
       }}
     >
-      <article
-        className="flex h-full flex-col overflow-hidden rounded-2xl transition-all duration-500
-                   group-hover:shadow-[0_16px_40px_rgba(0,128,0,0.14)]"
-        style={{
-          background: 'var(--color-bg-deep)',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.07), 0 0 0 1px var(--glass-border)',
-        }}
+      {/* Stretched primary link — covers the card so the whole tile
+          navigates to the post, but sits behind the author chip and
+          share button (z-10 on those) so they remain independently
+          clickable without nested anchors. */}
+      <Link
+        href={postUrl(post)}
+        aria-label={post.title}
+        className="absolute inset-0 z-[1]"
+      />
+      <div
+        className="flex h-full flex-col"
       >
         {/* ─── IMAGE ─────────────────────────────── */}
         <div className="relative overflow-hidden" style={{ aspectRatio: '16/9' }}>
@@ -143,17 +150,21 @@ export function LatestPostCard({ post, index = 0 }) {
 
             {/* Right Side: Publisher logic + Share */}
             <div className="flex items-center gap-3">
-              <span className="flex items-center gap-1.5 font-medium">
+              <Link
+                href={`/author/${author.slug}`}
+                className="relative z-10 flex items-center gap-1.5 font-medium text-[var(--color-fg-soft)] transition-colors duration-200 hover:text-[var(--color-primary)]"
+                title={author.title || 'Contributor'}
+              >
                 <User className="h-3 w-3 opacity-70" />
-                {getAuthorBySlug(post.author_id || post.authorId).name}
-              </span>
-              <span className="flex items-center" style={{ zIndex: 10 }}>
+                {author.name}
+              </Link>
+              <span className="relative z-10 flex items-center">
                 <ShareButton title={post.title} slug={post.slug} category={post.category} className="h-6 w-6 text-[var(--color-fg-soft)] hover:text-white" />
               </span>
             </div>
           </div>
         </div>
-      </article>
-    </Link>
+      </div>
+    </article>
   );
 }

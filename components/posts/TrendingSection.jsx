@@ -94,10 +94,19 @@ function FeaturedContent({ post }) {
 
       <div className="mt-4 flex items-center justify-between pointer-events-auto w-full">
         <div className="flex items-center gap-3 z-10 w-fit">
-          <span className="flex items-center gap-1.5 font-medium text-white/70 text-xs">
-            <User className="h-3 w-3 opacity-90" />
-            {getAuthorBySlug(post.author_id || post.authorId).name}
-          </span>
+          {(() => {
+            const a = getAuthorBySlug(post.author_id || post.authorId);
+            return (
+              <Link
+                href={`/author/${a.slug}`}
+                className="flex items-center gap-1.5 font-medium text-white/70 text-xs transition-colors duration-200 hover:text-white"
+                title={a.title || 'Contributor'}
+              >
+                <User className="h-3 w-3 opacity-90" />
+                {a.name}
+              </Link>
+            );
+          })()}
           <ShareButton title={post.title} slug={post.slug} category={post.category} className="text-white bg-white/10 hover:bg-white/25 h-8 w-8 !p-1.5 shadow-sm" />
         </div>
         <span className="flex translate-y-1 items-center gap-1.5 text-sm font-semibold text-white opacity-0 transition-all duration-300 group-hover:translate-y-0 group-hover:opacity-100">
@@ -113,12 +122,16 @@ function TrendingCard({ post, rank, onActivate }) {
   const src     = resolveSrc(post.cover);
   const palette = post.coverPalette || { from: '#0c1a0c', via: '#1a3a1a', to: '#4a7a4a' };
   const label   = post.label || post.category || '';
+  const author  = getAuthorBySlug(post.author_id || post.authorId);
   return (
-    <Link
-      href={postUrl(post)}
+    <div
       onMouseEnter={onActivate}
       className="group/card relative flex items-center gap-3.5 rounded-xl p-3 cursor-pointer no-underline transition-colors duration-150 hover:bg-white/5"
     >
+      {/* Stretched primary link — covers the row so the whole card
+          navigates to the post, but z-10 author chip and share button
+          remain independently clickable. */}
+      <Link href={postUrl(post)} aria-label={post.title} className="absolute inset-0 z-[1]" />
       <div className="relative shrink-0 overflow-hidden rounded-lg" style={{ width: 80, height: 60 }}>
         {src ? (
           <ResponsiveImage
@@ -163,10 +176,15 @@ function TrendingCard({ post, rank, onActivate }) {
         </h4>
         
         <div className="absolute right-3 top-1/2 -translate-y-1/2 z-10 flex items-center gap-2">
-          <span className="flex items-center gap-1 text-[9px] font-medium" style={{ color: 'var(--color-fg-soft)', opacity: 0.8 }}>
+          <Link
+            href={`/author/${author.slug}`}
+            className="flex items-center gap-1 text-[9px] font-medium transition-colors duration-200 hover:text-[var(--color-primary)]"
+            style={{ color: 'var(--color-fg-soft)', opacity: 0.8 }}
+            title={author.title || 'Contributor'}
+          >
             <User className="h-2.5 w-2.5" />
-            {getAuthorBySlug(post.author_id || post.authorId).name}
-          </span>
+            {author.name}
+          </Link>
           <ShareButton title={post.title} slug={post.slug} category={post.category} className="h-7 w-7 text-[var(--color-fg-soft)] hover:bg-white/10 opacity-0 group-hover/card:opacity-100 transition-opacity" />
         </div>
       </div>
@@ -175,7 +193,7 @@ function TrendingCard({ post, rank, onActivate }) {
         className="h-4 w-4 shrink-0 opacity-0 transition-all duration-200 group-hover/card:opacity-100 group-hover/card:translate-x-0.5"
         style={{ color: 'var(--color-primary)' }}
       />
-    </Link>
+    </div>
   );
 }
 

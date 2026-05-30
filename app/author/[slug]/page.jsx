@@ -1,8 +1,9 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { Rss, User, Calendar, Tag, Briefcase, GraduationCap } from 'lucide-react';
+import { Rss, User, Briefcase, GraduationCap } from 'lucide-react';
 import { Container } from '@/components/ui/Container';
 import { GlassPanel } from '@/components/ui/GlassPanel';
+import { PostGrid } from '@/components/posts/PostGrid';
 import {
   buildStaticMetadata,
   SITE_NAME,
@@ -12,30 +13,8 @@ import {
 } from '@/lib/seo';
 import { getAuthorBySlug } from '@/lib/seo/authors';
 import { fetchPostsByAuthor } from '@/lib/seo-data';
-import { postUrl } from '@/lib/posts/url';
 
 export const revalidate = 1800;
-
-function formatDate(iso) {
-  if (!iso) return '';
-  try {
-    return new Date(iso).toLocaleDateString('en-US', {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-    });
-  } catch {
-    return '';
-  }
-}
-
-function pickCoverThumb(cover) {
-  if (!cover) return null;
-  if (typeof cover === 'string') return cover;
-  if (cover?.type === 'video') return null;
-  const src = cover?.sources?.[cover?.sources?.length - 1]?.src;
-  return src || null;
-}
 
 function initials(name) {
   if (!name) return '?';
@@ -192,7 +171,9 @@ export default async function AuthorPage({ params }) {
             </div>
           </header>
 
-          {/* Posts */}
+          {/* Posts — rendered as the same PostCard grid that category /
+              label pages use, so the visual identity is consistent across
+              every "browse posts by X" surface on the site. */}
           {posts.length === 0 ? (
             <GlassPanel className="p-10 text-center">
               <p className="text-sm text-[var(--color-fg-soft)]">
@@ -201,63 +182,19 @@ export default async function AuthorPage({ params }) {
             </GlassPanel>
           ) : (
             <section>
-              <h2 className="mb-5 font-display text-2xl font-black tracking-tight text-[var(--color-fg)]">
-                Latest stories by {author.name}
-              </h2>
-              <ul className="grid gap-4">
-                {posts.map((post) => {
-                  const thumb = pickCoverThumb(post.cover);
-                  return (
-                    <li key={post.id || post.slug}>
-                      <Link
-                        href={postUrl(post)}
-                        className="group flex flex-col gap-4 overflow-hidden rounded-2xl border border-[var(--glass-border)] bg-[var(--glass-bg)] p-4 transition-all duration-200 hover:border-[#008000]/40 hover:bg-[#008000]/5 sm:flex-row sm:p-5"
-                      >
-                        {thumb && (
-                          // eslint-disable-next-line @next/next/no-img-element
-                          <img
-                            src={thumb}
-                            alt=""
-                            loading="lazy"
-                            className="h-40 w-full flex-shrink-0 rounded-xl object-cover sm:h-28 sm:w-44"
-                          />
-                        )}
-                        <div className="min-w-0 flex-1">
-                          <div className="mb-2 flex flex-wrap items-center gap-2 text-[10px] font-bold uppercase tracking-widest">
-                            {post.category && (
-                              <span className="inline-flex items-center gap-1 rounded-full bg-[#008000]/12 px-2.5 py-0.5 text-[#008000]">
-                                {post.category}
-                              </span>
-                            )}
-                            {post.label && (
-                              <span className="inline-flex items-center gap-1 rounded-full border border-[var(--glass-border)] px-2.5 py-0.5 text-[var(--color-fg-soft)]">
-                                <Tag className="h-2.5 w-2.5" />
-                                {post.label}
-                              </span>
-                            )}
-                          </div>
-                          <h3 className="font-display text-lg font-bold leading-snug text-[var(--color-fg)] transition-colors duration-200 group-hover:text-[#008000] sm:text-xl">
-                            {post.title}
-                          </h3>
-                          {post.description && (
-                            <p className="mt-1.5 line-clamp-2 text-sm leading-relaxed text-[var(--color-fg-soft)]">
-                              {post.description}
-                            </p>
-                          )}
-                          <div className="mt-3 flex items-center gap-4 text-xs text-[var(--color-fg-soft)]">
-                            {post.createdAt && (
-                              <span className="inline-flex items-center gap-1">
-                                <Calendar className="h-3 w-3" />
-                                {formatDate(post.createdAt)}
-                              </span>
-                            )}
-                          </div>
-                        </div>
-                      </Link>
-                    </li>
-                  );
-                })}
-              </ul>
+              <div className="mb-6 flex items-end justify-between">
+                <h2 className="font-display text-2xl font-black tracking-tight text-[var(--color-fg)] sm:text-3xl">
+                  Latest stories by {author.name}
+                </h2>
+                <span className="text-xs font-bold uppercase tracking-widest text-[var(--color-fg-soft)]">
+                  {posts.length} article{posts.length === 1 ? '' : 's'}
+                </span>
+              </div>
+              <PostGrid
+                posts={posts}
+                emptyTitle={`No stories yet by ${author.name}`}
+                emptyMessage="Check back soon — articles are added regularly."
+              />
             </section>
           )}
         </Container>
