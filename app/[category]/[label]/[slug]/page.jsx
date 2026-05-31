@@ -89,7 +89,12 @@ export default async function LabeledPostPage({ params }) {
     redirect(canonical, RedirectType.replace);
   }
 
-  const jsonLd = buildArticleJsonLd(post);
+  // Thread the merged author (static defaults + admin overrides) into
+  // the Article JSON-LD so admin edits — bio, title, photo, expertise —
+  // appear in the Person entity Google reads.
+  const { fetchAuthorBySlug: fetchMergedAuthor } = await import('@/lib/seo/authors-runtime');
+  const mergedAuthor = await fetchMergedAuthor(post.author_id || post.authorId);
+  const jsonLd = buildArticleJsonLd(post, { author: mergedAuthor });
   const crumbs = buildBreadcrumbJsonLd([
     { name: 'Home', url: '/' },
     { name: cat.name, url: `/${cat.slug}` },
