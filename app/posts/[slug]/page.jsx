@@ -125,7 +125,14 @@ export default async function PostDetailPage({ params, searchParams }) {
     }
   }
 
-  const jsonLd = post ? buildArticleJsonLd(post) : null;
+  // Thread the merged author (static defaults + admin overrides) into
+  // the Article JSON-LD so admin edits — bio, title, photo, expertise —
+  // appear in the Person entity Google reads. Falls back to the static
+  // module if the override fetch fails.
+  const mergedAuthor = post
+    ? await (await import('@/lib/seo/authors-runtime')).fetchAuthorBySlug(post.author_id || post.authorId)
+    : null;
+  const jsonLd = post ? buildArticleJsonLd(post, { author: mergedAuthor }) : null;
   const crumbs = post
     ? buildBreadcrumbJsonLd([
         { name: 'Home', url: '/' },
