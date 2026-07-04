@@ -22,3 +22,5 @@ blogger/migration/pages-url-map.json
 blogger/migration/image-fix-state.json
 blogger/migration/old-covers-backup.json
 blogger/migration/_probe.mjs
+
+blogger/migration/migration-run.log
