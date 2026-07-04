@@ -16,3 +16,9 @@ blogger/preview/
 # Blogger migration secrets/state
 blogger/migration/.env
 blogger/migration/migration-state.json
+
+# Blogger migration runtime state/backups
+blogger/migration/pages-url-map.json
+blogger/migration/image-fix-state.json
+blogger/migration/old-covers-backup.json
+blogger/migration/_probe.mjs

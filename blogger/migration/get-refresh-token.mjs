@@ -22,7 +22,7 @@ const ENV_PATH = path.join(__dirname, '.env');
 const CLIENT_ID = process.env.BLOGGER_CLIENT_ID;
 const CLIENT_SECRET = process.env.BLOGGER_CLIENT_SECRET;
 const SCOPE = 'https://www.googleapis.com/auth/blogger';
-const PORT = 53682; // arbitrary high port for the loopback redirect
+const PORT = Number(process.env.OAUTH_PORT) || 38080; // loopback redirect port (53682 is inside a Windows reserved range)
 const REDIRECT_URI = `http://localhost:${PORT}/`;
 
 if (!CLIENT_ID || !CLIENT_SECRET) {

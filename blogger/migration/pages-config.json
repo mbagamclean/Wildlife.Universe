@@ -1,0 +1,16 @@
+{
+  "_comment": "intent -> page file + Blogger title + existing page id (null = create new). cleanLink is the /p/*.html the theme/pages currently use; after publish, real URLs replace it everywhere.",
+  "pages": [
+    { "intent": "about",      "file": "about.html",                 "title": "About Us",                "existingId": "1876244508492152824", "cleanLink": "/p/about.html" },
+    { "intent": "contact",    "file": "contact.html",               "title": "Contact Us",              "existingId": "2827030429304970691", "cleanLink": "/p/contact.html" },
+    { "intent": "privacy",    "file": "privacy-policy.html",        "title": "Privacy Policy",          "existingId": "5938025140497983809", "cleanLink": "/p/privacy-policy.html" },
+    { "intent": "cookies",    "file": "cookie-policy.html",         "title": "Cookies Policy",          "existingId": "6675534673801604627", "cleanLink": "/p/cookie-policy.html" },
+    { "intent": "terms",      "file": "terms-of-service.html",      "title": "Terms & Conditions",      "existingId": "1603198168654122179", "cleanLink": "/p/terms-of-service.html" },
+    { "intent": "advertise",  "file": "advertise.html",             "title": "Advertise With Us",       "existingId": null,                  "cleanLink": "/p/advertise.html" },
+    { "intent": "editorial",  "file": "editorial-policy.html",      "title": "Editorial Policy",        "existingId": null,                  "cleanLink": "/p/editorial-policy.html" },
+    { "intent": "factcheck",  "file": "fact-checking-policy.html",  "title": "Fact-Checking Policy",    "existingId": null,                  "cleanLink": "/p/fact-checking-policy.html" },
+    { "intent": "team",       "file": "team.html",                  "title": "Wildlife Universe Team",  "existingId": null,                  "cleanLink": "/p/team.html" },
+    { "intent": "sitemap",    "file": "sitemap.html",               "title": "Sitemap",                 "existingId": null,                  "cleanLink": "/p/sitemap.html" },
+    { "intent": "popular",    "file": "popular.html",               "title": "Popular Posts",           "existingId": null,                  "cleanLink": "/p/popular.html" }
+  ]
+}

@@ -11,7 +11,13 @@
  *   node --env-file=.env relabel-posts.mjs             # apply changes
  */
 
+import { readFileSync, existsSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
+import path from 'node:path';
 import { getAccessToken } from './lib/blogger-auth.mjs';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const MANUAL_PATH = path.join(__dirname, 'manual-labels.json');
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -128,14 +134,19 @@ async function main() {
   let changed = 0, same = 0, unmatched = 0, failed = 0;
   const unmatchedTitles = [];
 
+  const manual = existsSync(MANUAL_PATH)
+    ? Object.fromEntries(Object.entries(JSON.parse(readFileSync(MANUAL_PATH, 'utf8'))).map(([k, v]) => [norm(k), v]))
+    : {};
+
   for (const p of posts) {
     const row = tax.get(norm(p.title));
-    if (!row) {
+    const manualLabels = manual[norm(p.title)];
+    if (!row && !manualLabels) {
       unmatched++;
       unmatchedTitles.push(p.title);
       continue;
     }
-    const want = desiredLabels(row);
+    const want = row ? desiredLabels(row) : manualLabels;
     const have = (p.labels || []).slice();
     const sameLabels = want.length === have.length && want.every((l) => have.includes(l));
     if (sameLabels) { same++; continue; }

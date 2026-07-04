@@ -859,7 +859,7 @@ html.dark .post-body tr:nth-child(even) td{background:rgba(255,255,255,0.025);}
                     <span class='wu-eyebrow'><svg fill='none' height='13' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='13'><path d='M4 11a9 9 0 0 1 9 9'/><path d='M4 4a16 16 0 0 1 16 16'/><circle cx='5' cy='19' r='1'/></svg> Wildlife Universe</span>
                     <h2 class='wu-sectitle'>Latest Posts</h2>
                   </div>
-                  <a class='wu-viewall' href='/p/popular.html'>View All <svg fill='none' height='15' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='15'><path d='M5 12h14M12 5l7 7-7 7'/></svg></a>
+                  <a class='wu-viewall' href='/p/popular-posts.html'>View All <svg fill='none' height='15' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='15'><path d='M5 12h14M12 5l7 7-7 7'/></svg></a>
                 </div>
               </b:if>
               <b:if cond='data:posts.empty'>
@@ -1309,11 +1309,11 @@ html.dark .post-body tr:nth-child(even) td{background:rgba(255,255,255,0.025);}
         <ul class='wu-foot-links'>
           <li><a expr:href='data:blog.homepageUrl'>Home</a></li>
           <li><a href='/search/label/Posts'>Wildlife Content</a></li>
-          <li><a href='/p/popular.html'>Popular Posts</a></li>
-          <li><a href='/p/team.html'>Contributors</a></li>
-          <li><a href='/p/about.html'>About Us</a></li>
-          <li><a href='/p/contact.html'>Contact</a></li>
-          <li><a href='/p/advertise.html'>Advertise With Us</a></li>
+          <li><a href='/p/popular-posts.html'>Popular Posts</a></li>
+          <li><a href='/p/wildlife-universe-team.html'>Contributors</a></li>
+          <li><a href='/p/about-us.html'>About Us</a></li>
+          <li><a href='/p/contact-us.html'>Contact</a></li>
+          <li><a href='/p/advertise-with-us.html'>Advertise With Us</a></li>
           <li><a href='/p/sitemap.html'>Sitemap</a></li>
           <li><a href='/feeds/posts/default?alt=rss'>RSS Feed</a></li>
         </ul>
@@ -1322,11 +1322,11 @@ html.dark .post-body tr:nth-child(even) td{background:rgba(255,255,255,0.025);}
         <div class='wu-foot-h'>Legal</div>
         <ul class='wu-foot-links'>
           <li><a href='/p/privacy-policy.html'>Privacy Policy</a></li>
-          <li><a href='/p/terms-of-service.html'>Terms of Service</a></li>
-          <li><a href='/p/cookie-policy.html'>Cookie Policy</a></li>
+          <li><a href='/p/terms-conditions.html'>Terms of Service</a></li>
+          <li><a href='/p/cookies-policy.html'>Cookie Policy</a></li>
           <li><a href='/p/editorial-policy.html'>Editorial Policy</a></li>
           <li><a href='/p/fact-checking-policy.html'>Fact-Checking Policy</a></li>
-          <li><a href='/p/team.html'>Wildlife Universe Team</a></li>
+          <li><a href='/p/wildlife-universe-team.html'>Wildlife Universe Team</a></li>
         </ul>
       </div>
       <div>
