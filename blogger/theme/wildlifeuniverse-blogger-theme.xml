@@ -1,0 +1,1770 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE html>
+<html b:defaultwidgetversion='2' b:layoutsVersion='3' expr:dir='data:blog.languageDirection' lang='en' xmlns='http://www.w3.org/1999/xhtml' xmlns:b='http://www.google.com/2005/gml/b' xmlns:data='http://www.google.com/2005/gml/data' xmlns:expr='http://www.google.com/2005/gml/expr'>
+<head>
+  <meta charset='UTF-8'/>
+  <meta content='IE=edge' http-equiv='X-UA-Compatible'/>
+  <meta content='width=device-width, initial-scale=1.0' name='viewport'/>
+  <meta content='#f7f9f5' id='wu-themecolor' name='theme-color'/>
+  <meta content='max-image-preview:large' name='robots'/>
+  <b:include data='blog' name='all-head-content'/>
+  <title><data:blog.pageTitle/></title>
+
+  <!-- ============================================================
+       ===== ASSET URLS - replace after uploading assets (see README, "Before switching the domain") =====
+       These default to the current production origin (www.wildlifeuniverse.org).
+       That origin will point at THIS blog after the domain switch, so the
+       6 files below MUST be re-hosted first and every URL in this block
+       (plus the WU_ASSETS const inside the script right below) swapped.
+       Files (in deliverable assets/): logo.png, favicon.png, og-default.jpg,
+       hero/canopy.jpg, hero/eagle.jpg, hero/savanna.jpg
+       ============================================================ -->
+  <link href='https://www.wildlifeuniverse.org/favicon.png' rel='icon' type='image/png'/>
+  <link href='https://www.wildlifeuniverse.org/favicon.png' rel='shortcut icon' type='image/png'/>
+  <link href='https://www.wildlifeuniverse.org/favicon.png' rel='apple-touch-icon'/>
+  <link href='/sitemap.xml' rel='sitemap' title='Sitemap' type='application/xml'/>
+  <script>
+  //<![CDATA[
+  window.WU_ASSETS={
+    logo:'https://www.wildlifeuniverse.org/logo.png',
+    og:'https://www.wildlifeuniverse.org/og-default.jpg',
+    heroCanopy:'https://www.wildlifeuniverse.org/hero/canopy.jpg',
+    heroEagle:'https://www.wildlifeuniverse.org/hero/eagle.jpg',
+    heroSavanna:'https://www.wildlifeuniverse.org/hero/savanna.jpg',
+    staffLogin:'https://www.wildlifeuniverse.org/staff-login'
+  };
+  //]]>
+  </script>
+  <!-- ===== END ASSET URLS block ===== -->
+
+  <link href='https://fonts.googleapis.com' rel='preconnect'/>
+  <link crossorigin='anonymous' href='https://fonts.gstatic.com' rel='preconnect'/>
+  <link href='https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&amp;display=swap' rel='stylesheet'/>
+
+  <script>
+  //<![CDATA[
+  (function(){try{var t=localStorage.getItem('wu-theme');var d=(t==='dark')||(!t&&window.matchMedia('(prefers-color-scheme:dark)').matches);if(d){document.documentElement.classList.add('dark');var m=document.getElementById('wu-themecolor');if(m)m.setAttribute('content','#0a0f0a');}}catch(e){}})();
+  //]]>
+  </script>
+
+  <!-- ===== Social: Open Graph + Twitter Cards ===== -->
+  <b:if cond='data:blog.pageType == &quot;item&quot;'>
+    <meta content='article' property='og:type'/>
+  <b:else/>
+    <meta content='website' property='og:type'/>
+  </b:if>
+  <meta expr:content='data:blog.title' property='og:site_name'/>
+  <meta expr:content='data:blog.pageName ?: data:blog.title' property='og:title'/>
+  <meta expr:content='data:blog.metaDescription ?: data:blog.title' property='og:description'/>
+  <meta expr:content='data:blog.canonicalUrl' property='og:url'/>
+  <meta content='en_US' property='og:locale'/>
+  <b:if cond='data:blog.postImageUrl'>
+    <meta expr:content='data:blog.postImageUrl' property='og:image'/>
+    <meta expr:content='data:blog.postImageUrl' property='og:image:secure_url'/>
+  <b:else/>
+    <meta content='https://www.wildlifeuniverse.org/og-default.jpg' property='og:image'/>
+    <meta content='https://www.wildlifeuniverse.org/og-default.jpg' property='og:image:secure_url'/>
+  </b:if>
+  <meta expr:content='data:blog.pageName ?: data:blog.title' property='og:image:alt'/>
+  <meta content='summary_large_image' name='twitter:card'/>
+  <meta expr:content='data:blog.pageName ?: data:blog.title' name='twitter:title'/>
+  <meta expr:content='data:blog.metaDescription ?: data:blog.title' name='twitter:description'/>
+  <b:if cond='data:blog.postImageUrl'>
+    <meta expr:content='data:blog.postImageUrl' name='twitter:image'/>
+  <b:else/>
+    <meta content='https://www.wildlifeuniverse.org/og-default.jpg' name='twitter:image'/>
+  </b:if>
+
+  <b:skin><![CDATA[
+/* ============ WILDLIFE UNIVERSE - Blogger theme (clone of wildlifeuniverse.org) ============ */
+*{box-sizing:border-box;margin:0;padding:0;}
+html{scroll-behavior:smooth;}
+img{max-width:100%;display:block;}
+a{text-decoration:none;color:inherit;}
+:root{
+  --c-primary:#008000;--c-primary-deep:#003d00;--c-primary-soft:#4a9b4a;
+  --c-gold:#d4af37;--c-gold-soft:#e6c869;
+  --c-bg:#f5f5f5;--c-bg-deep:#ffffff;--c-fg:#111827;--c-fg-soft:#4b5563;
+  --glass-bg:rgba(255,255,255,0.82);--glass-border:rgba(0,0,0,0.08);
+  --glass-shadow:0 4px 24px rgba(0,0,0,0.06),0 1px 3px rgba(0,0,0,0.04);
+  --glass-blur:20px;
+  --ease-cinematic:cubic-bezier(0.22,1,0.36,1);
+}
+html.dark{
+  --c-bg:#0a0f0a;--c-bg-deep:#050805;--c-fg:#f4f7f1;--c-fg-soft:#b8c2b3;
+  --glass-bg:rgba(10,15,10,0.55);--glass-border:rgba(212,175,55,0.18);
+  --glass-shadow:0 4px 24px rgba(0,0,0,0.35),0 1px 3px rgba(0,0,0,0.3);
+}
+body{font-family:'Inter',system-ui,-apple-system,sans-serif;background:var(--c-bg);color:var(--c-fg);line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh;overflow-x:hidden;transition:background-color .25s,color .25s;}
+::selection{background:#008000;color:#fff;}
+::-webkit-scrollbar{width:10px;height:10px;}
+::-webkit-scrollbar-track{background:var(--c-bg);}
+::-webkit-scrollbar-thumb{background:var(--c-primary);border-radius:999px;border:2px solid var(--c-bg);}
+::-webkit-scrollbar-thumb:hover{background:var(--c-primary-deep);}
+.glass{background:var(--glass-bg);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);}
+.wu-display{font-family:'Inter',system-ui,sans-serif;letter-spacing:-0.01em;}
+/* CONTAINERS (three, per source site - do not unify) */
+.wu-container{margin:0 auto;width:90%;max-width:1560px;}
+@media(min-width:1024px){.wu-container{width:85%;}}
+.wu-headin{margin:0 auto;width:100%;max-width:80rem;padding:0 1rem;}
+@media(min-width:640px){.wu-headin{padding:0 1.5rem;}}
+@media(min-width:1024px){.wu-headin{padding:0 2rem;}}
+.wu-footin{width:85%;max-width:1800px;margin:0 auto;}
+/* ANIMATIONS */
+@keyframes wuFadeUp{from{opacity:0;transform:translateY(18px);}to{opacity:1;transform:translateY(0);}}
+.wu-fadeUp{animation:wuFadeUp .8s var(--ease-cinematic) both;}
+@keyframes wuShimmer{0%{background-position:-400px 0;}100%{background-position:400px 0;}}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation:none!important;transition:none!important;}}
+body.wu-noscroll{overflow:hidden;}
+
+/* ============ HEADER ============ */
+#wu-header{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--c-bg);border-bottom:1px solid var(--glass-border);padding:.75rem 0;transition:background .3s,padding .3s,box-shadow .3s;}
+#wu-header.scrolled{background:var(--glass-bg);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);padding:.5rem 0;box-shadow:0 10px 15px -3px rgba(0,0,0,0.05),0 4px 6px -4px rgba(0,0,0,0.05);}
+.wu-headspace{height:4rem;}
+.wu-headrow{display:flex;align-items:center;justify-content:space-between;gap:.75rem;}
+.wu-headrow > a{flex-shrink:0;display:flex;align-items:center;}
+.wu-logo-img{height:2.5rem;width:auto;object-fit:contain;}
+@media(min-width:640px){.wu-logo-img{height:2.75rem;}}
+.wu-logo-text{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;color:var(--c-primary);white-space:nowrap;}
+.wu-nav{display:none;align-items:center;gap:.125rem;}
+@media(min-width:768px){.wu-nav{display:flex;}}
+.wu-nav-item{position:relative;}
+.wu-nav-link{position:relative;display:flex;align-items:center;gap:.25rem;border-radius:9999px;padding:.5rem 1rem;font-size:.875rem;font-weight:500;color:var(--c-fg);transition:color .15s,background .15s;white-space:nowrap;}
+@media(min-width:768px) and (max-width:1023px){.wu-nav-link{padding:.45rem .5rem;font-size:.78rem;gap:.15rem;}.wu-logo-img{height:2.25rem;}}
+.wu-nav-link:hover{color:var(--c-primary);background:rgba(0,128,0,0.06);}
+.wu-nav-link.active{color:var(--c-primary);}
+.wu-nav-link.active:after{content:'';position:absolute;left:.75rem;right:.75rem;bottom:-2px;height:2px;border-radius:9999px;background:var(--c-primary);}
+.wu-nav-link svg{transition:transform .2s;}
+.wu-nav-item:hover .wu-nav-link svg,.wu-nav-item:focus-within .wu-nav-link svg{transform:rotate(180deg);}
+.wu-dd{position:absolute;left:0;top:100%;margin-top:.5rem;min-width:180px;border-radius:1rem;padding:.5rem;background:var(--glass-bg);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--glass-border);box-shadow:0 20px 25px -5px rgba(0,0,0,0.1),0 8px 10px -6px rgba(0,0,0,0.1);opacity:0;visibility:hidden;transform:translateY(6px);transition:opacity .18s,transform .18s,visibility .18s;z-index:60;}
+.wu-nav-item:hover .wu-dd,.wu-nav-item:focus-within .wu-dd{opacity:1;visibility:visible;transform:translateY(0);}
+.wu-dd a{display:block;border-radius:.75rem;padding:.5rem .75rem;font-size:.875rem;color:var(--c-fg);transition:background .12s,color .12s;}
+.wu-dd a:hover{background:rgba(0,128,0,0.08);color:var(--c-primary);}
+.wu-dd .all{color:var(--c-primary);font-weight:600;}
+.wu-dd .div{height:1px;margin:.35rem .5rem;background:var(--glass-border);}
+.wu-head-actions{display:flex;align-items:center;gap:.375rem;}
+.wu-icon-btn{display:flex;align-items:center;justify-content:center;width:2.4rem;height:2.4rem;border-radius:9999px;border:none;cursor:pointer;background:transparent;color:var(--c-fg);transition:background .15s,color .15s;}
+.wu-icon-btn:hover{background:rgba(0,128,0,0.08);color:var(--c-primary);}
+.wu-hamburger{display:flex;}
+@media(min-width:768px){.wu-hamburger{display:none;}}
+
+/* ============ MOBILE FULL-SCREEN MENU ============ */
+#wu-mm{position:fixed;inset:0;z-index:70;background:var(--c-bg);background-image:radial-gradient(60% 40% at 15% 0%,rgba(0,128,0,0.07),transparent),radial-gradient(50% 35% at 100% 100%,rgba(212,175,55,0.06),transparent);display:flex;flex-direction:column;opacity:0;visibility:hidden;transform:translateY(12px);transition:opacity .3s var(--ease-cinematic),transform .3s var(--ease-cinematic),visibility .3s;}
+#wu-mm.open{opacity:1;visibility:visible;transform:translateY(0);}
+.wu-mm-top{display:flex;align-items:center;justify-content:space-between;padding:.85rem 1.25rem;border-bottom:1px solid var(--glass-border);}
+.wu-mm-close{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--glass-border);background:var(--c-bg-deep);color:var(--c-fg);border-radius:9999px;padding:.45rem 1rem;font-size:.8125rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.wu-mm-close:hover{border-color:rgba(0,128,0,0.4);color:var(--c-primary);}
+.wu-mm-nav{flex:1;overflow-y:auto;padding:1rem 1.25rem 2rem;}
+.wu-mm-row{display:flex;align-items:center;gap:.4rem;margin-bottom:.4rem;}
+.wu-mm-nav > *{opacity:0;transform:translateY(10px);}
+#wu-mm.open .wu-mm-nav > *{animation:wuFadeUp .55s var(--ease-cinematic) forwards;}
+#wu-mm.open .wu-mm-nav > :nth-child(1){animation-delay:0ms;}
+#wu-mm.open .wu-mm-nav > :nth-child(2){animation-delay:80ms;}
+#wu-mm.open .wu-mm-nav > :nth-child(3){animation-delay:160ms;}
+#wu-mm.open .wu-mm-nav > :nth-child(4){animation-delay:240ms;}
+#wu-mm.open .wu-mm-nav > :nth-child(5){animation-delay:320ms;}
+#wu-mm.open .wu-mm-nav > :nth-child(6){animation-delay:400ms;}
+#wu-mm.open .wu-mm-nav > :nth-child(7){animation-delay:480ms;}
+.wu-mm-link{flex:1;display:flex;align-items:center;gap:.8rem;border-radius:1rem;padding:.7rem .8rem;font-size:1.05rem;font-weight:600;color:var(--c-fg);}
+.wu-mm-link:hover{background:rgba(0,128,0,0.07);}
+.wu-mm-blob{display:flex;align-items:center;justify-content:center;width:2.4rem;height:2.4rem;border-radius:.85rem;color:#fff;flex-shrink:0;}
+.wu-mm-tog{display:flex;align-items:center;justify-content:center;width:2.6rem;height:2.6rem;border-radius:.85rem;border:1px solid var(--glass-border);background:transparent;color:var(--c-fg-soft);cursor:pointer;transition:transform .2s;}
+.wu-acc.open .wu-mm-tog{transform:rotate(180deg);color:var(--c-primary);}
+.wu-acc{margin-bottom:.4rem;}
+.wu-acc .wu-mm-row{margin-bottom:0;}
+.wu-acc-body{display:none;flex-wrap:wrap;gap:.45rem;padding:.6rem .5rem .8rem 3.6rem;}
+.wu-acc.open .wu-acc-body{display:flex;}
+.wu-acc-pill{display:inline-flex;border:1px solid var(--glass-border);border-radius:9999px;padding:.375rem .875rem;font-size:.75rem;font-weight:500;color:var(--c-fg-soft);transition:color .12s,border-color .12s,background .12s;}
+.wu-mm-foot{position:sticky;bottom:0;display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:.85rem 1.25rem;border-top:1px solid var(--glass-border);background:var(--glass-bg);-webkit-backdrop-filter:blur(20px);backdrop-filter:blur(20px);}
+.wu-mm-foot span{font-size:.8rem;color:var(--c-fg-soft);}
+.wu-mm-theme{display:inline-flex;align-items:center;gap:.5rem;border:1px solid var(--glass-border);background:var(--c-bg-deep);color:var(--c-fg);border-radius:9999px;padding:.5rem 1.1rem;font-size:.8125rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.wu-mm-theme:hover{border-color:rgba(0,128,0,0.4);color:var(--c-primary);}
+
+/* ============ SEARCH OVERLAY ============ */
+#wu-search{position:fixed;inset:0;z-index:80;opacity:0;visibility:hidden;transition:opacity .25s,visibility .25s;}
+#wu-search.open{opacity:1;visibility:visible;}
+#wu-search .bg{position:absolute;inset:0;background:rgba(3,10,4,0.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);}
+#wu-search .panel{position:relative;margin:9vh auto 0;width:min(760px,92%);border-radius:1.25rem;background:var(--glass-bg);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--glass-border);box-shadow:0 25px 50px -12px rgba(0,0,0,0.35);transform:translateY(-10px);transition:transform .25s var(--ease-cinematic);overflow:hidden;}
+#wu-search.open .panel{transform:translateY(0);}
+.wu-search-in{padding:1.1rem 1.1rem 1.25rem;}
+.wu-search-row{display:flex;align-items:center;gap:.6rem;}
+.wu-search-field{position:relative;flex:1;display:flex;align-items:center;gap:.6rem;border:1px solid var(--glass-border);border-radius:9999px;padding:.7rem 1.1rem;background:var(--c-bg-deep);color:var(--c-fg-soft);}
+.wu-search-field:focus-within{border-color:rgba(0,128,0,0.45);}
+.wu-search-field input{flex:1;border:none;outline:none;background:transparent;color:var(--c-fg);font-size:1rem;font-family:inherit;}
+.wu-search-x{display:flex;align-items:center;justify-content:center;width:2.6rem;height:2.6rem;border-radius:9999px;border:1px solid var(--glass-border);background:transparent;color:var(--c-fg-soft);cursor:pointer;}
+.wu-search-x:hover{color:var(--c-primary);border-color:rgba(0,128,0,0.4);}
+.wu-search-body{margin-top:1rem;max-height:56vh;overflow-y:auto;}
+.wu-search-state{text-align:center;padding:2.2rem 1rem;color:var(--c-fg-soft);}
+.wu-search-state .ic{display:inline-flex;align-items:center;justify-content:center;width:4rem;height:4rem;border-radius:9999px;background:rgba(0,128,0,0.09);color:var(--c-primary);margin-bottom:.9rem;}
+.wu-search-state h3{color:var(--c-fg);font-size:1.05rem;margin-bottom:.25rem;}
+.wu-search-state p{font-size:.875rem;}
+.wu-search-lbl{font-size:.7rem;font-weight:700;letter-spacing:.12em;text-transform:uppercase;color:var(--c-primary);margin:.25rem 0 .6rem;}
+.wu-recent{display:flex;flex-wrap:wrap;gap:.5rem;}
+.wu-recent button{border:1px solid var(--glass-border);background:var(--c-bg-deep);color:var(--c-fg);border-radius:9999px;padding:.45rem 1rem;font-size:.8125rem;cursor:pointer;font-family:inherit;}
+.wu-recent button:hover{border-color:rgba(0,128,0,0.45);color:var(--c-primary);}
+.wu-sug-list{display:flex;flex-direction:column;gap:.5rem;}
+.wu-sug{display:flex;gap:.8rem;border-radius:1rem;padding:.55rem;transition:background .12s;}
+.wu-sug:hover{background:rgba(0,128,0,0.06);}
+.wu-sug-img{width:5.2rem;height:3.6rem;border-radius:.7rem;overflow:hidden;flex-shrink:0;background:linear-gradient(135deg,#0c4a1a,#3aa15a);}
+.wu-sug-img img{width:100%;height:100%;object-fit:cover;}
+.wu-sug-b{min-width:0;}
+.wu-sug-meta{display:flex;gap:.6rem;align-items:center;font-size:.7rem;color:var(--c-fg-soft);margin-bottom:.15rem;}
+.wu-sug-cat{color:var(--c-primary);font-weight:600;}
+.wu-sug h4{font-size:.9rem;font-weight:600;color:var(--c-fg);line-height:1.35;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.wu-sug p{font-size:.78rem;color:var(--c-fg-soft);overflow:hidden;display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;}
+.wu-search-go{display:inline-flex;align-items:center;gap:.4rem;margin-top:.9rem;border:none;border-radius:9999px;background:var(--c-primary);color:#fff;padding:.6rem 1.2rem;font-size:.85rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.wu-search-go:hover{background:var(--c-primary-deep);}
+.wu-spin{display:inline-block;width:1rem;height:1rem;border:2px solid rgba(0,128,0,0.25);border-top-color:var(--c-primary);border-radius:50%;animation:wuSpin .7s linear infinite;}
+@keyframes wuSpin{to{transform:rotate(360deg);}}
+
+/* ============ HEROES (shared bits) ============ */
+.wu-ov{position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.55),rgba(0,0,0,0.35) 50%,rgba(0,0,0,0.7));}
+.wu-fadedown{position:absolute;left:0;right:0;bottom:0;height:6rem;background:linear-gradient(to bottom,transparent,var(--c-bg));}
+.wu-hero-on-dark{color:#fff;text-shadow:0 2px 18px rgba(0,0,0,0.55);}
+.wu-hero-sub-on-dark{color:rgba(255,255,255,0.85);}
+.wu-herobg{position:absolute;inset:0;background-size:cover;background-position:center;background-image:linear-gradient(135deg,#031a0d,#0c4a1a,#3aa15a);}
+
+/* HOMEPAGE HERO */
+.wu-hero{position:relative;margin-top:-4rem;min-height:100vh;min-height:100svh;display:flex;align-items:center;overflow:hidden;}
+.wu-hero-inner{position:relative;z-index:2;width:90%;max-width:1560px;margin:0 auto;padding:7rem 0 6rem;}
+@media(min-width:1024px){.wu-hero-inner{width:85%;}}
+.wu-hero-pill{display:inline-flex;align-items:center;gap:.5rem;border:1px solid rgba(255,255,255,0.25);background:rgba(255,255,255,0.1);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:9999px;padding:.45rem 1.1rem;font-size:.75rem;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:#fff;margin-bottom:1.4rem;}
+.wu-hero-dot{width:.5rem;height:.5rem;border-radius:9999px;background:#4ade80;box-shadow:0 0 10px #4ade80;}
+.wu-hero-title{font-size:clamp(2.4rem,6vw,4.6rem);font-weight:900;line-height:1.05;letter-spacing:-.02em;color:#fff;text-shadow:0 2px 20px rgba(0,0,0,0.55);max-width:18ch;text-wrap:balance;}
+.wu-hero-title .gold{color:var(--c-gold-soft);}
+.wu-hero-sub{margin-top:1.1rem;font-size:clamp(1rem,1.6vw,1.25rem);color:rgba(255,255,255,0.85);max-width:56ch;}
+.wu-hero-cta{display:flex;flex-wrap:wrap;gap:.8rem;margin-top:2rem;}
+.wu-cta-primary{display:inline-flex;align-items:center;gap:.5rem;border-radius:9999px;background:var(--c-primary);color:#fff;padding:.8rem 1.6rem;font-size:.9rem;font-weight:700;box-shadow:0 8px 24px rgba(0,128,0,0.4);transition:background .15s,transform .15s;}
+.wu-cta-primary:hover{background:var(--c-primary-deep);transform:translateY(-1px);}
+.wu-cta-secondary{display:inline-flex;align-items:center;gap:.5rem;border-radius:9999px;border:1px solid rgba(255,255,255,0.35);background:rgba(255,255,255,0.08);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);color:#fff;padding:.8rem 1.6rem;font-size:.9rem;font-weight:600;transition:background .15s;}
+.wu-cta-secondary:hover{background:rgba(255,255,255,0.18);}
+
+/* ============ SECTIONS / HEADINGS ============ */
+.wu-section{padding:2.5rem 0;}
+@media(min-width:768px){.wu-section{padding:3.5rem 0;}}
+.wu-sechead{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:2.5rem;}
+.wu-sechead-l{display:flex;flex-direction:column;gap:.375rem;}
+.wu-eyebrow{display:inline-flex;align-items:center;gap:.4rem;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;color:var(--c-primary);}
+.wu-sectitle{font-size:1.875rem;font-weight:900;line-height:1;letter-spacing:-.025em;color:var(--c-fg);}
+@media(min-width:640px){.wu-sectitle{font-size:2.25rem;}}
+.wu-viewall{display:inline-flex;align-items:center;gap:.4rem;border:1.5px solid var(--c-primary);border-radius:9999px;padding:.5rem 1rem;font-size:.875rem;font-weight:600;color:var(--c-primary);transition:background .15s,color .15s;white-space:nowrap;}
+.wu-viewall:hover{background:var(--c-primary);color:#fff;}
+.wu-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;}
+@media(min-width:640px){.wu-grid{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:1024px){.wu-grid{grid-template-columns:repeat(3,1fr);}}
+.wu-empty{text-align:center;color:var(--c-fg-soft);padding:3rem 1rem;}
+.wu-count{margin-bottom:1.5rem;}
+.wu-count h2{font-size:1.5rem;font-weight:900;letter-spacing:-.02em;}
+.wu-count p{color:var(--c-fg-soft);font-size:.9rem;}
+
+/* HOMEPAGE POST CARD (LatestPostCard) */
+.wu-card{position:relative;display:flex;height:100%;flex-direction:column;overflow:hidden;border-radius:1rem;background:var(--c-bg-deep);box-shadow:0 2px 12px rgba(0,0,0,0.07),0 0 0 1px var(--glass-border);transition:box-shadow .3s var(--ease-cinematic),transform .3s var(--ease-cinematic);}
+.wu-card:hover{box-shadow:0 16px 40px rgba(0,128,0,0.14),0 0 0 1px var(--glass-border);}
+.wu-card-img{position:relative;aspect-ratio:16/9;overflow:hidden;background:linear-gradient(135deg,#0c4a1a,#3aa15a,#d4af37);}
+.wu-card-img img{width:100%;height:100%;object-fit:cover;transition:transform .6s var(--ease-cinematic);}
+.wu-card:hover .wu-card-img img{transform:scale(1.15);}
+.wu-no-img{width:100%;height:100%;display:flex;align-items:center;justify-content:center;background:linear-gradient(135deg,#0c4a1a,#3aa15a,#d4af37);color:rgba(255,255,255,0.9);font-size:2rem;font-weight:900;}
+.wu-card-badge{position:absolute;top:.75rem;left:.75rem;border-radius:9999px;padding:.3rem .8rem;font-size:11px;font-weight:600;color:#fff;background:linear-gradient(135deg,#006000,#3a9e3a);box-shadow:0 2px 8px rgba(0,0,0,0.25);}
+.wu-card-badge.animals{background:linear-gradient(135deg,#1a5c34,#2e9958);}
+.wu-card-badge.birds{background:linear-gradient(135deg,#0a4a9c,#1a72d8);}
+.wu-card-body{display:flex;flex:1;flex-direction:column;gap:.6rem;padding:1rem 1.25rem 1.25rem;}
+.wu-card-title{font-size:1.25rem;font-weight:700;line-height:1.375;letter-spacing:-.01em;color:var(--c-fg);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;transition:color .15s;}
+.wu-card:hover .wu-card-title{color:var(--c-primary);}
+.wu-card-excerpt{font-size:.95rem;color:var(--c-fg-soft);overflow:hidden;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;}
+.wu-card-foot{display:flex;align-items:center;justify-content:space-between;gap:.75rem;margin-top:auto;padding-top:.75rem;border-top:1px solid var(--glass-border);font-size:.78rem;color:var(--c-fg-soft);}
+
+/* GLASS POST CARD (related / category grids) */
+.wu-gcard{position:relative;display:flex;height:100%;flex-direction:column;overflow:hidden;border-radius:1rem;background:var(--glass-bg);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);transition:transform .3s var(--ease-cinematic),border-color .3s,box-shadow .3s;}
+.wu-gcard:hover{transform:scale(1.02);border-color:rgba(0,128,0,0.4);box-shadow:0 25px 50px -12px rgba(0,0,0,0.25);}
+.wu-gcard-img{position:relative;aspect-ratio:16/10;overflow:hidden;background:linear-gradient(135deg,#0c4a1a,#3aa15a);}
+.wu-gcard-img img{width:100%;height:100%;object-fit:cover;}
+.wu-gcard-pill{position:absolute;top:.75rem;left:.75rem;border-radius:9999px;background:rgba(0,0,0,0.4);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);padding:.25rem .625rem;font-size:.75rem;color:#fff;}
+.wu-gcard-pill.featured{background:rgba(212,175,55,0.9);color:#1a1208;font-weight:700;}
+.wu-gcard-body{display:flex;flex:1;flex-direction:column;gap:.75rem;padding:1.5rem;}
+.wu-gcard-title{font-size:1.1rem;font-weight:700;line-height:1.4;color:var(--c-fg);overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;}
+.wu-gcard-meta{font-size:.78rem;color:var(--c-fg-soft);}
+.wu-gcard-cta{display:inline-flex;align-self:flex-start;margin-top:auto;border-radius:9999px;background:rgba(0,128,0,0.1);color:var(--c-primary);padding:.4rem 1rem;font-size:.8rem;font-weight:600;}
+
+/* EXPLORE CATEGORY CARDS */
+.wu-cats-head{text-align:center;margin-bottom:2.5rem;}
+.wu-cats-head h2{font-size:1.875rem;font-weight:900;letter-spacing:-.025em;}
+@media(min-width:640px){.wu-cats-head h2{font-size:2.25rem;}}
+@media(min-width:768px){.wu-cats-head h2{font-size:3rem;}}
+.wu-cats-head p{margin-top:.5rem;color:var(--c-fg-soft);}
+.wu-cats-grid{display:grid;grid-template-columns:1fr;gap:1.5rem;}
+@media(min-width:640px){.wu-cats-grid{grid-template-columns:repeat(2,1fr);}}
+@media(min-width:1024px){.wu-cats-grid{grid-template-columns:repeat(3,1fr);}}
+.wu-catcard{position:relative;display:block;aspect-ratio:16/10;border-radius:1rem;overflow:hidden;transition:transform .3s var(--ease-cinematic),box-shadow .3s;}
+.wu-catcard:hover{transform:translateY(-4px);box-shadow:0 20px 45px rgba(0,0,0,0.28);}
+.wu-catcard .ov{position:absolute;inset:0;background:linear-gradient(to top,rgba(0,0,0,0.55),transparent 55%);}
+.wu-catcard .info{position:absolute;left:1.25rem;right:1.25rem;bottom:1.25rem;display:flex;align-items:flex-end;justify-content:space-between;gap:.75rem;}
+.wu-catcard .info h3{font-size:1.25rem;font-weight:900;color:#fff;letter-spacing:-.01em;}
+.wu-catcard .pill{display:inline-flex;align-items:center;gap:.3rem;border-radius:9999px;padding:.35rem .9rem;font-size:.75rem;font-weight:700;color:#04120a;background:#fff;white-space:nowrap;}
+
+/* PAGINATION */
+.wu-pager{display:flex;align-items:center;justify-content:center;gap:.6rem;margin:2.5rem 0 1rem;flex-wrap:wrap;}
+.wu-pager a{display:inline-flex;align-items:center;gap:.35rem;border:1px solid var(--glass-border);background:var(--c-bg-deep);border-radius:9999px;padding:.55rem 1.2rem;font-size:.875rem;font-weight:600;color:var(--c-fg);transition:background .15s,color .15s,border-color .15s;}
+.wu-pager a:hover{border-color:var(--c-primary);color:var(--c-primary);}
+.wu-pager a.solid{background:var(--c-primary);border-color:var(--c-primary);color:#fff;}
+.wu-pager a.solid:hover{background:var(--c-primary-deep);}
+
+/* ============ CATEGORY / LABEL HERO + FILTER BAR ============ */
+.wu-cathero{position:relative;margin-top:-4rem;height:88vh;min-height:640px;display:flex;align-items:center;justify-content:center;overflow:hidden;text-align:center;}
+.wu-cathero .wu-fadedown{height:6rem;}
+.wu-cathero-inner{position:relative;z-index:2;padding:0 1rem;max-width:60rem;}
+.wu-cathero-pill{display:inline-flex;align-items:center;gap:.5rem;border:1px solid rgba(255,255,255,0.2);background:rgba(255,255,255,0.1);-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px);border-radius:9999px;padding:.4rem 1.1rem;font-size:.72rem;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#fff;margin-bottom:1.2rem;}
+.wu-cathero-title{font-size:3rem;font-weight:900;letter-spacing:-.02em;line-height:1.02;}
+@media(min-width:640px){.wu-cathero-title{font-size:3.75rem;}}
+@media(min-width:768px){.wu-cathero-title{font-size:4.5rem;}}
+.wu-cathero-sub{margin-top:1rem;font-size:1.05rem;}
+.wu-catbar{border-bottom:1px solid var(--glass-border);background:var(--c-bg);}
+.wu-catbar-inner{margin:0 auto;width:90%;max-width:1560px;display:flex;gap:.6rem;overflow-x:auto;padding:1rem 0;scrollbar-width:none;}
+@media(min-width:1024px){.wu-catbar-inner{width:85%;}}
+.wu-catbar-inner::-webkit-scrollbar{display:none;}
+.wu-chip{display:inline-flex;flex-shrink:0;border:1px solid var(--glass-border);background:var(--c-bg-deep);border-radius:9999px;padding:.5rem 1.25rem;font-size:.875rem;font-weight:500;color:var(--c-fg);transition:background .15s,color .15s;white-space:nowrap;}
+.wu-chip:hover{background:var(--glass-border);}
+.wu-chip.active{background:var(--c-primary);border-color:var(--c-primary);color:#fff;font-weight:600;}
+
+/* ============ POST / ARTICLE PAGE ============ */
+#wu-progress{position:fixed;left:0;top:0;z-index:60;height:4px;width:0;transform-origin:left;background:var(--c-primary);}
+.wu-arth{position:relative;margin-top:-4rem;display:flex;height:88vh;min-height:640px;align-items:flex-end;overflow:hidden;}
+.wu-arth-bg{position:absolute;inset:0;background-size:cover;background-position:center;background-image:linear-gradient(135deg,#031a0d,#0c4a1a,#3aa15a);}
+.wu-arth .wu-fadedown{height:4rem;}
+.wu-arth-inner{position:relative;z-index:2;width:90%;max-width:1560px;margin:0 auto;padding:5rem 0 3.5rem;}
+@media(min-width:640px){.wu-arth-inner{padding:6rem 0 4rem;}}
+@media(min-width:1024px){.wu-arth-inner{width:85%;}}
+.wu-arth-back{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--glass-border);background:var(--glass-bg);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-radius:9999px;padding:.5rem 1rem;font-size:.875rem;color:var(--c-fg);margin-bottom:1.2rem;transition:border-color .15s,color .15s;}
+.wu-arth-back:hover{border-color:rgba(0,128,0,0.4);color:var(--c-primary);}
+.wu-arth-cats{display:flex;flex-wrap:wrap;gap:.5rem;margin-bottom:1rem;}
+.wu-arth-cat{display:inline-flex;align-items:center;gap:.35rem;background:#008000;border-radius:9999px;padding:.375rem .875rem;font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#fff;box-shadow:0 2px 12px rgba(0,128,0,0.4);}
+.wu-arth-cat.featured{background:rgba(212,175,55,0.9);color:#1a1208;box-shadow:0 2px 12px rgba(212,175,55,0.4);}
+.wu-arth-title{font-size:1.875rem;font-weight:900;line-height:1.05;letter-spacing:-.02em;color:#fff;text-shadow:0 2px 18px rgba(0,0,0,0.55);max-width:24ch;text-wrap:balance;}
+@media(min-width:640px){.wu-arth-title{font-size:2.25rem;}}
+@media(min-width:768px){.wu-arth-title{font-size:3rem;}}
+@media(min-width:1024px){.wu-arth-title{font-size:3.75rem;}}
+.wu-arth-meta{display:flex;flex-wrap:wrap;gap:.5rem;margin-top:1.3rem;}
+.wu-meta-chip{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--glass-border);background:var(--glass-bg);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-radius:9999px;padding:.375rem .875rem;font-size:.75rem;color:var(--c-fg);}
+.wu-meta-chip svg{color:var(--c-primary);}
+.wu-arth-actions{display:flex;gap:.5rem;margin-top:1rem;}
+.wu-act-pill{display:inline-flex;align-items:center;gap:.4rem;border:1px solid var(--glass-border);background:var(--glass-bg);-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px);border-radius:9999px;padding:.45rem 1rem;font-size:.8rem;font-weight:600;color:var(--c-fg);cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s;}
+.wu-act-pill:hover{border-color:rgba(0,128,0,0.45);color:var(--c-primary);}
+.wu-act-pill.saved{border-color:rgba(212,175,55,0.6);color:var(--c-gold);}
+/* BODY GRID */
+.wu-artwrap{margin:0 auto;width:100%;max-width:1560px;padding-top:1.5rem;}
+@media(min-width:640px){.wu-artwrap{width:90%;}}
+@media(min-width:1024px){.wu-artwrap{width:85%;}}
+.wu-artgrid{display:grid;grid-template-columns:1fr;gap:.75rem;}
+@media(min-width:640px){.wu-artgrid{gap:1.5rem;}}
+@media(min-width:1024px){.wu-artgrid{grid-template-columns:220px 1fr;gap:2rem;}}
+.wu-artgrid.no-toc{grid-template-columns:1fr;}
+.wu-toc-side{display:none;}
+@media(min-width:1024px){.wu-toc-side{display:block;}.wu-artgrid.no-toc .wu-toc-side{display:none;}}
+.wu-toc-box{position:sticky;top:6rem;border:1px solid var(--glass-border);border-radius:1rem;background:var(--c-bg-deep);padding:1.1rem 1rem;}
+.wu-toc-head{display:flex;align-items:center;gap:.5rem;margin-bottom:.8rem;}
+.wu-toc-head .bar{display:inline-block;width:.3rem;height:1.1rem;border-radius:9999px;background:var(--c-primary);}
+.wu-toc-head h3{font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--c-fg);}
+.wu-toc-list{list-style:none;max-height:60vh;overflow-y:auto;}
+.wu-toc-list a{display:block;border-left:2px solid transparent;padding:.4rem .7rem;font-size:.82rem;color:var(--c-fg-soft);border-radius:0 .5rem .5rem 0;transition:color .12s,background .12s,border-color .12s;}
+.wu-toc-list a:hover{color:var(--c-primary);}
+.wu-toc-list a.active{border-left-color:#008000;background:rgba(0,128,0,0.1);color:#008000;font-weight:600;}
+.wu-toc-list a.h3{padding-left:1.4rem;font-size:.78rem;}
+.wu-artcard{border-top:1px solid var(--glass-border);border-bottom:1px solid var(--glass-border);background:var(--c-bg-deep);padding:1.5rem 1rem;margin-bottom:1.25rem;transition:box-shadow .3s;}
+@media(min-width:640px){.wu-artcard{border:1px solid var(--glass-border);border-radius:1rem;padding:2rem;}}
+.wu-artcard:hover{box-shadow:0 12px 40px rgba(212,175,55,0.10);}
+/* .post-body prose (verbatim port) */
+.post-body{font-size:1rem;line-height:1.85;color:var(--c-fg);word-wrap:break-word;}
+@media(min-width:640px){.post-body{font-size:1.125rem;}}
+.post-body > * + *{margin-top:0.95em;}
+.post-body h1{font-size:1.95em;font-weight:800;line-height:1.25;letter-spacing:-.01em;}
+.post-body h2{font-size:1.55em;font-weight:800;line-height:1.3;letter-spacing:-.01em;border-bottom:1px solid var(--glass-border);padding-bottom:.35em;}
+.post-body h3{font-size:1.22em;font-weight:700;line-height:1.35;}
+.post-body h4{font-size:1.05em;font-weight:700;}
+.post-body h1[id],.post-body h2[id],.post-body h3[id],.post-body h4[id]{scroll-margin-top:7rem;}
+.post-body a{color:var(--c-primary);text-decoration:underline;text-underline-offset:3px;}
+.post-body a:hover{color:var(--c-primary-deep);}
+.post-body ul,.post-body ol{padding-left:1.4em;}
+.post-body li + li{margin-top:.4em;}
+.post-body blockquote{border-left:3px solid var(--c-primary);padding-left:1.1em;font-style:italic;color:var(--c-fg-soft);}
+.post-body .wu-funfact{background:rgba(245,158,11,0.10);border:1px solid rgba(245,158,11,0.25);border-radius:12px;padding:1em 1.2em;}
+.post-body .wu-funfact:before{content:'\2726  Fun Fact';display:block;font-weight:700;color:#d97706;font-size:.85em;letter-spacing:.06em;text-transform:uppercase;margin-bottom:.4em;font-style:normal;}
+.post-body .wu-inspiration{border-left:3px solid var(--c-primary);padding-left:1.1em;font-style:italic;font-size:1.08em;color:var(--c-fg);}
+.post-body .wu-story{background:linear-gradient(135deg,rgba(0,128,0,0.08),rgba(212,175,55,0.08));border:1px solid var(--glass-border);border-radius:12px;padding:1em 1.2em;}
+.post-body .wu-story:before{content:'Wildlife Story';display:block;font-weight:700;color:var(--c-primary);font-size:.8em;letter-spacing:.12em;text-transform:uppercase;margin-bottom:.4em;}
+.post-body code{background:var(--glass-bg);border:1px solid var(--glass-border);padding:1px 6px;border-radius:4px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.9em;}
+.post-body pre{background:#0d1210;color:#e5efe5;border-radius:10px;padding:1em 1.2em;overflow-x:auto;font-size:14px;}
+@media(min-width:640px){.post-body pre{font-size:16px;}}
+.post-body pre code{background:transparent;border:none;padding:0;color:inherit;}
+.post-body table{width:100%;border-collapse:collapse;display:block;overflow-x:auto;border-radius:10px;}
+.post-body th{background:rgba(0,128,0,0.08);text-transform:uppercase;letter-spacing:.04em;font-size:.82em;text-align:left;padding:.7em .9em;border-bottom:2px solid rgba(0,128,0,0.22);}
+.post-body td{padding:.65em .9em;border-bottom:1px solid var(--glass-border);}
+.post-body tr:nth-child(even) td{background:rgba(0,0,0,0.025);}
+html.dark .post-body tr:nth-child(even) td{background:rgba(255,255,255,0.025);}
+.post-body img,.post-body video{width:100%;border-radius:12px;margin:1.2em auto;}
+.post-body figure{margin:1.2em auto;}
+@media(max-width:640px){.post-body figure{width:calc(100% + 1.4rem);margin-left:-.7rem;}.post-body figure img{aspect-ratio:16/10;object-fit:cover;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,0.18);}}
+.post-body figcaption{text-align:center;font-size:.85em;color:var(--c-fg-soft);margin-top:.5em;}
+.post-body iframe{width:100%;aspect-ratio:16/9;border:none;border-radius:12px;margin:1.2em auto;}
+.post-body mark{background:rgba(212,175,55,0.28);padding:0 .2em;border-radius:3px;}
+/* TAGS */
+.wu-tags{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;}
+.wu-tags .lbl{font-size:.75rem;font-weight:700;letter-spacing:.1em;text-transform:uppercase;color:var(--c-fg-soft);margin-right:.25rem;}
+.wu-tag{display:inline-flex;border:1px solid var(--glass-border);border-radius:9999px;padding:.35rem .9rem;font-size:.78rem;color:var(--c-fg);transition:border-color .12s,color .12s;}
+.wu-tag:hover{border-color:rgba(0,128,0,0.45);color:var(--c-primary);}
+/* REACTIONS */
+.wu-react-card{border-top:3px solid #008000!important;}
+.wu-react-eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--c-primary);margin-bottom:.35rem;}
+.wu-react-h{font-size:1.15rem;font-weight:800;letter-spacing:-.01em;margin-bottom:1.1rem;}
+.wu-react-row{display:flex;flex-wrap:wrap;gap:.6rem;}
+.wu-react-btn{display:flex;flex-direction:column;align-items:center;gap:.15rem;min-width:4.2rem;border:1px solid var(--glass-border);background:var(--c-bg-deep);border-radius:1rem;padding:.6rem .7rem;cursor:pointer;font-family:inherit;color:var(--c-fg);transition:border-color .15s,background .15s,transform .15s;}
+.wu-react-btn:hover{border-color:rgba(0,128,0,0.35);}
+.wu-react-btn.sel{border-color:rgba(0,128,0,0.6);background:rgba(0,128,0,0.1);}
+.wu-react-btn .em{font-size:1.4rem;line-height:1;}
+.wu-react-btn .lb{font-size:.68rem;font-weight:600;color:var(--c-fg-soft);}
+.wu-react-btn .ct{font-size:.72rem;font-weight:700;color:var(--c-primary);min-height:1em;}
+.wu-react-btn.pop .em{animation:wuPop .4s var(--ease-cinematic);}
+@keyframes wuPop{0%{transform:scale(1);}40%{transform:scale(1.45);}100%{transform:scale(1);}}
+.wu-react-load{color:var(--c-fg-soft);font-size:.875rem;}
+/* COMMENTS */
+.wu-cm-card{border-top:3px solid #d4af37!important;}
+.wu-cm-eyebrow{font-size:.7rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:var(--c-gold);margin-bottom:.35rem;}
+.wu-cm-h{font-size:1.15rem;font-weight:800;letter-spacing:-.01em;margin-bottom:1.1rem;}
+.wu-cm-form{display:flex;flex-direction:column;gap:.7rem;margin-bottom:1.5rem;}
+.wu-cm-name,.wu-cm-ta{border:1px solid var(--glass-border);border-radius:.8rem;background:var(--c-bg);color:var(--c-fg);padding:.7rem 1rem;font-size:.9rem;font-family:inherit;outline:none;}
+.wu-cm-name:focus,.wu-cm-ta:focus{border-color:rgba(212,175,55,0.55);}
+.wu-cm-ta{resize:vertical;min-height:6rem;}
+.wu-cm-post{align-self:flex-start;border:none;border-radius:9999px;background:#d4af37;color:#1a1208;padding:.65rem 1.5rem;font-size:.875rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s,transform .15s;}
+.wu-cm-post:hover{background:#e6c869;transform:translateY(-1px);}
+.wu-cm-post:disabled{opacity:.6;cursor:default;transform:none;}
+.wu-cm-ok{border:1px solid rgba(0,128,0,0.35);background:rgba(0,128,0,0.08);border-radius:.9rem;padding:1rem 1.2rem;font-size:.9rem;color:var(--c-fg);}
+.wu-cm-held{border:1px solid rgba(212,175,55,0.4);background:rgba(212,175,55,0.08);border-radius:.9rem;padding:1rem 1.2rem;font-size:.9rem;color:var(--c-fg);}
+.wu-cm-list{display:flex;flex-direction:column;gap:1.1rem;}
+.wu-cm-item{border:1px solid var(--glass-border);border-radius:1rem;padding:1rem 1.1rem;background:var(--c-bg);}
+.wu-cm-item.reply{margin-left:2.2rem;}
+@media(max-width:640px){.wu-cm-item.reply{margin-left:1.1rem;}}
+.wu-cm-top{display:flex;align-items:center;gap:.7rem;margin-bottom:.5rem;}
+.wu-cm-av{display:flex;align-items:center;justify-content:center;width:2.3rem;height:2.3rem;border-radius:9999px;background:linear-gradient(135deg,#008000,#4a9b4a);color:#fff;font-weight:800;font-size:.95rem;flex-shrink:0;}
+.wu-cm-nm{font-size:.875rem;font-weight:700;color:var(--c-fg);}
+.wu-cm-dt{font-size:.72rem;color:var(--c-fg-soft);}
+.wu-cm-body{font-size:.9rem;color:var(--c-fg);white-space:pre-wrap;word-wrap:break-word;}
+.wu-cm-acts{display:flex;flex-wrap:wrap;align-items:center;gap:.4rem;margin-top:.6rem;}
+.wu-cmr-btn{display:inline-flex;align-items:center;gap:.25rem;border:1px solid var(--glass-border);background:transparent;border-radius:9999px;padding:.25rem .6rem;font-size:.72rem;color:var(--c-fg-soft);cursor:pointer;font-family:inherit;transition:border-color .12s,background .12s;}
+.wu-cmr-btn:hover{border-color:rgba(0,128,0,0.4);}
+.wu-cmr-btn.sel{border-color:rgba(0,128,0,0.55);background:rgba(0,128,0,0.1);color:var(--c-primary);}
+.wu-cm-reply{border:none;background:transparent;color:var(--c-primary);font-size:.75rem;font-weight:700;cursor:pointer;font-family:inherit;margin-left:auto;}
+.wu-cm-reply:hover{text-decoration:underline;}
+.wu-cm-empty{color:var(--c-fg-soft);font-size:.9rem;}
+/* TTS (gold) */
+.wu-tts{border:1px solid rgba(212,175,55,0.35);border-radius:1rem;background:linear-gradient(135deg,rgba(212,175,55,0.10),rgba(212,175,55,0.03));padding:1rem 1.1rem;margin-bottom:1.25rem;}
+.wu-tts-head{display:flex;align-items:center;gap:.7rem;flex-wrap:wrap;}
+.wu-tts-ico{display:flex;align-items:center;justify-content:center;width:2.4rem;height:2.4rem;border-radius:.8rem;background:linear-gradient(135deg,#d4af37,#b8912a);flex-shrink:0;box-shadow:0 4px 12px rgba(212,175,55,0.4);}
+.wu-tts-tt{flex:1;min-width:10rem;}
+.wu-tts-tt b{display:block;font-size:.9rem;color:var(--c-fg);}
+.wu-tts-tt span{display:block;font-size:.72rem;color:var(--c-fg-soft);overflow:hidden;white-space:nowrap;text-overflow:ellipsis;max-width:34ch;}
+.wu-tts-lang{position:relative;}
+.wu-tts-langbtn{border:1px solid rgba(212,175,55,0.4);background:var(--c-bg-deep);color:var(--c-fg);border-radius:9999px;padding:.4rem .9rem;font-size:.75rem;font-weight:600;cursor:pointer;font-family:inherit;}
+.wu-tts-langmenu{position:absolute;right:0;top:110%;z-index:30;display:none;max-height:15rem;overflow-y:auto;min-width:11rem;border:1px solid var(--glass-border);border-radius:.9rem;background:var(--c-bg-deep);box-shadow:0 20px 25px -5px rgba(0,0,0,0.15);padding:.35rem;}
+.wu-tts-langmenu.open{display:block;}
+.wu-tts-langmenu button{display:block;width:100%;text-align:left;border:none;background:transparent;color:var(--c-fg);border-radius:.6rem;padding:.45rem .7rem;font-size:.78rem;cursor:pointer;font-family:inherit;}
+.wu-tts-langmenu button:hover{background:rgba(212,175,55,0.12);}
+.wu-tts-langmenu button.sel{background:rgba(212,175,55,0.2);font-weight:700;}
+.wu-tts-mute{border:none;background:transparent;font-size:1.05rem;cursor:pointer;}
+.wu-tts-bar{height:.4rem;border-radius:9999px;background:rgba(212,175,55,0.18);margin:.8rem 0 .7rem;overflow:hidden;}
+.wu-tts-fill{height:100%;width:0;border-radius:9999px;background:linear-gradient(90deg,#d4af37,#e6c869);transition:width .35s;}
+.wu-tts-ctrls{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap;}
+.wu-tts-btn{display:inline-flex;align-items:center;gap:.4rem;border:none;border-radius:9999px;background:#d4af37;color:#1a1208;padding:.5rem 1.15rem;font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:background .15s;}
+.wu-tts-btn:hover{background:#e6c869;}
+.wu-tts-btn.amber{background:#b8912a;color:#fff;}
+.wu-tts-btn.gray{background:transparent;border:1px solid var(--glass-border);color:var(--c-fg-soft);}
+.wu-tts-pct{font-size:.75rem;font-weight:700;color:var(--c-gold);margin-left:auto;}
+/* SHARE ROW */
+.wu-share{display:flex;flex-wrap:wrap;align-items:center;gap:.5rem;margin-bottom:1.25rem;}
+.wu-share-lbl{font-size:.8rem;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:var(--c-fg-soft);margin-right:.25rem;}
+.wu-sbtn{border:1px solid var(--glass-border);background:var(--c-bg-deep);color:var(--c-fg);border-radius:9999px;padding:.5rem 1.1rem;font-size:.8rem;font-weight:600;cursor:pointer;font-family:inherit;transition:border-color .15s,color .15s;}
+.wu-sbtn:hover{border-color:rgba(0,128,0,0.5);color:var(--c-primary);}
+/* RELATED */
+.wu-rel{padding:2.5rem 0 1rem;}
+.wu-rel-h{font-size:1.6rem;font-weight:900;letter-spacing:-.02em;margin-bottom:.35rem;}
+.wu-rel-sub{color:var(--c-fg-soft);font-size:.9rem;margin-bottom:1.6rem;}
+
+/* ============ STATIC PAGE WRAPPER ============ */
+.wu-pagewrap{min-height:40vh;}
+
+/* ============ 404 ============ */
+.wu-404{display:flex;align-items:center;justify-content:center;padding:8rem 1rem 6rem;}
+.wu-404-in{max-width:42rem;width:100%;text-align:center;border-radius:1.5rem;background:var(--glass-bg);-webkit-backdrop-filter:blur(20px) saturate(150%);backdrop-filter:blur(20px) saturate(150%);border:1px solid var(--glass-border);box-shadow:var(--glass-shadow);padding:3rem 2rem;}
+@media(min-width:640px){.wu-404-in{padding:3rem;}}
+.wu-404-eyebrow{font-size:.8rem;font-weight:800;letter-spacing:.3em;text-transform:uppercase;color:var(--c-primary);margin-bottom:.8rem;}
+.wu-404-h{font-size:2.25rem;font-weight:900;letter-spacing:-.02em;margin-bottom:.7rem;}
+@media(min-width:640px){.wu-404-h{font-size:3rem;}}
+.wu-404-p{color:var(--c-fg-soft);max-width:34rem;margin:0 auto 1.6rem;}
+.wu-404-btns{display:flex;justify-content:center;gap:.7rem;flex-wrap:wrap;margin-bottom:1.6rem;}
+.wu-404-home{display:inline-flex;align-items:center;gap:.45rem;border-radius:9999px;background:var(--c-primary);color:#fff;padding:.65rem 1.4rem;font-size:.875rem;font-weight:700;box-shadow:0 10px 15px -3px rgba(0,128,0,0.35);}
+.wu-404-home:hover{background:var(--c-primary-deep);}
+.wu-404-back{display:inline-flex;align-items:center;gap:.45rem;border:1px solid var(--glass-border);border-radius:9999px;background:var(--c-bg-deep);color:var(--c-fg);padding:.65rem 1.4rem;font-size:.875rem;font-weight:600;}
+.wu-404-card{border:1px solid var(--glass-border);border-radius:1rem;background:var(--c-bg);padding:1.1rem;max-width:22rem;margin:0 auto;}
+.wu-404-card-top{display:flex;align-items:center;justify-content:center;gap:.45rem;font-size:.78rem;color:var(--c-fg-soft);}
+.wu-404-card-top .dot{width:.5rem;height:.5rem;border-radius:9999px;background:var(--c-primary);animation:wuPulse 1.2s infinite;}
+@keyframes wuPulse{0%,100%{opacity:1;}50%{opacity:.35;}}
+.wu-404-count{font-size:2.2rem;font-weight:900;color:var(--c-primary);margin:.3rem 0;}
+.wu-404-sec{font-size:.78rem;color:var(--c-fg-soft);}
+
+/* ============ FOOTER (always dark) ============ */
+#wu-footer{background:#0d1210;margin-top:6rem;border-top:1px solid rgba(255,255,255,0.07);color:rgba(255,255,255,0.56);}
+.wu-foot-grid{display:grid;grid-template-columns:1.6fr 1fr 1fr 0.9fr 1.4fr;gap:2.5rem;padding:4rem 0 3.5rem;}
+@media(max-width:1100px){.wu-foot-grid{grid-template-columns:repeat(3,1fr);}}
+@media(max-width:700px){.wu-foot-grid{grid-template-columns:1fr;}}
+.wu-foot-logo{height:53px;width:auto;max-width:192px;object-fit:contain;margin-bottom:1rem;}
+.wu-foot-desc{font-size:.875rem;line-height:1.7;color:rgba(255,255,255,0.48);margin-bottom:1.2rem;}
+.wu-foot-labels{display:flex;flex-wrap:wrap;gap:.4rem;}
+.wu-foot-lbl{display:inline-flex;border:1px solid rgba(255,255,255,0.12);border-radius:9999px;padding:.25rem .7rem;font-size:.68rem;color:rgba(255,255,255,0.5);transition:color .12s,border-color .12s;}
+.wu-foot-lbl:hover{color:#fff;border-color:rgba(255,255,255,0.35);}
+.wu-foot-h{font-size:.68rem;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,0.35);border-bottom:1px solid rgba(255,255,255,0.07);padding-bottom:.6rem;margin-bottom:1rem;}
+.wu-foot-links{list-style:none;}
+.wu-foot-links li{margin-bottom:.55rem;}
+.wu-foot-links a{font-size:.875rem;color:rgba(255,255,255,0.56);transition:color .12s;}
+.wu-foot-links a:hover{color:#fff;}
+.wu-foot-nl p{font-size:.85rem;line-height:1.65;color:rgba(255,255,255,0.48);margin-bottom:.9rem;}
+.wu-nl-row{display:flex;gap:.5rem;margin-bottom:.6rem;}
+.wu-nl-field{flex:1;display:flex;align-items:center;gap:.5rem;border:1px solid rgba(255,255,255,0.12);border-radius:9999px;background:rgba(255,255,255,0.05);padding:.55rem .9rem;color:rgba(255,255,255,0.5);}
+.wu-nl-field input{flex:1;min-width:0;border:none;outline:none;background:transparent;color:#fff;font-size:.85rem;font-family:inherit;}
+.wu-nl-btn{display:inline-flex;align-items:center;border:none;border-radius:9999px;background:var(--c-primary);color:#fff;padding:.55rem 1.2rem;font-size:.8rem;font-weight:700;cursor:pointer;white-space:nowrap;transition:background .15s;}
+.wu-nl-btn:hover{background:#006700;}
+.wu-nl-note{font-size:.72rem;color:rgba(255,255,255,0.35);margin-bottom:1rem;}
+.wu-nl-note a{color:rgba(255,255,255,0.55);text-decoration:underline;}
+.wu-foot-social{display:flex;gap:.5rem;}
+.wu-foot-soc{display:flex;align-items:center;justify-content:center;width:36px;height:36px;border-radius:.6rem;border:1px solid rgba(255,255,255,0.12);color:rgba(255,255,255,0.6);transition:background .15s,color .15s,border-color .15s;}
+.wu-foot-soc:hover{color:#fff;border-color:transparent;}
+.wu-foot-soc.wa:hover{background:#25D366;}
+.wu-foot-soc.fb:hover{background:#1877F2;}
+.wu-foot-soc.ig:hover{background:#E4405F;}
+.wu-foot-soc.tk:hover{background:#000;}
+.wu-foot-soc.yt:hover{background:#FF0000;}
+.wu-foot-bottom{border-top:1px solid rgba(255,255,255,0.06);background:rgba(0,0,0,0.2);padding:1.1rem 0;}
+.wu-foot-bottom-in{display:flex;align-items:center;justify-content:space-between;gap:1rem;flex-wrap:wrap;font-size:.8rem;color:rgba(255,255,255,0.45);}
+.wu-staff{display:inline-flex;border:1px solid rgba(255,255,255,0.15);border-radius:9999px;padding:.35rem 1rem;font-size:.75rem;color:rgba(255,255,255,0.55);transition:color .12s,border-color .12s;}
+.wu-staff:hover{color:#fff;border-color:rgba(255,255,255,0.4);}
+/* layout helper for Blogger sections we don't render */
+.no-show{display:none;}
+]]></b:skin>
+</head>
+
+<body expr:class='data:blog.pageType'>
+
+<!-- ============ HEADER (fixed, glass on scroll) ============ -->
+<div id='wu-header'>
+  <div class='wu-headin'>
+    <div class='wu-headrow'>
+      <a expr:href='data:blog.homepageUrl'>
+        <img alt='Wildlife Universe' class='wu-logo-img' onerror='this.style.display=&quot;none&quot;;this.insertAdjacentHTML(&quot;afterend&quot;,&quot;&lt;span class=\&quot;wu-logo-text\&quot;&gt;Wildlife Universe&lt;/span&gt;&quot;);' src='https://www.wildlifeuniverse.org/logo.png'/>
+      </a>
+      <nav class='wu-nav'>
+        <a class='wu-nav-link' expr:href='data:blog.homepageUrl'>Home</a>
+        <div class='wu-nav-item'>
+          <a class='wu-nav-link' href='/search/label/Animals'>Animals <svg fill='none' height='14' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24' width='14'><polyline points='6 9 12 15 18 9'/></svg></a>
+          <div class='wu-dd'>
+            <a class='all' href='/search/label/Animals'>All Animals</a>
+            <div class='div'/>
+            <a href='/search/label/Mammals'>Mammals</a>
+            <a href='/search/label/Reptiles'>Reptiles</a>
+            <a href='/search/label/Amphibians'>Amphibians</a>
+            <a href='/search/label/Fish'>Fish</a>
+            <a href='/search/label/IUCN Redlist'>IUCN Redlist</a>
+          </div>
+        </div>
+        <div class='wu-nav-item'>
+          <a class='wu-nav-link' href='/search/label/Plants'>Plants <svg fill='none' height='14' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24' width='14'><polyline points='6 9 12 15 18 9'/></svg></a>
+          <div class='wu-dd'>
+            <a class='all' href='/search/label/Plants'>All Plants</a>
+            <div class='div'/>
+            <a href='/search/label/Trees'>Trees</a>
+            <a href='/search/label/Shrubs'>Shrubs</a>
+            <a href='/search/label/Herbs'>Herbs</a>
+            <a href='/search/label/Vines'>Vines</a>
+          </div>
+        </div>
+        <div class='wu-nav-item'>
+          <a class='wu-nav-link' href='/search/label/Birds'>Birds <svg fill='none' height='14' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24' width='14'><polyline points='6 9 12 15 18 9'/></svg></a>
+          <div class='wu-dd'>
+            <a class='all' href='/search/label/Birds'>All Birds</a>
+            <div class='div'/>
+            <a href='/search/label/Basal'>Basal</a>
+            <a href='/search/label/Waterfowl'>Waterfowl</a>
+            <a href='/search/label/Coastal'>Coastal</a>
+            <a href='/search/label/Raptors'>Raptors</a>
+            <a href='/search/label/Land'>Land</a>
+            <a href='/search/label/Song'>Song</a>
+            <a href='/search/label/IUCN Redlist'>IUCN Redlist</a>
+          </div>
+        </div>
+        <div class='wu-nav-item'>
+          <a class='wu-nav-link' href='/search/label/Insects'>Insects <svg fill='none' height='14' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24' width='14'><polyline points='6 9 12 15 18 9'/></svg></a>
+          <div class='wu-dd'>
+            <a class='all' href='/search/label/Insects'>All Insects</a>
+            <div class='div'/>
+            <a href='/search/label/Porifera'>Porifera</a>
+            <a href='/search/label/Cnidaria'>Cnidaria</a>
+            <a href='/search/label/Platyhelminthes'>Platyhelminthes</a>
+            <a href='/search/label/Nematoda'>Nematoda</a>
+            <a href='/search/label/Annelida'>Annelida</a>
+            <a href='/search/label/Mollusca'>Mollusca</a>
+            <a href='/search/label/Arthropoda'>Arthropoda</a>
+            <a href='/search/label/Echinodermata'>Echinodermata</a>
+            <a href='/search/label/IUCN Redlist'>IUCN Redlist</a>
+          </div>
+        </div>
+        <div class='wu-nav-item'>
+          <a class='wu-nav-link' href='/search/label/Posts'>Posts <svg fill='none' height='14' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24' width='14'><polyline points='6 9 12 15 18 9'/></svg></a>
+          <div class='wu-dd'>
+            <a class='all' href='/search/label/Posts'>All Posts</a>
+            <div class='div'/>
+            <a href='/search/label/How Questions'>How Questions</a>
+            <a href='/search/label/Why Questions'>Why Questions</a>
+            <a href='/search/label/Tourism'>Tourism</a>
+            <a href='/search/label/Conservation'>Conservation</a>
+            <a href='/search/label/Articles'>Articles</a>
+          </div>
+        </div>
+        <a class='wu-nav-link' href='/search/label/IUCN Redlist'>IUCN Red List</a>
+      </nav>
+      <div class='wu-head-actions'>
+        <button class='wu-icon-btn' onclick='wuSearch()' title='Search' type='button'><svg fill='none' height='18' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='18'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/></svg></button>
+        <button class='wu-icon-btn' onclick='wuTheme()' title='Toggle theme' type='button'><svg fill='none' height='18' id='wu-moon' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='18'><path d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/></svg><svg fill='none' height='18' id='wu-sun' stroke='currentColor' stroke-width='2' style='display:none' viewBox='0 0 24 24' width='18'><circle cx='12' cy='12' r='5'/><path d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/></svg></button>
+        <button class='wu-icon-btn wu-hamburger' onclick='wuMenu()' title='Menu' type='button'><svg fill='none' height='18' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='18'><path d='M3 12h18M3 6h18M3 18h18'/></svg></button>
+      </div>
+    </div>
+  </div>
+</div>
+<div class='wu-headspace'/>
+
+<!-- ============ MOBILE FULL-SCREEN MENU ============ -->
+<div aria-label='Navigation menu' id='wu-mm'>
+  <div class='wu-mm-top'>
+    <a expr:href='data:blog.homepageUrl' onclick='wuMenuClose()'>
+      <img alt='Wildlife Universe' class='wu-logo-img' onerror='this.style.display=&quot;none&quot;;this.insertAdjacentHTML(&quot;afterend&quot;,&quot;&lt;span class=\&quot;wu-logo-text\&quot;&gt;Wildlife Universe&lt;/span&gt;&quot;);' src='https://www.wildlifeuniverse.org/logo.png'/>
+    </a>
+    <button class='wu-mm-close' onclick='wuMenuClose()' type='button'>Close <svg fill='none' height='14' stroke='currentColor' stroke-width='2.4' viewBox='0 0 24 24' width='14'><path d='M18 6 6 18M6 6l12 12'/></svg></button>
+  </div>
+  <nav class='wu-mm-nav'>
+    <div class='wu-mm-row'>
+      <a class='wu-mm-link' expr:href='data:blog.homepageUrl' onclick='wuMenuClose()'>
+        <span class='wu-mm-blob' style='background:#008000'><svg fill='none' height='17' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='17'><path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><polyline points='9 22 9 12 15 12 15 22'/></svg></span>
+        Home
+      </a>
+    </div>
+    <div class='wu-acc'>
+      <div class='wu-mm-row'>
+        <a class='wu-mm-link' href='/search/label/Animals' onclick='wuMenuClose()'>
+          <span class='wu-mm-blob' style='background:#f97316'><svg fill='none' height='17' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='17'><circle cx='11' cy='4' r='2'/><circle cx='18' cy='8' r='2'/><circle cx='4' cy='8' r='2'/><circle cx='7.5' cy='14' r='1'/><path d='M11 10a5 5 0 0 1 5 5v2.5a2.5 2.5 0 0 1-5 0V16a2.5 2.5 0 0 0-5 0v1.5a2.5 2.5 0 0 1-.5 1.5'/></svg></span>
+          Animals
+        </a>
+        <button aria-label='Toggle Animals' class='wu-mm-tog' onclick='wuToggleAcc(this)' type='button'><svg fill='none' height='15' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24' width='15'><polyline points='6 9 12 15 18 9'/></svg></button>
+      </div>
+      <div class='wu-acc-body'>
+        <a class='wu-acc-pill' href='/search/label/Mammals' onclick='wuMenuClose()' style='border-color:rgba(249,115,22,0.35)'>Mammals</a>
+        <a class='wu-acc-pill' href='/search/label/Reptiles' onclick='wuMenuClose()' style='border-color:rgba(249,115,22,0.35)'>Reptiles</a>
+        <a class='wu-acc-pill' href='/search/label/Amphibians' onclick='wuMenuClose()' style='border-color:rgba(249,115,22,0.35)'>Amphibians</a>
+        <a class='wu-acc-pill' href='/search/label/Fish' onclick='wuMenuClose()' style='border-color:rgba(249,115,22,0.35)'>Fish</a>
+        <a class='wu-acc-pill' href='/search/label/IUCN Redlist' onclick='wuMenuClose()' style='border-color:rgba(249,115,22,0.35)'>IUCN Redlist</a>
+      </div>
+    </div>
+    <div class='wu-acc'>
+      <div class='wu-mm-row'>
+        <a class='wu-mm-link' href='/search/label/Plants' onclick='wuMenuClose()'>
+          <span class='wu-mm-blob' style='background:#22c55e'><svg fill='none' height='17' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='17'><path d='M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.48 19 2c1 2 2 4.18 2 8 0 5.5-4.78 10-10 10Z'/><path d='M2 21c0-3 1.85-5.36 5.08-6C9.5 14.52 12 13 13 12'/></svg></span>
+          Plants
+        </a>
+        <button aria-label='Toggle Plants' class='wu-mm-tog' onclick='wuToggleAcc(this)' type='button'><svg fill='none' height='15' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24' width='15'><polyline points='6 9 12 15 18 9'/></svg></button>
+      </div>
+      <div class='wu-acc-body'>
+        <a class='wu-acc-pill' href='/search/label/Trees' onclick='wuMenuClose()' style='border-color:rgba(34,197,94,0.4)'>Trees</a>
+        <a class='wu-acc-pill' href='/search/label/Shrubs' onclick='wuMenuClose()' style='border-color:rgba(34,197,94,0.4)'>Shrubs</a>
+        <a class='wu-acc-pill' href='/search/label/Herbs' onclick='wuMenuClose()' style='border-color:rgba(34,197,94,0.4)'>Herbs</a>
+        <a class='wu-acc-pill' href='/search/label/Vines' onclick='wuMenuClose()' style='border-color:rgba(34,197,94,0.4)'>Vines</a>
+      </div>
+    </div>
+    <div class='wu-acc'>
+      <div class='wu-mm-row'>
+        <a class='wu-mm-link' href='/search/label/Birds' onclick='wuMenuClose()'>
+          <span class='wu-mm-blob' style='background:#3b82f6'><svg fill='none' height='17' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='17'><path d='M20.7 7a6 6 0 0 0-11.4 0H4l3 3v3a8 8 0 0 0 8 8h5l-2.4-4A8 8 0 0 0 20.7 7Z'/><circle cx='15' cy='7' r='.5'/></svg></span>
+          Birds
+        </a>
+        <button aria-label='Toggle Birds' class='wu-mm-tog' onclick='wuToggleAcc(this)' type='button'><svg fill='none' height='15' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24' width='15'><polyline points='6 9 12 15 18 9'/></svg></button>
+      </div>
+      <div class='wu-acc-body'>
+        <a class='wu-acc-pill' href='/search/label/Basal' onclick='wuMenuClose()' style='border-color:rgba(59,130,246,0.4)'>Basal</a>
+        <a class='wu-acc-pill' href='/search/label/Waterfowl' onclick='wuMenuClose()' style='border-color:rgba(59,130,246,0.4)'>Waterfowl</a>
+        <a class='wu-acc-pill' href='/search/label/Coastal' onclick='wuMenuClose()' style='border-color:rgba(59,130,246,0.4)'>Coastal</a>
+        <a class='wu-acc-pill' href='/search/label/Raptors' onclick='wuMenuClose()' style='border-color:rgba(59,130,246,0.4)'>Raptors</a>
+        <a class='wu-acc-pill' href='/search/label/Land' onclick='wuMenuClose()' style='border-color:rgba(59,130,246,0.4)'>Land</a>
+        <a class='wu-acc-pill' href='/search/label/Song' onclick='wuMenuClose()' style='border-color:rgba(59,130,246,0.4)'>Song</a>
+        <a class='wu-acc-pill' href='/search/label/IUCN Redlist' onclick='wuMenuClose()' style='border-color:rgba(59,130,246,0.4)'>IUCN Redlist</a>
+      </div>
+    </div>
+    <div class='wu-acc'>
+      <div class='wu-mm-row'>
+        <a class='wu-mm-link' href='/search/label/Insects' onclick='wuMenuClose()'>
+          <span class='wu-mm-blob' style='background:#eab308'><svg fill='none' height='17' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='17'><path d='m8 2 1.88 1.88M14.12 3.88 16 2M9 7.13v-1a3.003 3.003 0 1 1 6 0v1'/><path d='M12 20c-3.3 0-6-2.7-6-6v-3a4 4 0 0 1 4-4h4a4 4 0 0 1 4 4v3c0 3.3-2.7 6-6 6Z'/><path d='M12 20v-9M6.53 9C4.6 8.8 3 7.1 3 5M6 13H2M3 21c0-2.1 1.7-3.9 3.8-4M20.97 5c0 2.1-1.6 3.8-3.5 4M22 13h-4M17.2 17c2.1.1 3.8 1.9 3.8 4'/></svg></span>
+          Insects
+        </a>
+        <button aria-label='Toggle Insects' class='wu-mm-tog' onclick='wuToggleAcc(this)' type='button'><svg fill='none' height='15' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24' width='15'><polyline points='6 9 12 15 18 9'/></svg></button>
+      </div>
+      <div class='wu-acc-body'>
+        <a class='wu-acc-pill' href='/search/label/Porifera' onclick='wuMenuClose()' style='border-color:rgba(234,179,8,0.45)'>Porifera</a>
+        <a class='wu-acc-pill' href='/search/label/Cnidaria' onclick='wuMenuClose()' style='border-color:rgba(234,179,8,0.45)'>Cnidaria</a>
+        <a class='wu-acc-pill' href='/search/label/Platyhelminthes' onclick='wuMenuClose()' style='border-color:rgba(234,179,8,0.45)'>Platyhelminthes</a>
+        <a class='wu-acc-pill' href='/search/label/Nematoda' onclick='wuMenuClose()' style='border-color:rgba(234,179,8,0.45)'>Nematoda</a>
+        <a class='wu-acc-pill' href='/search/label/Annelida' onclick='wuMenuClose()' style='border-color:rgba(234,179,8,0.45)'>Annelida</a>
+        <a class='wu-acc-pill' href='/search/label/Mollusca' onclick='wuMenuClose()' style='border-color:rgba(234,179,8,0.45)'>Mollusca</a>
+        <a class='wu-acc-pill' href='/search/label/Arthropoda' onclick='wuMenuClose()' style='border-color:rgba(234,179,8,0.45)'>Arthropoda</a>
+        <a class='wu-acc-pill' href='/search/label/Echinodermata' onclick='wuMenuClose()' style='border-color:rgba(234,179,8,0.45)'>Echinodermata</a>
+        <a class='wu-acc-pill' href='/search/label/IUCN Redlist' onclick='wuMenuClose()' style='border-color:rgba(234,179,8,0.45)'>IUCN Redlist</a>
+      </div>
+    </div>
+    <div class='wu-acc'>
+      <div class='wu-mm-row'>
+        <a class='wu-mm-link' href='/search/label/Posts' onclick='wuMenuClose()'>
+          <span class='wu-mm-blob' style='background:#008000'><svg fill='none' height='17' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='17'><path d='M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z'/><polyline points='14 2 14 8 20 8'/><line x1='16' x2='8' y1='13' y2='13'/><line x1='16' x2='8' y1='17' y2='17'/></svg></span>
+          Posts
+        </a>
+        <button aria-label='Toggle Posts' class='wu-mm-tog' onclick='wuToggleAcc(this)' type='button'><svg fill='none' height='15' stroke='currentColor' stroke-width='2.2' viewBox='0 0 24 24' width='15'><polyline points='6 9 12 15 18 9'/></svg></button>
+      </div>
+      <div class='wu-acc-body'>
+        <a class='wu-acc-pill' href='/search/label/How Questions' onclick='wuMenuClose()' style='border-color:rgba(0,128,0,0.4)'>How Questions</a>
+        <a class='wu-acc-pill' href='/search/label/Why Questions' onclick='wuMenuClose()' style='border-color:rgba(0,128,0,0.4)'>Why Questions</a>
+        <a class='wu-acc-pill' href='/search/label/Tourism' onclick='wuMenuClose()' style='border-color:rgba(0,128,0,0.4)'>Tourism</a>
+        <a class='wu-acc-pill' href='/search/label/Conservation' onclick='wuMenuClose()' style='border-color:rgba(0,128,0,0.4)'>Conservation</a>
+        <a class='wu-acc-pill' href='/search/label/Articles' onclick='wuMenuClose()' style='border-color:rgba(0,128,0,0.4)'>Articles</a>
+      </div>
+    </div>
+    <div class='wu-mm-row'>
+      <a class='wu-mm-link' href='/search/label/IUCN Redlist' onclick='wuMenuClose()'>
+        <span class='wu-mm-blob' style='background:#dc2020'><svg fill='none' height='17' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='17'><path d='M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z'/></svg></span>
+        IUCN Red List
+      </a>
+    </div>
+  </nav>
+  <div class='wu-mm-foot'>
+    <span>Wildlife Universe</span>
+    <button class='wu-mm-theme' onclick='wuTheme()' type='button'><svg fill='none' height='15' id='wu-moon2' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='15'><path d='M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z'/></svg><svg fill='none' height='15' id='wu-sun2' stroke='currentColor' stroke-width='2' style='display:none' viewBox='0 0 24 24' width='15'><circle cx='12' cy='12' r='5'/><path d='M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42'/></svg> Toggle theme</button>
+  </div>
+</div>
+
+<!-- ============ LIVE SEARCH OVERLAY ============ -->
+<div id='wu-search'>
+  <div class='bg' onclick='wuSearchClose()'/>
+  <div class='panel'>
+    <div class='wu-search-in'>
+      <div class='wu-search-row'>
+        <div class='wu-search-field'>
+          <svg fill='none' height='20' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='20'><circle cx='11' cy='11' r='8'/><path d='m21 21-4.35-4.35'/></svg>
+          <input autocomplete='off' id='wu-search-input' placeholder='Search animals, plants, birds, insects...' type='text'/>
+          <span id='wu-search-spin' style='display:none;position:absolute;right:1rem;top:50%;transform:translateY(-50%);'><span class='wu-spin'/></span>
+        </div>
+        <button aria-label='Close search' class='wu-search-x' onclick='wuSearchClose()' type='button'><svg fill='none' height='22' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='22'><path d='M18 6 6 18M6 6l12 12'/></svg></button>
+      </div>
+      <div class='wu-search-body' id='wu-search-body'/>
+    </div>
+  </div>
+</div>
+
+<!-- Header widget slot (for Layout) -->
+<b:section class='no-show' id='header' maxwidgets='1' showaddelement='no'>
+  <b:widget id='Header1' locked='true' title='Wildlife Universe (Header)' type='Header' version='2' visible='true'>
+    <b:includable id='main'/>
+  </b:widget>
+</b:section>
+
+<!-- MAIN -->
+<div id='wu-main'>
+  <b:section class='main' id='page_body' showaddelement='yes'>
+    <b:widget id='FeaturedPost1' locked='false' title='' type='FeaturedPost' version='2' visible='false'>
+      <b:includable id='main'/>
+    </b:widget>
+    <b:widget id='Blog1' locked='true' title='Blog Posts' type='Blog' version='2' visible='true'>
+      <b:widget-settings>
+        <b:widget-setting name='showDateHeader'>false</b:widget-setting>
+        <b:widget-setting name='showShareButtons'>false</b:widget-setting>
+        <b:widget-setting name='showCommentLink'>true</b:widget-setting>
+        <b:widget-setting name='showAuthor'>true</b:widget-setting>
+        <b:widget-setting name='showLabels'>true</b:widget-setting>
+        <b:widget-setting name='showLocation'>false</b:widget-setting>
+        <b:widget-setting name='showTimestamp'>true</b:widget-setting>
+        <b:widget-setting name='showBacklinks'>false</b:widget-setting>
+        <b:widget-setting name='showInlineAds'>false</b:widget-setting>
+        <b:widget-setting name='showReactions'>false</b:widget-setting>
+        <b:widget-setting name='showAuthorProfile'>false</b:widget-setting>
+        <b:widget-setting name='style.layout'>1x1</b:widget-setting>
+      </b:widget-settings>
+
+      <!-- OVERRIDE: main (self-contained; never super.*) -->
+      <b:includable id='main' var='top'>
+        <b:if cond='data:view.isError or ((data:view.isSearch or data:view.isLabelSearch or data:view.isArchive) and data:posts.empty)'>
+          <!-- ===== 404 / CONTENT NOT AVAILABLE ===== -->
+          <section class='wu-404'>
+            <div class='wu-404-in'>
+              <div class='wu-404-eyebrow'>404</div>
+              <h1 class='wu-404-h'>Post not found</h1>
+              <p class='wu-404-p'>We couldn&#39;t find the page you were looking for. It may have wandered off into the wild, been moved, or the link is incorrect.</p>
+              <div class='wu-404-btns'>
+                <a class='wu-404-home' expr:href='data:blog.homepageUrl'><svg fill='none' height='18' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='18'><path d='M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z'/><polyline points='9 22 9 12 15 12 15 22'/></svg> Back to posts</a>
+                <a class='wu-404-back' href='javascript:history.length&gt;1?history.back():location.assign(&quot;/&quot;)'><svg fill='none' height='18' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='18'><line x1='19' x2='5' y1='12' y2='12'/><polyline points='12 19 5 12 12 5'/></svg> Go Back</a>
+              </div>
+              <div class='wu-404-card'>
+                <div class='wu-404-card-top'><span class='dot'/> Auto-redirecting to the homepage in</div>
+                <div class='wu-404-count' id='wu-404-count'>10</div>
+                <div class='wu-404-sec'>seconds &#8212; or click <b>Back to posts</b> above</div>
+              </div>
+            </div>
+          </section>
+        <b:else/>
+        <b:if cond='data:view.isHomepage'>
+          <!-- HOMEPAGE HERO -->
+          <section class='wu-hero'>
+            <div class='wu-herobg' id='wu-hero-bg'/>
+            <div class='wu-ov'/>
+            <div class='wu-fadedown'/>
+            <div class='wu-hero-inner'>
+              <span class='wu-hero-pill'><span class='wu-hero-dot'/> Explore The Wild</span>
+              <h1 class='wu-hero-title'>Journey Into The <span class='gold'>Wildlife Universe</span></h1>
+              <p class='wu-hero-sub'>Animals, plants, birds and insects of our living planet &#8212; stories, science and conservation from every corner of the wild.</p>
+              <div class='wu-hero-cta'>
+                <a class='wu-cta-primary' href='#wu-latest'><svg fill='none' height='17' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='17'><polyline points='23 6 13.5 15.5 8.5 10.5 1 18'/><polyline points='17 6 23 6 23 12'/></svg> Explore Latest Posts</a>
+                <a class='wu-cta-secondary' href='/search/label/Animals'>Discover Categories <svg fill='none' height='17' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='17'><path d='M5 12h14M12 5l7 7-7 7'/></svg></a>
+              </div>
+            </div>
+          </section>
+        </b:if>
+        <!-- CATEGORY / LABEL / SEARCH HERO -->
+        <b:if cond='data:view.isMultipleItems'>
+          <b:if cond='!data:view.isHomepage'>
+            <section class='wu-cathero'>
+              <div class='wu-herobg' id='wu-cathero-bg'/>
+              <div class='wu-ov'/>
+              <div class='wu-fadedown'/>
+              <div class='wu-cathero-inner'>
+                <span class='wu-cathero-pill'><span class='wu-hero-dot'/> Category</span>
+                <h1 class='wu-cathero-title wu-hero-on-dark' id='wu-cat-title'><data:blog.pageName/></h1>
+                <p class='wu-cathero-sub wu-hero-sub-on-dark' id='wu-cat-desc'>Explore all our stories in this section.</p>
+              </div>
+            </section>
+            <div id='wu-cat-tools'/>
+          </b:if>
+        </b:if>
+        <b:if cond='data:view.isMultipleItems'>
+          <section class='wu-section' id='wu-latest'>
+            <div class='wu-container'>
+              <b:if cond='data:view.isHomepage'>
+                <div class='wu-sechead'>
+                  <div class='wu-sechead-l'>
+                    <span class='wu-eyebrow'><svg fill='none' height='13' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='13'><path d='M4 11a9 9 0 0 1 9 9'/><path d='M4 4a16 16 0 0 1 16 16'/><circle cx='5' cy='19' r='1'/></svg> Wildlife Universe</span>
+                    <h2 class='wu-sectitle'>Latest Posts</h2>
+                  </div>
+                  <a class='wu-viewall' href='/p/popular.html'>View All <svg fill='none' height='15' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='15'><path d='M5 12h14M12 5l7 7-7 7'/></svg></a>
+                </div>
+              </b:if>
+              <b:if cond='data:posts.empty'>
+                <p class='wu-empty'>No posts found here yet. Please check back soon.</p>
+              <b:else/>
+                <!-- LISTING: homepage / label / search / archive (feed engine upgrades to 12/60) -->
+                <div class='wu-grid' id='wu-postgrid'>
+                  <b:loop values='data:posts' var='post'>
+                    <b:include data='post' name='post'/>
+                  </b:loop>
+                </div>
+                <div class='wu-pager' id='wu-native-pager'>
+                  <b:if cond='data:newerPageUrl'>
+                    <a class='wu-pager-newer' expr:href='data:newerPageUrl'><svg fill='none' height='15' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='15'><polyline points='15 18 9 12 15 6'/></svg> Previous</a>
+                  </b:if>
+                  <a class='solid' expr:href='data:blog.homepageUrl'>Home</a>
+                  <b:if cond='data:olderPageUrl'>
+                    <a class='wu-pager-older' expr:href='data:olderPageUrl'>Next <svg fill='none' height='15' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='15'><polyline points='9 18 15 12 9 6'/></svg></a>
+                  </b:if>
+                </div>
+              </b:if>
+            </div>
+          </section>
+        <b:else/>
+          <!-- SINGLE ITEM (post / page): full-bleed; the post includable manages its own containers -->
+          <b:loop values='data:posts' var='post'>
+            <b:include data='post' name='post'/>
+          </b:loop>
+        </b:if>
+        <b:if cond='data:view.isHomepage'>
+          <div id='wu-home-extra'/>
+        </b:if>
+        </b:if>
+      </b:includable>
+
+      <!-- OVERRIDE: post = card / article / page -->
+      <b:includable id='post' var='post'>
+        <b:if cond='data:view.isMultipleItems'>
+          <a class='wu-card wu-fadeUp' expr:href='data:post.url'>
+            <div class='wu-card-img'>
+              <b:if cond='data:post.firstImageUrl'>
+                <img expr:alt='data:post.title' expr:src='data:post.firstImageUrl' loading='lazy'/>
+              <b:else/>
+                <div class='wu-no-img'>WU</div>
+              </b:if>
+              <b:if cond='data:post.labels'>
+                <b:loop values='data:post.labels' var='label'>
+                  <b:if cond='data:label.isFirst'>
+                    <span class='wu-card-badge'><data:label.name/></span>
+                  </b:if>
+                </b:loop>
+              </b:if>
+            </div>
+            <div class='wu-card-body'>
+              <h2 class='wu-card-title'><data:post.title/></h2>
+              <p class='wu-card-excerpt'><b:eval expr='data:post.body snippet { length: 140, links: false }'/></p>
+              <div class='wu-card-foot'>
+                <span><data:post.date/></span>
+                <span><data:post.author/></span>
+              </div>
+            </div>
+          </a>
+        <b:else/>
+          <b:if cond='data:view.isPage'>
+            <!-- Static pages ship their own dark hero + layout (blogger-pages/) -->
+            <div class='wu-pagewrap'><data:post.body/></div>
+          <b:else/>
+            <article class='wu-art' expr:data-title='data:post.title' expr:data-url='data:post.url'>
+              <!-- HERO (bg image set by JS from first body image) -->
+              <header class='wu-arth' id='wu-arth'>
+                <div class='wu-arth-bg' id='wu-arth-bg'/>
+                <div class='wu-ov'/>
+                <div class='wu-fadedown'/>
+                <div class='wu-arth-inner'>
+                  <a class='wu-arth-back' expr:href='data:blog.homepageUrl'><svg fill='none' height='16' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='16'><line x1='19' x2='5' y1='12' y2='12'/><polyline points='12 19 5 12 12 5'/></svg> Back to posts</a>
+                  <div class='wu-arth-cats' id='wu-arth-cats'>
+                    <b:loop values='data:post.labels' var='label'>
+                      <b:if cond='data:label.isFirst'>
+                        <a class='wu-arth-cat' expr:href='data:label.url' id='wu-arth-cat'><data:label.name/></a>
+                      </b:if>
+                    </b:loop>
+                  </div>
+                  <h1 class='wu-arth-title' id='wu-art-title'><data:post.title/></h1>
+                  <div class='wu-arth-meta'>
+                    <span class='wu-meta-chip'><svg fill='none' height='13' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='13'><path d='M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2'/><circle cx='12' cy='7' r='4'/></svg><data:post.author/></span>
+                    <span class='wu-meta-chip'><svg fill='none' height='13' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='13'><circle cx='12' cy='12' r='10'/><polyline points='12 6 12 12 16 14'/></svg><span id='wu-read'>&#8230; min read</span></span>
+                    <span class='wu-meta-chip'><svg fill='none' height='13' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='13'><rect height='18' rx='2' width='18' x='3' y='4'/><line x1='16' x2='16' y1='2' y2='6'/><line x1='8' x2='8' y1='2' y2='6'/><line x1='3' x2='21' y1='10' y2='10'/></svg><time class='post-date-iso' expr:datetime='data:post.date.iso8601'><data:post.date/></time></span>
+                    <span class='wu-meta-chip' id='wu-views' style='display:none'><svg fill='none' height='13' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='13'><path d='M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z'/><circle cx='12' cy='12' r='3'/></svg><span id='wu-views-n'/></span>
+                  </div>
+                  <div class='wu-arth-actions'>
+                    <button class='wu-act-pill' id='wu-save' type='button'><svg fill='none' height='14' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='14'><path d='m19 21-7-4-7 4V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v16z'/></svg> <span id='wu-save-lbl'>Save</span></button>
+                    <button class='wu-act-pill' id='wu-share-btn' onclick='wuShare()' type='button'><svg fill='none' height='14' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='14'><circle cx='18' cy='5' r='3'/><circle cx='6' cy='12' r='3'/><circle cx='18' cy='19' r='3'/><line x1='8.59' x2='15.42' y1='13.51' y2='17.49'/><line x1='15.41' x2='8.59' y1='6.51' y2='10.49'/></svg> Share</button>
+                  </div>
+                </div>
+              </header>
+              <!-- BODY GRID -->
+              <div class='wu-artwrap'>
+                <div class='wu-artgrid'>
+                  <aside class='wu-toc-side' id='wu-toc-side'>
+                    <div class='wu-toc-box'>
+                      <div class='wu-toc-head'><span class='bar'/><h3>Table of Contents</h3></div>
+                      <ul class='wu-toc-list' id='wu-toc-list'/>
+                    </div>
+                  </aside>
+                  <div class='wu-artcol'>
+                    <div id='wu-tts'/>
+                    <div class='wu-artcard'>
+                      <div class='post-body post-content' id='wu-content'><data:post.body/></div>
+                    </div>
+                    <b:if cond='data:post.labels'>
+                      <div class='wu-artcard'>
+                        <div class='wu-tags'>
+                          <span class='lbl'>Tags</span>
+                          <b:loop values='data:post.labels' var='label'>
+                            <a class='wu-tag' expr:href='data:label.url'><data:label.name/></a>
+                          </b:loop>
+                        </div>
+                      </div>
+                    </b:if>
+                    <div class='wu-artcard wu-react-card'>
+                      <div class='wu-react-eyebrow'>Your Reaction</div>
+                      <h3 class='wu-react-h'>How did this story make you feel?</h3>
+                      <div class='wu-react-row' id='wu-react-row'><span class='wu-react-load'>Loading reactions&#8230;</span></div>
+                    </div>
+                    <div class='wu-artcard wu-cm-card' id='wu-comments'>
+                      <div class='wu-cm-eyebrow'>Discussion</div>
+                      <h3 class='wu-cm-h' id='wu-cm-h'>Comments</h3>
+                      <div id='wu-cm-box'><p class='wu-cm-empty'>Loading comments&#8230;</p></div>
+                    </div>
+                    <div class='wu-share'>
+                      <span class='wu-share-lbl'>Share:</span>
+                      <button class='wu-sbtn' onclick='wuShareX()' type='button'>Twitter/X</button>
+                      <button class='wu-sbtn' onclick='wuShareFB()' type='button'>Facebook</button>
+                      <button class='wu-sbtn' onclick='wuShareWA()' type='button'>WhatsApp</button>
+                      <button class='wu-sbtn' id='wu-copy' onclick='wuCopy()' type='button'>Copy Link</button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              <!-- RELATED (built by JS feed) -->
+              <div id='wu-related'/>
+            </article>
+          </b:if>
+        </b:if>
+      </b:includable>
+
+      <!-- ===== Below: Contempo defaults (verbatim) so the widget is structurally complete ===== -->
+      <b:includable id='aboutPostAuthor'>
+        <div class='author-name'>
+          <a class='g-profile' expr:href='data:post.author.profileUrl' rel='author' title='author profile'>
+            <span><data:post.author/></span>
+          </a>
+        </div>
+        <div><span class='author-desc'><data:post.author.aboutMe/></span></div>
+      </b:includable>
+      <b:includable id='addComments'>
+        <a expr:href='data:post.commentsUrl' expr:onclick='data:post.commentsUrlOnclick'>
+          <b:message name='messages.postAComment'/>
+        </a>
+      </b:includable>
+      <b:includable id='commentAuthorAvatar'>
+        <div class='avatar-image-container'>
+          <img class='author-avatar' expr:src='data:comment.authorAvatarSrc' height='35' width='35'/>
+        </div>
+      </b:includable>
+      <b:includable id='commentDeleteIcon' var='comment'>
+        <span expr:class='&quot;item-control &quot; + data:comment.adminClass'>
+          <b:if cond='data:showCmtPopup'>
+            <div class='goog-toggle-button'>
+              <div class='goog-inline-block comment-action-icon'/>
+            </div>
+          <b:else/>
+            <a class='comment-delete' expr:href='data:comment.deleteUrl' expr:title='data:messages.deleteComment'>
+              <img src='https://resources.blogblog.com/img/icon_delete13.gif'/>
+            </a>
+          </b:if>
+        </span>
+      </b:includable>
+      <b:includable id='commentForm' var='post'>
+        <div class='comment-form'>
+          <a name='comment-form'/>
+          <h4 id='comment-post-message'><data:messages.postAComment/></h4>
+          <b:if cond='data:this.messages.blogComment != &quot;&quot;'>
+            <p><data:this.messages.blogComment/></p>
+          </b:if>
+          <b:include data='post' name='commentFormIframeSrc'/>
+          <iframe allowtransparency='allowtransparency' class='blogger-iframe-colorize blogger-comment-from-post' expr:height='data:cmtIframeInitialHeight ?: &quot;90px&quot;' frameborder='0' id='comment-editor' name='comment-editor' src='' width='100%'/>
+          <data:post.cmtfpIframe/>
+          <script type='text/javascript'>
+            BLOG_CMT_createIframe('<data:post.appRpcRelayPath/>');
+          </script>
+        </div>
+      </b:includable>
+      <b:includable id='commentFormIframeSrc' var='post'>
+        <a expr:href='data:post.commentFormIframeSrc' id='comment-editor-src'/>
+      </b:includable>
+      <b:includable id='commentItem' var='comment'>
+        <div class='comment' expr:id='&quot;c&quot; + data:comment.id'>
+          <b:include cond='data:blog.enabledCommentProfileImages' name='commentAuthorAvatar'/>
+          <div class='comment-block'>
+            <div class='comment-author'>
+              <b:if cond='data:comment.authorUrl'>
+                <b:message name='messages.authorSaidWithLink'>
+                  <b:param expr:value='data:comment.author' name='authorName'/>
+                  <b:param expr:value='data:comment.authorUrl' name='authorUrl'/>
+                </b:message>
+              <b:else/>
+                <b:message name='messages.authorSaid'>
+                  <b:param expr:value='data:comment.author' name='authorName'/>
+                </b:message>
+              </b:if>
+            </div>
+            <div expr:class='&quot;comment-body&quot; + (data:comment.isDeleted ? &quot; deleted&quot; : &quot;&quot;)'>
+              <data:comment.body/>
+            </div>
+            <div class='comment-footer'>
+              <span class='comment-timestamp'>
+                <a expr:href='data:comment.url' title='comment permalink'><data:comment.timestamp/></a>
+                <b:include data='comment' name='commentDeleteIcon'/>
+              </span>
+            </div>
+          </div>
+        </div>
+      </b:includable>
+      <b:includable id='commentList' var='comments'>
+        <div id='comments-block'>
+          <b:loop values='data:comments' var='comment'>
+            <b:include data='comment' name='commentItem'/>
+          </b:loop>
+        </div>
+      </b:includable>
+      <b:includable id='commentPicker' var='post'>
+        <b:if cond='data:post.showThreadedComments'>
+          <b:include data='post' name='threadedComments'/>
+        <b:else/>
+          <b:include data='post' name='comments'/>
+        </b:if>
+      </b:includable>
+      <b:includable id='comments' var='post'>
+        <section expr:class='&quot;comments&quot; + (data:post.embedCommentForm ? &quot; embed&quot; : &quot;&quot;)' expr:data-num-comments='data:post.numberOfComments' id='comments'>
+          <a name='comments'/>
+          <b:if cond='data:post.allowComments'>
+            <b:include name='commentsTitle'/>
+            <div expr:id='data:widget.instanceId + &quot;_comments-block-wrapper&quot;'>
+              <b:include cond='data:post.comments' data='post.comments' name='commentList'/>
+            </div>
+            <div class='footer'>
+              <b:if cond='data:post.embedCommentForm'>
+                <b:if cond='data:post.allowNewComments'>
+                  <b:include data='post' name='commentForm'/>
+                <b:else/>
+                  <data:post.noNewCommentsText/>
+                </b:if>
+              <b:else/>
+                <b:if cond='data:post.allowComments'>
+                  <b:include data='post' name='addComments'/>
+                </b:if>
+              </b:if>
+            </div>
+          </b:if>
+        </section>
+      </b:includable>
+      <b:includable id='commentsLink'>
+        <a class='comment-link' expr:href='data:post.commentsUrl' expr:onclick='data:post.commentsUrlOnclick'>
+          <span class='num_comments'>
+            <b:if cond='data:post.numberOfComments &gt; 0'>
+              <b:message name='messages.numberOfComments'>
+                <b:param expr:value='data:post.numberOfComments' name='numComments'/>
+              </b:message>
+            <b:else/>
+              <data:messages.postAComment/>
+            </b:if>
+          </span>
+        </a>
+      </b:includable>
+      <b:includable id='commentsTitle'>
+        <h3 class='title'><data:messages.comments/></h3>
+      </b:includable>
+      <b:includable id='defaultAdUnit'/>
+      <b:includable id='feedLinks'/>
+      <b:includable id='feedLinksBody' var='links'>
+        <div class='feed-links'>
+          <data:messages.subscribeTo/>
+          <b:loop values='data:links' var='f'>
+            <a class='feed-link' expr:href='data:f.url' expr:type='data:f.mimeType' target='_blank'><data:f.name/> (<data:f.feedType/>)</a>
+          </b:loop>
+        </div>
+      </b:includable>
+      <b:includable id='headerByline'/>
+      <b:includable id='homePageLink'/>
+      <b:includable id='iframeComments' var='post'/>
+      <b:includable id='inlineAd' var='post'/>
+      <b:includable id='nextPageLink'>
+        <a class='blog-pager-older-link wu-pager-btn' expr:href='data:olderPageUrl' expr:title='data:messages.morePosts'>
+          <data:messages.morePosts/>
+        </a>
+      </b:includable>
+      <b:includable id='postBody' var='post'>
+        <div class='post-body entry-content float-container' expr:id='&quot;post-body-&quot; + data:post.id'>
+          <data:post.body/>
+        </div>
+      </b:includable>
+      <b:includable id='postBodySnippet' var='post'>
+        <div class='post-body entry-content' expr:id='&quot;post-snippet-&quot; + data:post.id'>
+          <b:eval expr='data:post.body snippet { length: 140, links: false }'/>
+        </div>
+      </b:includable>
+      <b:includable id='postCommentsAndAd' var='post'>
+        <article class='post-outer-container'>
+          <div class='post-outer'>
+            <b:include data='post' name='post'/>
+          </div>
+          <b:include cond='data:view.isSingleItem' data='post' name='commentPicker'/>
+        </article>
+      </b:includable>
+      <b:includable id='postCommentsLink'>
+        <b:if cond='data:view.isMultipleItems'>
+          <span class='byline post-comment-link container'>
+            <b:include cond='data:post.commentSource != 1' name='commentsLink'/>
+          </span>
+        </b:if>
+      </b:includable>
+      <b:includable id='postFooter' var='post'/>
+      <b:includable id='postFooterAuthorProfile' var='post'/>
+      <b:includable id='postFooterJumpLink'/>
+      <b:includable id='postHeader' var='post'/>
+      <b:includable id='postJumpLink'/>
+      <b:includable id='postLabels'/>
+      <b:includable id='postMeta' var='post'/>
+      <b:includable id='postPagination'>
+        <div class='wu-pager' id='blog-pager'>
+          <b:if cond='data:newerPageUrl'>
+            <a expr:href='data:newerPageUrl'>&#8592; Newer</a>
+          </b:if>
+          <b:if cond='data:olderPageUrl'>
+            <a expr:href='data:olderPageUrl'>Older &#8594;</a>
+          </b:if>
+        </div>
+      </b:includable>
+      <b:includable id='postShareButtons' var='post'/>
+      <b:includable id='postTitle' var='post'>
+        <a expr:name='data:post.id'/>
+        <b:if cond='data:post.title != &quot;&quot;'>
+          <h3 class='post-title entry-title'>
+            <b:if cond='data:post.link or (data:post.url and data:view.url != data:post.url)'>
+              <a expr:href='data:post.link ?: data:post.url'><data:post.title/></a>
+            <b:else/>
+              <data:post.title/>
+            </b:if>
+          </h3>
+        </b:if>
+      </b:includable>
+      <b:includable id='previousPageLink'/>
+      <b:includable id='snippetedPostByline'>
+        <b:include name='headerByline'/>
+      </b:includable>
+      <b:includable id='threadedCommentForm' var='post'>
+        <div class='comment-form'>
+          <a name='comment-form'/>
+          <h4 id='comment-post-message'><data:messages.postAComment/></h4>
+          <b:if cond='data:this.messages.blogComment != &quot;&quot;'>
+            <p><data:this.messages.blogComment/></p>
+          </b:if>
+          <b:include data='post' name='commentFormIframeSrc'/>
+          <iframe allowtransparency='allowtransparency' class='blogger-iframe-colorize blogger-comment-from-post' expr:height='data:cmtIframeInitialHeight ?: &quot;90px&quot;' frameborder='0' id='comment-editor' name='comment-editor' src='' width='100%'/>
+          <data:post.cmtfpIframe/>
+          <script type='text/javascript'>
+            BLOG_CMT_createIframe('<data:post.appRpcRelayPath/>');
+          </script>
+        </div>
+      </b:includable>
+      <b:includable id='threadedCommentJs' var='post'>
+        <script async='async' expr:src='data:post.commentSrc' type='text/javascript'/>
+        <b:template-script inline='true' name='threaded_comments'/>
+        <script type='text/javascript'>
+          blogger.widgets.blog.initThreadedComments(
+              <data:post.commentJso/>,
+              <data:post.commentMsgs/>,
+              <data:post.commentConfig/>);
+        </script>
+      </b:includable>
+      <b:includable id='threadedComments' var='post'>
+        <section class='comments threaded' expr:data-embed='data:post.embedCommentForm' expr:data-num-comments='data:post.numberOfComments' id='comments'>
+          <a name='comments'/>
+          <b:include name='commentsTitle'/>
+          <div class='comments-content'>
+            <b:if cond='data:post.embedCommentForm'>
+              <b:include data='post' name='threadedCommentJs'/>
+            </b:if>
+            <div id='comment-holder'>
+              <data:post.commentHtml/>
+            </div>
+          </div>
+          <p class='comment-footer'>
+            <b:if cond='data:post.allowNewComments'>
+              <b:include data='post' name='threadedCommentForm'/>
+            <b:else/>
+              <data:post.noNewCommentsText/>
+            </b:if>
+          </p>
+        </section>
+      </b:includable>
+    </b:widget>
+  </b:section>
+</div>
+
+<!-- ============ FOOTER (always dark) ============ -->
+<div id='wu-footer'>
+  <div class='wu-footin'>
+    <div class='wu-foot-grid'>
+      <div>
+        <a expr:href='data:blog.homepageUrl'><img alt='Wildlife Universe' class='wu-foot-logo' onerror='this.outerHTML=&quot;&lt;div style=\&quot;font-size:1.4rem;font-weight:800;color:#fff;margin-bottom:1rem\&quot;&gt;Wildlife Universe&lt;/div&gt;&quot;;' src='https://www.wildlifeuniverse.org/logo.png'/></a>
+        <p class='wu-foot-desc'>Journey into the wild. Wildlife Universe brings you stories, science and conservation from the world of animals, plants, birds and insects &#8212; one species at a time.</p>
+        <div class='wu-foot-labels'>
+          <a class='wu-foot-lbl' href='/search/label/Mammals'>Mammals</a>
+          <a class='wu-foot-lbl' href='/search/label/Reptiles'>Reptiles</a>
+          <a class='wu-foot-lbl' href='/search/label/Amphibians'>Amphibians</a>
+          <a class='wu-foot-lbl' href='/search/label/Fish'>Fish</a>
+          <a class='wu-foot-lbl' href='/search/label/Trees'>Trees</a>
+          <a class='wu-foot-lbl' href='/search/label/Shrubs'>Shrubs</a>
+          <a class='wu-foot-lbl' href='/search/label/Herbs'>Herbs</a>
+          <a class='wu-foot-lbl' href='/search/label/Vines'>Vines</a>
+          <a class='wu-foot-lbl' href='/search/label/Basal'>Basal</a>
+          <a class='wu-foot-lbl' href='/search/label/Waterfowl'>Waterfowl</a>
+          <a class='wu-foot-lbl' href='/search/label/Coastal'>Coastal</a>
+          <a class='wu-foot-lbl' href='/search/label/Raptors'>Raptors</a>
+          <a class='wu-foot-lbl' href='/search/label/Land'>Land</a>
+          <a class='wu-foot-lbl' href='/search/label/Song'>Song</a>
+          <a class='wu-foot-lbl' href='/search/label/Porifera'>Porifera</a>
+          <a class='wu-foot-lbl' href='/search/label/Cnidaria'>Cnidaria</a>
+          <a class='wu-foot-lbl' href='/search/label/Platyhelminthes'>Platyhelminthes</a>
+          <a class='wu-foot-lbl' href='/search/label/Nematoda'>Nematoda</a>
+          <a class='wu-foot-lbl' href='/search/label/Annelida'>Annelida</a>
+          <a class='wu-foot-lbl' href='/search/label/Mollusca'>Mollusca</a>
+          <a class='wu-foot-lbl' href='/search/label/Arthropoda'>Arthropoda</a>
+          <a class='wu-foot-lbl' href='/search/label/Echinodermata'>Echinodermata</a>
+          <a class='wu-foot-lbl' href='/search/label/How Questions'>How Questions</a>
+          <a class='wu-foot-lbl' href='/search/label/Why Questions'>Why Questions</a>
+          <a class='wu-foot-lbl' href='/search/label/Tourism'>Tourism</a>
+          <a class='wu-foot-lbl' href='/search/label/Conservation'>Conservation</a>
+          <a class='wu-foot-lbl' href='/search/label/Articles'>Articles</a>
+          <a class='wu-foot-lbl' href='/search/label/IUCN Redlist'>IUCN Redlist</a>
+        </div>
+      </div>
+      <div>
+        <div class='wu-foot-h'>Quick Links</div>
+        <ul class='wu-foot-links'>
+          <li><a expr:href='data:blog.homepageUrl'>Home</a></li>
+          <li><a href='/search/label/Posts'>Wildlife Content</a></li>
+          <li><a href='/p/popular.html'>Popular Posts</a></li>
+          <li><a href='/p/team.html'>Contributors</a></li>
+          <li><a href='/p/about.html'>About Us</a></li>
+          <li><a href='/p/contact.html'>Contact</a></li>
+          <li><a href='/p/advertise.html'>Advertise With Us</a></li>
+          <li><a href='/p/sitemap.html'>Sitemap</a></li>
+          <li><a href='/feeds/posts/default?alt=rss'>RSS Feed</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class='wu-foot-h'>Legal</div>
+        <ul class='wu-foot-links'>
+          <li><a href='/p/privacy-policy.html'>Privacy Policy</a></li>
+          <li><a href='/p/terms-of-service.html'>Terms of Service</a></li>
+          <li><a href='/p/cookie-policy.html'>Cookie Policy</a></li>
+          <li><a href='/p/editorial-policy.html'>Editorial Policy</a></li>
+          <li><a href='/p/fact-checking-policy.html'>Fact-Checking Policy</a></li>
+          <li><a href='/p/team.html'>Wildlife Universe Team</a></li>
+        </ul>
+      </div>
+      <div>
+        <div class='wu-foot-h'>Categories</div>
+        <ul class='wu-foot-links'>
+          <li><a href='/search/label/Animals'>Animals</a></li>
+          <li><a href='/search/label/Plants'>Plants</a></li>
+          <li><a href='/search/label/Birds'>Birds</a></li>
+          <li><a href='/search/label/Insects'>Insects</a></li>
+          <li><a href='/search/label/Posts'>Posts</a></li>
+        </ul>
+      </div>
+      <div class='wu-foot-nl'>
+        <div class='wu-foot-h'>Newsletter</div>
+        <p>Get wild stories, species spotlights and conservation news delivered straight to your inbox.</p>
+        <div class='wu-nl-row'>
+          <label class='wu-nl-field'>
+            <svg fill='none' height='15' stroke='currentColor' stroke-width='2' viewBox='0 0 24 24' width='15'><rect height='16' rx='2' width='20' x='2' y='4'/><path d='m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7'/></svg>
+            <input placeholder='your@email.com' type='email'/>
+          </label>
+          <a class='wu-nl-btn' expr:href='&quot;https://www.blogger.com/follow-blog.g?blogID=&quot; + data:blog.blogId' rel='noopener' target='_blank'>Subscribe</a>
+        </div>
+        <p class='wu-nl-note'>No spam, ever. Unsubscribe anytime. Prefer feeds? <a href='/feeds/posts/default?alt=rss'>RSS</a></p>
+        <div class='wu-foot-social'>
+          <a aria-label='WhatsApp' class='wu-foot-soc wa' href='#' rel='noopener' target='_blank'><svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'><path d='M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 0 1-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 0 1-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 0 1 2.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0 0 12.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 0 0 5.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 0 0-3.48-8.413Z'/></svg></a>
+          <a aria-label='Facebook' class='wu-foot-soc fb' href='#' rel='noopener' target='_blank'><svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'><path d='M24 12.073c0-6.627-5.373-12-12-12s-12 5.373-12 12c0 5.99 4.388 10.954 10.125 11.854v-8.385H7.078v-3.47h3.047V9.43c0-3.007 1.792-4.669 4.533-4.669 1.312 0 2.686.235 2.686.235v2.953H15.83c-1.491 0-1.956.925-1.956 1.874v2.25h3.328l-.532 3.47h-2.796v8.385C19.612 23.027 24 18.062 24 12.073z'/></svg></a>
+          <a aria-label='Instagram' class='wu-foot-soc ig' href='#' rel='noopener' target='_blank'><svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'><path d='M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z'/></svg></a>
+          <a aria-label='TikTok' class='wu-foot-soc tk' href='#' rel='noopener' target='_blank'><svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'><path d='M12.525.02c1.31-.02 2.61-.01 3.91-.02.08 1.53.63 3.09 1.75 4.17 1.12 1.11 2.7 1.62 4.24 1.79v4.03c-1.44-.05-2.89-.35-4.2-.97-.57-.26-1.1-.59-1.62-.93-.01 2.92.01 5.84-.02 8.75-.08 1.4-.54 2.79-1.35 3.94-1.31 1.92-3.58 3.17-5.91 3.21-1.43.08-2.86-.31-4.08-1.03-2.02-1.19-3.44-3.37-3.65-5.71-.02-.5-.03-1-.01-1.49.18-1.9 1.12-3.72 2.58-4.96 1.66-1.44 3.98-2.13 6.15-1.72.02 1.48-.04 2.96-.04 4.44-.99-.32-2.15-.23-3.02.37-.63.41-1.11 1.04-1.36 1.75-.21.51-.15 1.07-.14 1.61.24 1.64 1.82 3.02 3.5 2.87 1.12-.01 2.19-.66 2.77-1.61.19-.33.4-.67.41-1.06.1-1.79.06-3.57.07-5.36.01-4.03-.01-8.05.02-12.07z'/></svg></a>
+          <a aria-label='YouTube' class='wu-foot-soc yt' href='#' rel='noopener' target='_blank'><svg fill='currentColor' height='16' viewBox='0 0 24 24' width='16'><path d='M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z'/></svg></a>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class='wu-foot-bottom'>
+    <div class='wu-footin'>
+      <div class='wu-foot-bottom-in'>
+        <span>&#169; <span id='wu-year'>2026</span> Wildlife Universe. All rights reserved. Stories from the wild side of our planet.</span>
+        <!-- Staff Login points at the admin app's FUTURE home - see README ("Before switching the domain") -->
+        <a class='wu-staff' href='https://www.wildlifeuniverse.org/staff-login' id='wu-staff-login' rel='noopener' target='_blank'>Staff Login</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Footer widget slots -->
+<b:section class='no-show' id='footer-1' maxwidgets='3' showaddelement='yes'/>
+
+<script>
+//<![CDATA[
+/* ============ WILDLIFE UNIVERSE - theme engine ============ */
+/* THEME TOGGLE */
+function wuTheme(){var d=document.documentElement.classList.toggle('dark');try{localStorage.setItem('wu-theme',d?'dark':'light');}catch(e){}wuIcons(d);var m=document.getElementById('wu-themecolor');if(m)m.setAttribute('content',d?'#0a0f0a':'#f7f9f5');}
+function wuIcons(d){['wu-moon','wu-sun','wu-moon2','wu-sun2'].forEach(function(id){var el=document.getElementById(id);if(!el)return;var isMoon=id.indexOf('moon')>-1;el.style.display=(isMoon?(d?'none':''):(d?'':'none'));});}
+wuIcons(document.documentElement.classList.contains('dark'));
+/* YEAR + asset-driven links */
+(function(){var y=document.getElementById('wu-year');if(y)y.textContent=new Date().getFullYear();var s=document.getElementById('wu-staff-login');if(s&&window.WU_ASSETS&&WU_ASSETS.staffLogin)s.setAttribute('href',WU_ASSETS.staffLogin);})();
+/* HEADER glass-on-scroll */
+(function(){var h=document.getElementById('wu-header');if(!h)return;function upd(){h.classList.toggle('scrolled',window.scrollY>80);}window.addEventListener('scroll',upd,{passive:true});upd();})();
+/* MOBILE MENU */
+function wuMenu(){var m=document.getElementById('wu-mm');if(m)m.classList.add('open');document.body.classList.add('wu-noscroll');}
+function wuMenuClose(){var m=document.getElementById('wu-mm');if(m)m.classList.remove('open');document.body.classList.remove('wu-noscroll');}
+window.addEventListener('resize',function(){if(window.innerWidth>=768)wuMenuClose();});
+function wuToggleAcc(btn){var a=btn.closest('.wu-acc');if(a)a.classList.toggle('open');}
+/* SEARCH */
+var wuST=null;
+function wuRecent(){try{return JSON.parse(localStorage.getItem('wu-recent')||'[]');}catch(e){return [];}}
+function wuAddRecent(q){if(!q)return;var r=wuRecent().filter(function(x){return x!==q;});r.unshift(q);try{localStorage.setItem('wu-recent',JSON.stringify(r.slice(0,5)));}catch(e){}}
+function wuEsc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+function wuSIco(){return '<svg fill="none" height="30" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="30"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>';}
+function wuSArr(){return '<svg fill="none" height="15" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="15"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';}
+function wuSearch(){var o=document.getElementById('wu-search');if(!o)return;o.classList.add('open');document.body.classList.add('wu-noscroll');setTimeout(function(){var i=document.getElementById('wu-search-input');if(i)i.focus();},90);wuRenderRecent();}
+function wuSearchClose(){var o=document.getElementById('wu-search');if(o)o.classList.remove('open');document.body.classList.remove('wu-noscroll');}
+function wuSearchGo(){var i=document.getElementById('wu-search-input');var q=i?i.value.trim():'';if(q){wuAddRecent(q);window.location.href='/search?q='+encodeURIComponent(q);}}
+function wuRenderRecent(){var b=document.getElementById('wu-search-body');if(!b)return;var r=wuRecent();if(!r.length){b.innerHTML='<div class="wu-search-state"><div class="ic">'+wuSIco()+'</div><h3>Start typing to search</h3><p>Find species, stories and guides across the wild</p></div>';return;}b.innerHTML='<div class="wu-search-lbl">Recent Searches</div><div class="wu-recent">'+r.map(function(q){return '<button type="button" data-rq="'+wuEsc(q)+'">'+wuEsc(q)+'</button>';}).join('')+'</div>';}
+function wuDoSearch(q){var b=document.getElementById('wu-search-body'),sp=document.getElementById('wu-search-spin');if(!b)return;if(q.length<2){wuRenderRecent();return;}if(sp)sp.style.display='';
+  fetch('/feeds/posts/default?q='+encodeURIComponent(q)+'&alt=json&max-results=6').then(function(r){return r.json();}).then(function(j){if(sp)sp.style.display='none';var en=(j.feed&&j.feed.entry)||[];
+    if(!en.length){b.innerHTML='<div class="wu-search-state"><div class="ic">'+wuSIco()+'</div><h3>No results found</h3><p>Try different keywords or browse the categories</p></div><button class="wu-search-go" type="button" onclick="wuSearchGo()">See all results '+wuSArr()+'</button>';return;}
+    var items=en.map(function(e){var c2=(e.content&&e.content.$t)||(e.summary&&e.summary.$t)||'';var mm=c2.match(/<img[^>]+src=["']([^"']+)["']/i);var im=mm?mm[1]:'';var u='#';var L=e.link||[];for(var i=0;i<L.length;i++){if(L[i].rel==='alternate')u=L[i].href;}var t=e.title.$t;var c=(e.category&&e.category.length)?e.category[0].term:'';var d='';try{d=new Date(e.published.$t).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});}catch(x){}var sn=((e.summary&&e.summary.$t)||'').replace(/<[^>]+>/g,'').replace(/\s+/g,' ').trim().slice(0,110);
+      return '<a class="wu-sug" href="'+u+'"><div class="wu-sug-img">'+(im?'<img src="'+wuEsc(im)+'" alt="" loading="lazy"/>':'')+'</div><div class="wu-sug-b"><div class="wu-sug-meta">'+(c?'<span class="wu-sug-cat">'+wuEsc(c)+'</span>':'')+'<span>'+d+'</span></div><h4>'+wuEsc(t)+'</h4><p>'+wuEsc(sn)+'</p></div></a>';}).join('');
+    b.innerHTML='<div class="wu-search-lbl">Search Results</div><div class="wu-sug-list">'+items+'</div><button class="wu-search-go" type="button" onclick="wuSearchGo()">See all results for &#8220;'+wuEsc(q)+'&#8221; '+wuSArr()+'</button>';
+  }).catch(function(){if(sp)sp.style.display='none';});}
+(function(){var i=document.getElementById('wu-search-input');if(!i)return;
+  i.addEventListener('input',function(){clearTimeout(wuST);var q=this.value.trim();wuST=setTimeout(function(){wuDoSearch(q);},300);});
+  i.addEventListener('keydown',function(e){if(e.key==='Enter')wuSearchGo();});
+  var b=document.getElementById('wu-search-body');if(b)b.addEventListener('click',function(e){var rq=e.target.closest&&e.target.closest('[data-rq]');if(rq){i.value=rq.getAttribute('data-rq');wuDoSearch(i.value.trim());}});
+})();
+document.addEventListener('keydown',function(e){if(e.key==='Escape'){wuSearchClose();wuMenuClose();}});
+/* ACTIVE NAV LINK */
+(function(){var links=document.querySelectorAll('.wu-nav a,.wu-mm-nav a');var here=decodeURIComponent(window.location.href);links.forEach(function(a){var h=a.getAttribute('href')||'';if(h.indexOf('/search/label/')===0){var lbl=h.replace('/search/label/','');if(here.indexOf('/search/label/'+lbl)>-1)a.classList.add('active');}});if(location.pathname==='/'||location.pathname===''){var first=document.querySelector('.wu-nav .wu-nav-link');if(first)first.classList.add('active');}})();
+
+/* ============ SHARED TAXONOMY + FEED HELPERS ============ */
+var WU_TAX=[
+  {n:'Animals',hero:'heroSavanna',desc:'Mammals, reptiles, amphibians and fish - meet the animals that rule land and water.',l:['Mammals','Reptiles','Amphibians','Fish','IUCN Redlist']},
+  {n:'Plants',hero:'heroCanopy',desc:'Trees, shrubs, herbs and vines - the green architects of every ecosystem on Earth.',l:['Trees','Shrubs','Herbs','Vines']},
+  {n:'Birds',hero:'heroEagle',desc:'From raptors to songbirds - the feathered wonders that fill our skies.',l:['Basal','Waterfowl','Coastal','Raptors','Land','Song','IUCN Redlist']},
+  {n:'Insects',hero:'heroCanopy',desc:'Invertebrates of every kind - the small creatures that keep the planet running.',l:['Porifera','Cnidaria','Platyhelminthes','Nematoda','Annelida','Mollusca','Arthropoda','Echinodermata','IUCN Redlist']},
+  {n:'Posts',hero:'heroSavanna',desc:'How and why questions, tourism, conservation and feature articles from the wild.',l:['How Questions','Why Questions','Tourism','Conservation','Articles']}
+];
+var WU_CATGRAD={
+  'Animals':['linear-gradient(145deg,#061206,#1a4a10,#3d7a28)','#5dc23a'],
+  'Plants':['linear-gradient(145deg,#04120a,#0d4a2a,#22885a)','#34d17a'],
+  'Birds':['linear-gradient(145deg,#050b16,#0a2a5c,#1a5cb8)','#4a9ce8'],
+  'Insects':['linear-gradient(145deg,#141004,#5c4a0a,#a8871a)','#eab308'],
+  'Posts':['linear-gradient(145deg,#041204,#0a4a0a,#2e8b2e)','#4ade80']
+};
+function wuBadgeCls(c){c=(c||'').toLowerCase();if(c==='animals')return ' animals';if(c==='birds')return ' birds';return '';}
+function wuAlt(e){var L=e.link||[];for(var i=0;i<L.length;i++){if(L[i].rel==='alternate')return L[i].href;}return '#';}
+function wuImg(e){var c=(e.content&&e.content.$t)||(e.summary&&e.summary.$t)||'';var m=c.match(/<img[^>]+src=["']([^"']+)["']/i);if(m)return m[1];if(e.media$thumbnail&&e.media$thumbnail.url)return e.media$thumbnail.url.replace(/\/s72-c\//,'/w640/');return '';}
+function wuSnip(e){var c=(e.summary&&e.summary.$t)||(e.content&&e.content.$t)||'';var d=document.createElement('div');d.innerHTML=c.replace(/<[^>]+>/g,' ');return (d.textContent||d.innerText||'').replace(/\s+/g,' ').trim().slice(0,140);}
+function wuFdate(e){try{return new Date(e.published.$t).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});}catch(x){return '';}}
+function wuCat(e){var C=e.category||[];return C.length?C[0].term:'';}
+function wuTerms(e){return (e.category||[]).map(function(x){return x.term;});}
+function wuCard(e,idx){var i=wuImg(e),u=wuAlt(e),t=e.title.$t,c=wuCat(e);var dl=(typeof idx==='number')?' style="animation-delay:'+(idx*95)+'ms"':'';
+  return '<a class="wu-card wu-fadeUp" href="'+u+'"'+dl+'><div class="wu-card-img">'+(i?'<img src="'+wuEsc(i)+'" alt="'+wuEsc(t)+'" loading="lazy"/>':'<div class="wu-no-img">WU</div>')+(c?'<span class="wu-card-badge'+wuBadgeCls(c)+'">'+wuEsc(c)+'</span>':'')+'</div><div class="wu-card-body"><h2 class="wu-card-title">'+wuEsc(t)+'</h2><p class="wu-card-excerpt">'+wuEsc(wuSnip(e))+'&#8230;</p><div class="wu-card-foot"><span>'+wuFdate(e)+'</span><span>Wildlife Universe</span></div></div></a>';}
+function wuGCard(e){var i=wuImg(e),u=wuAlt(e),t=e.title.$t,c=wuCat(e);
+  return '<a class="wu-gcard" href="'+u+'"><div class="wu-gcard-img">'+(i?'<img src="'+wuEsc(i)+'" alt="'+wuEsc(t)+'" loading="lazy"/>':'')+(c?'<span class="wu-gcard-pill">'+wuEsc(c)+'</span>':'')+'</div><div class="wu-gcard-body"><h3 class="wu-gcard-title">'+wuEsc(t)+'</h3><div class="wu-gcard-meta">'+wuFdate(e)+'</div><span class="wu-gcard-cta">View Post</span></div></a>';}
+function wuFeed(p){return fetch(p,{credentials:'omit'}).then(function(r){return r.json();}).then(function(j){return (j.feed&&j.feed.entry)||[];}).catch(function(){return [];});}
+function wuByLabel(l,m){return wuFeed('/feeds/posts/default/-/'+encodeURIComponent(l)+'?alt=json&max-results='+m);}
+function wuLblUrl(s){return '/search/label/'+encodeURIComponent(s);}
+function wuHeroUrl(key){return (window.WU_ASSETS&&WU_ASSETS[key])||'';}
+
+/* ============ FEED ENGINE: homepage / label pages / search ============ */
+(function(){
+var P=location.pathname, grid=document.getElementById('wu-postgrid'), pager=document.getElementById('wu-native-pager');
+var ARR='<svg fill="none" height="15" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="15"><path d="M5 12h14M12 5l7 7-7 7"/></svg>';
+var RSS='<svg fill="none" height="13" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" width="13"><path d="M4 11a9 9 0 0 1 9 9"/><path d="M4 4a16 16 0 0 1 16 16"/><circle cx="5" cy="19" r="1"/></svg>';
+function secHead(eye,title,url){return '<div class="wu-sechead"><div class="wu-sechead-l"><span class="wu-eyebrow">'+RSS+' '+wuEsc(eye)+'</span><h2 class="wu-sectitle">'+wuEsc(title)+'</h2></div><a class="wu-viewall" href="'+url+'">View All '+ARR+'</a></div>';}
+if(P==='/'||P===''){
+  /* homepage hero bg */
+  var hb=document.getElementById('wu-hero-bg');if(hb&&wuHeroUrl('heroSavanna'))hb.style.backgroundImage='url("'+wuHeroUrl('heroSavanna')+'")';
+  var extra=document.getElementById('wu-home-extra');
+  /* defer the heavy fetch until after native paint */
+  setTimeout(function(){
+    wuFeed('/feeds/posts/default?alt=json&max-results=150').then(function(en){
+      if(grid&&en.length){grid.innerHTML=en.slice(0,12).map(function(e,i){return wuCard(e,i);}).join('');}
+      if(pager&&en.length)pager.style.display='none';
+      if(!extra)return;
+      var h='';
+      /* Explore Our Categories */
+      var cc='';
+      WU_TAX.forEach(function(t){var g=WU_CATGRAD[t.n];cc+='<a class="wu-catcard" href="'+wuLblUrl(t.n)+'" style="background:'+g[0]+'"><div class="ov"></div><div class="info"><h3>'+wuEsc(t.n)+'</h3><span class="pill" style="background:'+g[1]+';color:#04120a">Explore '+ARR+'</span></div></a>';});
+      h+='<section class="wu-section"><div class="wu-container"><div class="wu-cats-head"><h2>Explore Our Categories</h2><p>Dive into the corners of the wild that fascinate you most</p></div><div class="wu-cats-grid">'+cc+'</div></div></section>';
+      /* per-category rows (6 each) */
+      WU_TAX.forEach(function(t){
+        var ps=en.filter(function(e){return wuTerms(e).indexOf(t.n)>-1;}).slice(0,6);
+        if(!ps.length)return;
+        h+='<section class="wu-section"><div class="wu-container">'+secHead('Wildlife Universe',t.n,wuLblUrl(t.n))+'<div class="wu-grid">'+ps.map(function(e,i){return wuCard(e,i);}).join('')+'</div></div></section>';
+      });
+      extra.innerHTML=h;
+    });
+  },60);
+}
+else if(P.indexOf('/search/label/')===0){
+  var label=decodeURIComponent(P.replace('/search/label/','').replace(/\/$/,''));
+  var parent=null;WU_TAX.forEach(function(t){if(t.n===label||t.l.indexOf(label)>-1)parent=t;});
+  var te=document.getElementById('wu-cat-title');if(te)te.textContent=label;
+  var hb2=document.getElementById('wu-cathero-bg');
+  if(hb2&&parent&&wuHeroUrl(parent.hero))hb2.style.backgroundImage='url("'+wuHeroUrl(parent.hero)+'")';
+  var dd=document.getElementById('wu-cat-desc');
+  if(dd&&parent)dd.textContent=(label===parent.n)?parent.desc:('Explore every '+label+' story in our '+parent.n+' collection.');
+  /* filter pills */
+  var tools=document.getElementById('wu-cat-tools');
+  if(tools&&parent&&parent.l.length){var ch='<a class="wu-chip'+(label===parent.n?' active':'')+'" href="'+wuLblUrl(parent.n)+'">All Posts</a>';parent.l.forEach(function(x){ch+='<a class="wu-chip'+(label===x?' active':'')+'" href="'+wuLblUrl(x)+'">'+wuEsc(x)+'</a>';});tools.innerHTML='<div class="wu-catbar"><div class="wu-catbar-inner">'+ch+'</div></div>';}
+  wuByLabel(label,60).then(function(en){
+    if(grid&&en.length){grid.innerHTML=en.map(function(e){return wuGCard(e);}).join('');var cn=document.createElement('div');cn.className='wu-count';cn.innerHTML='<h2>'+wuEsc(label)+'</h2><p>'+en.length+' '+(en.length===1?'post':'posts')+' found</p>';grid.parentNode.insertBefore(cn,grid);if(pager)pager.style.display='none';}
+  });
+}
+else if(P==='/search'){
+  var q=decodeURIComponent(((location.search.match(/[?&]q=([^&]*)/)||[])[1]||'').replace(/\+/g,' '));
+  var te2=document.getElementById('wu-cat-title'); if(te2)te2.textContent='Search';
+  var de=document.getElementById('wu-cat-desc'); if(de)de.textContent=q?('Showing results for "'+q+'"'):'Type a search above';
+  var hb3=document.getElementById('wu-cathero-bg');if(hb3&&wuHeroUrl('heroCanopy'))hb3.style.backgroundImage='url("'+wuHeroUrl('heroCanopy')+'")';
+  if(q){wuFeed('/feeds/posts/default?q='+encodeURIComponent(q)+'&alt=json&max-results=30').then(function(en){
+    if(grid){if(en.length){grid.innerHTML=en.map(function(e){return wuGCard(e);}).join('');var cn=document.createElement('div');cn.className='wu-count';cn.innerHTML='<h2>Search results</h2><p>'+en.length+' result'+(en.length===1?'':'s')+' for &#8220;'+wuEsc(q)+'&#8221;</p>';grid.parentNode.insertBefore(cn,grid);}else{grid.innerHTML='<p class="wu-empty">No results found for &#8220;'+wuEsc(q)+'&#8221;. Try different keywords or browse the categories.</p>';}}
+    if(pager)pager.style.display='none';
+  });}
+}
+})();
+
+/* ============ POST PAGE ENGINE ============ */
+(function(){
+  var ART=document.querySelector('.wu-art'); if(!ART) return;
+  /* Supabase - SHARED backend with wildlifeuniverse.org (public anon key; RLS-protected) */
+  var SB_URL='https://msnllkjvhxzfoedgecva.supabase.co';
+  var SB_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1zbmxsa2p2aHh6Zm9lZGdlY3ZhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY2NDk4MDksImV4cCI6MjA5MjIyNTgwOX0.6SUn4XBq9cny29LOmFFud1rGWbZ5uM7UVPZexAFUZrg';
+  var TITLE=(ART.getAttribute('data-title')||document.title||'').trim();
+  var PURL=ART.getAttribute('data-url')||location.href;
+  var content=document.getElementById('wu-content');
+  function esc(s){return (s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function uid(){var k='wu_user_token';var v=null;try{v=localStorage.getItem(k);}catch(e){}if(!v){v='wu-'+Math.random().toString(36).slice(2)+Date.now().toString(36);try{localStorage.setItem(k,v);}catch(e){}}return v;}
+
+  /* HERO bg from first body image */
+  (function(){
+    var bg=document.getElementById('wu-arth-bg'); if(!bg||!content) return;
+    var im=content.querySelector('img');
+    if(im&&im.getAttribute('src')){ bg.style.backgroundImage='url("'+im.getAttribute('src')+'")'; var f=im.closest('figure'); if(f){f.style.display='none';}else{im.style.display='none';} }
+  })();
+
+  /* READ TIME */
+  (function(){var b=document.getElementById('wu-read');if(!content||!b)return;var w=(content.textContent||'').trim().split(/\s+/).length;b.textContent=Math.max(1,Math.round(w/200))+' min read';})();
+
+  /* READING PROGRESS */
+  (function(){
+    var bar=document.createElement('div'); bar.id='wu-progress'; document.body.appendChild(bar);
+    var col=document.querySelector('.wu-artcol')||ART;
+    function upd(){var r=col.getBoundingClientRect();var total=col.offsetHeight-window.innerHeight;var passed=Math.min(Math.max(-r.top,0),total>0?total:0);bar.style.width=(total>0?(passed/total*100):0)+'%';}
+    window.addEventListener('scroll',upd,{passive:true}); window.addEventListener('resize',upd); upd();
+  })();
+
+  /* SAVE (bookmark) */
+  (function(){
+    var btn=document.getElementById('wu-save'),lbl=document.getElementById('wu-save-lbl'); if(!btn)return;
+    function saved(){try{return JSON.parse(localStorage.getItem('wu_saved')||'[]');}catch(e){return [];}}
+    function render(){var on=saved().indexOf(PURL)>-1;btn.classList.toggle('saved',on);if(lbl)lbl.textContent=on?'Saved':'Save';}
+    btn.addEventListener('click',function(){var s=saved();var i=s.indexOf(PURL);if(i>-1)s.splice(i,1);else s.push(PURL);try{localStorage.setItem('wu_saved',JSON.stringify(s));}catch(e){}render();});
+    render();
+  })();
+
+  /* TOC */
+  (function(){
+    var list=document.getElementById('wu-toc-list'),side=document.getElementById('wu-toc-side'); if(!list||!content) return;
+    var hs=content.querySelectorAll('h2,h3');
+    if(hs.length<2){ if(side)side.style.display='none'; var g0=document.querySelector('.wu-artgrid'); if(g0)g0.classList.add('no-toc'); return; }
+    var items=[],cnt={};
+    hs.forEach(function(h){
+      var t=(h.textContent||'').trim(); if(!t) return;
+      var s=t.toLowerCase().replace(/[^\w\s-]/g,'').replace(/\s+/g,'-').replace(/-+/g,'-')||'h';
+      cnt[s]=(cnt[s]||0)+1; if(cnt[s]>1)s+='-'+cnt[s]; h.id=s;
+      var li=document.createElement('li');
+      var a=document.createElement('a'); a.href='#'+s; a.textContent=t; a.setAttribute('data-id',s);
+      if(h.tagName==='H3')a.className='h3';
+      a.addEventListener('click',function(e){e.preventDefault();var el=document.getElementById(s);if(el)window.scrollTo({top:el.getBoundingClientRect().top+window.pageYOffset-100,behavior:'smooth'});});
+      li.appendChild(a); list.appendChild(li); items.push(s);
+    });
+    if('IntersectionObserver' in window){
+      var vis={},links=list.querySelectorAll('a');
+      var obs=new IntersectionObserver(function(ents){
+        ents.forEach(function(en){vis[en.target.id]=en.isIntersecting;});
+        var cur=null; for(var i=0;i<items.length;i++){if(vis[items[i]]){cur=items[i];break;}}
+        links.forEach(function(l){l.classList.toggle('active',l.getAttribute('data-id')===cur);});
+      },{rootMargin:'-90px 0px -65% 0px',threshold:0});
+      hs.forEach(function(h){obs.observe(h);});
+    }
+  })();
+
+  /* TTS (Web Speech, gold theme, 30-word chunks, cancel-based pause/resume) */
+  (function(){
+    var host=document.getElementById('wu-tts'); if(!host||!content) return;
+    if(!('speechSynthesis' in window)){ host.style.display='none'; return; }
+    var LANGS=[['en-US','English (US)'],['en-GB','English (UK)'],['es-ES','Spanish'],['fr-FR','French'],['de-DE','German'],['it-IT','Italian'],['pt-BR','Portuguese'],['ja-JP','Japanese'],['zh-CN','Chinese'],['ar-SA','Arabic'],['hi-IN','Hindi'],['ru-RU','Russian'],['ko-KR','Korean'],['nl-NL','Dutch'],['pl-PL','Polish'],['sv-SE','Swedish'],['sw-KE','Swahili'],['tr-TR','Turkish']];
+    var SPK='<svg width="15" height="15" fill="none" stroke="#1a1208" stroke-width="2" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/></svg>';
+    var PLAY='<svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"/></svg>';
+    var PAUSE='<svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>';
+    var STOP='<svg width="13" height="13" fill="currentColor" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>';
+    var voices=[]; function lv(){voices=speechSynthesis.getVoices();} lv(); if(speechSynthesis.addEventListener)speechSynthesis.addEventListener('voiceschanged',lv);
+    var lang='en-US',muted=false,chunks=[],idx=0,playing=false,paused=false,fill=null,pct=null;
+    function setProg(p){if(fill)fill.style.width=p+'%';if(pct)pct.textContent=p>=100?'Finished':(p>0?Math.round(p)+'%':'');}
+    function plain(){var d=document.createElement('div');d.innerHTML=content.innerHTML;return (d.textContent||d.innerText||'').replace(/\s+/g,' ').trim();}
+    function chunk(t){var parts=t.match(/[^.!?]*[.!?]+\s*/g)||[t];var rem=t.slice(parts.reduce(function(n,p){return n+p.length;},0)).trim();if(rem)parts.push(rem);var out=[],c='',w=0;parts.forEach(function(p){var pw=p.split(/\s+/).length;if(w+pw>30&&c){out.push(c.trim());c='';w=0;}c+=p;w+=pw;});if(c.trim())out.push(c.trim());return out;}
+    function pickVoice(){return voices.filter(function(v){return v.lang===lang&&/Google|Natural/.test(v.name);})[0]||voices.filter(function(v){return v.lang.indexOf(lang.split('-')[0])===0;})[0]||voices.filter(function(v){return v.lang===lang;})[0];}
+    function speak(i){ if(i>=chunks.length){playing=false;paused=false;setProg(100);render();return;} idx=i; var u=new SpeechSynthesisUtterance(chunks[i]); u.lang=lang; u.rate=0.95; u.volume=muted?0:1; var v=pickVoice(); if(v)u.voice=v; u.onend=function(){ if(paused)return; setProg(((i+1)/chunks.length)*100); setTimeout(function(){speak(i+1);},50); }; speechSynthesis.speak(u); }
+    function start(){ speechSynthesis.cancel(); chunks=chunk(plain()); if(!chunks.length)return; playing=true;paused=false; render(); speak(0); }
+    function pause(){ paused=true; speechSynthesis.cancel(); playing=false; render(); }
+    function resume(){ paused=false;playing=true; render(); speak(idx); }
+    function stop(){ speechSynthesis.cancel(); playing=false;paused=false;idx=0;chunks=[];setProg(0);render(); }
+    function render(){
+      var ll=LANGS.filter(function(x){return x[0]===lang;})[0]||LANGS[0];
+      var main=(!playing&&!paused)?'<button class="wu-tts-btn" data-a="play" type="button">'+PLAY+' Play Audio</button>':(playing?'<button class="wu-tts-btn amber" data-a="pause" type="button">'+PAUSE+' Pause</button>':'<button class="wu-tts-btn" data-a="resume" type="button">'+PLAY+' Resume</button>');
+      var stopBtn=(playing||paused)?'<button class="wu-tts-btn gray" data-a="stop" type="button">'+STOP+' Stop</button>':'';
+      var menu=LANGS.map(function(x){return '<button type="button" data-lang="'+x[0]+'" class="'+(x[0]===lang?'sel':'')+'">'+x[1]+'</button>';}).join('');
+      host.className='wu-tts';
+      host.innerHTML='<div class="wu-tts-head"><div class="wu-tts-ico">'+SPK+'</div><div class="wu-tts-tt"><b>Listen to this article</b><span>'+esc(TITLE)+'</span></div><div class="wu-tts-lang"><button class="wu-tts-langbtn" data-a="langtog" type="button">&#127760; '+esc(ll[1])+' &#9662;</button><div class="wu-tts-langmenu" id="wu-tts-lm">'+menu+'</div></div><button class="wu-tts-mute" data-a="mute" title="mute" type="button">'+(muted?'&#128263;':'&#128266;')+'</button></div><div class="wu-tts-bar"><div class="wu-tts-fill" id="wu-tts-fill"></div></div><div class="wu-tts-ctrls">'+main+stopBtn+'<span class="wu-tts-pct" id="wu-tts-pct"></span></div>';
+      fill=document.getElementById('wu-tts-fill'); pct=document.getElementById('wu-tts-pct');
+    }
+    render();
+    host.addEventListener('click',function(e){
+      var b=e.target.closest&&e.target.closest('[data-a],[data-lang]'); if(!b)return;
+      var lng=b.getAttribute('data-lang'); if(lng){ lang=lng; if(playing||paused)stop(); render(); return; }
+      var a=b.getAttribute('data-a');
+      if(a==='play')start(); else if(a==='pause')pause(); else if(a==='resume')resume(); else if(a==='stop')stop();
+      else if(a==='mute'){muted=!muted;render();}
+      else if(a==='langtog'){var m=document.getElementById('wu-tts-lm');if(m)m.classList.toggle('open');}
+    });
+    document.addEventListener('click',function(e){var m=document.getElementById('wu-tts-lm');if(m&&m.classList.contains('open')&&!(e.target.closest&&e.target.closest('.wu-tts-lang')))m.classList.remove('open');});
+    window.addEventListener('beforeunload',function(){try{speechSynthesis.cancel();}catch(e){}});
+  })();
+
+  /* Supabase REST helper */
+  function sb(path,opts){opts=opts||{};opts.headers=Object.assign({apikey:SB_KEY,Authorization:'Bearer '+SB_KEY,'Content-Type':'application/json'},opts.headers||{});return fetch(SB_URL+'/rest/v1/'+path,opts).then(function(r){return r.ok?r.json().catch(function(){return null;}):null;}).catch(function(){return null;});}
+  /* Match Blogger post -> Supabase post by exact TITLE; key everything by returned slug */
+  var SLUG=null;
+  var slugP=sb('posts?title=eq.'+encodeURIComponent(TITLE)+'&select=slug,views,category,featured&limit=1').then(function(d){
+    var row=(d&&d[0])||null;
+    if(row){
+      SLUG=row.slug||null;
+      if(row.views>0){var v=document.getElementById('wu-views'),vn=document.getElementById('wu-views-n');if(v&&vn){vn.textContent=row.views.toLocaleString()+' views';v.style.display='';}}
+      if(row.featured){var cb=document.getElementById('wu-arth-cat');if(cb){cb.classList.add('featured');cb.innerHTML='&#9733; '+cb.innerHTML;}}
+    }
+    return SLUG;
+  });
+
+  /* REACTIONS (shared post_reactions: post_slug, user_token, reaction) */
+  (function(){
+    var row=document.getElementById('wu-react-row'); if(!row)return;
+    var REACT=[['love','❤️','Love'],['laugh','😄','Laugh'],['wow','😮','Wow'],['think','🤔','Think'],['sad','😢','Sad'],['angry','😡','Angry']];
+    var counts={},mine=null,u=uid();
+    function draw(){ row.innerHTML=REACT.map(function(r){var c=counts[r[0]]||0;return '<button class="wu-react-btn'+(mine===r[0]?' sel':'')+'" data-r="'+r[0]+'" type="button"><span class="em">'+r[1]+'</span><span class="lb">'+r[2]+'</span><span class="ct">'+(c>0?c:'')+'</span></button>';}).join(''); }
+    row.addEventListener('click',function(e){var b=e.target.closest&&e.target.closest('[data-r]');if(!b||!SLUG)return;var type=b.getAttribute('data-r');
+      if(mine===type)return;
+      if(mine&&counts[mine])counts[mine]--; mine=type; counts[type]=(counts[type]||0)+1; draw();
+      var bb=row.querySelector('[data-r="'+type+'"]'); if(bb){bb.classList.add('pop');setTimeout(function(){bb.classList.remove('pop');},450);}
+      sb('post_reactions',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({post_slug:SLUG,user_token:u,reaction:type})});
+    });
+    slugP.then(function(slug){ if(!slug){row.innerHTML='<span class="wu-react-load">Reactions are unavailable for this story right now.</span>';return;}
+      Promise.all([ sb('post_reactions?post_slug=eq.'+encodeURIComponent(slug)+'&select=reaction'), sb('post_reactions?post_slug=eq.'+encodeURIComponent(slug)+'&user_token=eq.'+encodeURIComponent(u)+'&select=reaction&limit=1') ]).then(function(res){
+        counts={};(res[0]||[]).forEach(function(x){counts[x.reaction]=(counts[x.reaction]||0)+1;});
+        mine=(res[1]&&res[1][0])?res[1][0].reaction:null; draw();
+      });
+    });
+    draw();
+  })();
+
+  /* COMMENTS (shared comments: post_slug, author, body, flagged, parent_id) */
+  (function(){
+    var box=document.getElementById('wu-cm-box'),hEl=document.getElementById('wu-cm-h'); if(!box)return;
+    var u=uid();
+    var CMR=[['like','👍'],['love','❤️'],['laugh','😄'],['wow','😮']];
+    function av(n){return ((n||'A').trim().charAt(0)||'A').toUpperCase();}
+    function fmt(d){try{return new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'short',day:'numeric'});}catch(x){return '';}}
+    function spammy(t){
+      if(/(https?:\/\/|www\.)/i.test(t))return true;
+      if(/\b(buy now|click here|free money|casino|viagra|loan offer|crypto profit|earn \$|make money fast|promo code|discount code)\b/i.test(t))return true;
+      var letters=t.replace(/[^a-zA-Z]/g,'');
+      if(letters.length>12){var caps=t.replace(/[^A-Z]/g,'').length;if(caps/letters.length>0.7)return true;}
+      return false;
+    }
+    function reactBar(c,counts,mine){
+      return '<div class="wu-cm-acts">'+CMR.map(function(r){var n=(counts[c.id]&&counts[c.id][r[0]])||0;var sel=(mine[c.id]===r[0])?' sel':'';return '<button class="wu-cmr-btn'+sel+'" data-cid="'+c.id+'" data-cr="'+r[0]+'" type="button">'+r[1]+(n>0?' '+n:'')+'</button>';}).join('')+(c.parent_id?'':'<button class="wu-cm-reply" data-reply="'+c.id+'" type="button">Reply</button>')+'</div>';
+    }
+    function itemHtml(c,counts,mine,isReply){
+      return '<div class="wu-cm-item'+(isReply?' reply':'')+'" data-id="'+c.id+'"><div class="wu-cm-top"><div class="wu-cm-av">'+esc(av(c.author))+'</div><div><div class="wu-cm-nm">'+esc(c.author||'Anonymous')+'</div><div class="wu-cm-dt">'+fmt(c.created_at)+'</div></div></div><div class="wu-cm-body">'+esc(c.body)+'</div>'+reactBar(c,counts,mine)+'</div>';
+    }
+    function formHtml(pid){
+      return '<form class="wu-cm-form" data-parent="'+(pid||'')+'"><input class="wu-cm-name" maxlength="100" placeholder="Your name (optional)"/><textarea class="wu-cm-ta" maxlength="5000" placeholder="'+(pid?'Write your reply...':'Join the discussion...')+'" rows="4"></textarea><button class="wu-cm-post" type="submit">'+(pid?'Post Reply':'Post Comment')+'</button></form>';
+    }
+    slugP.then(function(slug){
+      if(!slug){box.innerHTML='<p class="wu-cm-empty">Comments are unavailable for this story right now.</p>';return;}
+      Promise.all([
+        sb('comments?post_slug=eq.'+encodeURIComponent(slug)+'&flagged=eq.false&select=id,author,body,parent_id,created_at&order=created_at.asc')
+      ]).then(function(res){
+        var list=res[0]||[];
+        var ids=list.map(function(c){return c.id;});
+        var cq=ids.length?sb('comment_reactions?comment_id=in.('+ids.map(function(x){return '"'+x+'"';}).join(',')+')&select=comment_id,reaction,user_token'):Promise.resolve([]);
+        cq.then(function(crs){
+          crs=crs||[];
+          var counts={},mine={};
+          crs.forEach(function(r){counts[r.comment_id]=counts[r.comment_id]||{};counts[r.comment_id][r.reaction]=(counts[r.comment_id][r.reaction]||0)+1;if(r.user_token===u)mine[r.comment_id]=r.reaction;});
+          var tops=list.filter(function(c){return !c.parent_id;});
+          var kids={};list.forEach(function(c){if(c.parent_id){kids[c.parent_id]=kids[c.parent_id]||[];kids[c.parent_id].push(c);}});
+          if(hEl)hEl.textContent='Comments ('+list.length+')';
+          var items=tops.map(function(c){
+            var h=itemHtml(c,counts,mine,false);
+            (kids[c.id]||[]).forEach(function(k){h+=itemHtml(k,counts,mine,true);});
+            return h;
+          }).join('');
+          box.innerHTML=formHtml(null)+'<div class="wu-cm-list" id="wu-cm-list">'+(items||'<p class="wu-cm-empty">Be the first to share your thoughts.</p>')+'</div>';
+          /* submit (top-level + replies via delegation) */
+          box.addEventListener('submit',function(e){
+            var f=e.target.closest&&e.target.closest('.wu-cm-form'); if(!f)return; e.preventDefault();
+            var ta=f.querySelector('.wu-cm-ta'),nm=f.querySelector('.wu-cm-name'),btn=f.querySelector('.wu-cm-post');
+            var txt=(ta.value||'').trim(); if(txt.length<2){ta.focus();return;}
+            var flagged=spammy(txt);
+            var payload={post_slug:slug,author:((nm.value||'').trim().slice(0,100))||'Anonymous',body:txt,flagged:flagged};
+            var pid=f.getAttribute('data-parent'); if(pid)payload.parent_id=pid;
+            btn.disabled=true;btn.textContent='Posting...';
+            sb('comments',{method:'POST',headers:{Prefer:'return=representation'},body:JSON.stringify(payload)}).then(function(d){
+              if(!d){btn.disabled=false;btn.textContent='Post Comment';return;}
+              if(flagged){f.outerHTML='<div class="wu-cm-held">Thanks! Your comment was held for review and will appear once approved.</div>';return;}
+              var row=(d&&d[0])||payload; row.id=row.id||('tmp'+Date.now()); row.created_at=row.created_at||new Date().toISOString();
+              var html=itemHtml(row,{},{},!!pid);
+              if(pid){var host2=box.querySelector('.wu-cm-item[data-id="'+pid+'"]');if(host2)host2.insertAdjacentHTML('afterend',html);f.remove();}
+              else{var lst=document.getElementById('wu-cm-list');if(lst){var emp=lst.querySelector('.wu-cm-empty');if(emp)emp.remove();lst.insertAdjacentHTML('afterbegin',html);}ta.value='';btn.disabled=false;btn.textContent='Post Comment';}
+            });
+          });
+          /* reply + comment reactions via delegation */
+          box.addEventListener('click',function(e){
+            var rp=e.target.closest&&e.target.closest('[data-reply]');
+            if(rp){var cid=rp.getAttribute('data-reply');var it=box.querySelector('.wu-cm-item[data-id="'+cid+'"]');if(it&&!it.querySelector('.wu-cm-form')){it.insertAdjacentHTML('beforeend',formHtml(cid));}return;}
+            var rb=e.target.closest&&e.target.closest('[data-cr]');
+            if(rb){var cid2=rb.getAttribute('data-cid'),type=rb.getAttribute('data-cr');
+              if(mine[cid2]===type)return;
+              counts[cid2]=counts[cid2]||{};
+              if(mine[cid2]&&counts[cid2][mine[cid2]])counts[cid2][mine[cid2]]--;
+              mine[cid2]=type;counts[cid2][type]=(counts[cid2][type]||0)+1;
+              var it2=box.querySelector('.wu-cm-item[data-id="'+cid2+'"]');
+              if(it2){var bar=it2.querySelector('.wu-cm-acts');var c0=list.filter(function(x){return String(x.id)===String(cid2);})[0]||{id:cid2,parent_id:null};if(bar)bar.outerHTML=reactBar(c0,counts,mine);}
+              sb('comment_reactions',{method:'POST',headers:{Prefer:'resolution=merge-duplicates'},body:JSON.stringify({comment_id:cid2,user_token:u,reaction:type})});
+            }
+          });
+        });
+      });
+    });
+  })();
+
+  /* RELATED: label section + "More in {Category}" (glass cards) */
+  (function(){
+    var host=document.getElementById('wu-related'); if(!host)return;
+    var label=null,cat=null,catLink=document.getElementById('wu-arth-cat');
+    if(catLink){ var h=catLink.getAttribute('href')||''; if(h.indexOf('/search/label/')>-1)label=decodeURIComponent(h.split('/search/label/')[1]).replace(/\/$/,''); }
+    WU_TAX.forEach(function(t){if(t.n===label||t.l.indexOf(label)>-1)cat=t.n;});
+    var seen={}; seen[PURL]=1;
+    function dedup(arr){return arr.filter(function(e){var u2=wuAlt(e);if(seen[u2])return false;seen[u2]=1;return true;});}
+    function section(title,sub,posts){ if(!posts.length)return ''; return '<section class="wu-rel"><div class="wu-container"><h2 class="wu-rel-h">'+wuEsc(title)+'</h2><p class="wu-rel-sub">'+wuEsc(sub)+'</p><div class="wu-grid">'+posts.slice(0,6).map(function(e){return wuGCard(e);}).join('')+'</div></div></section>'; }
+    var r1=(label&&label!==cat)?wuByLabel(label,14):Promise.resolve([]);
+    var r2=cat?wuByLabel(cat,14):Promise.resolve([]);
+    var r3=wuFeed('/feeds/posts/default?alt=json&max-results=14');
+    Promise.all([r1,r2,r3]).then(function(r){
+      var rel=dedup(r[0]), catp=dedup(r[1]), rec=dedup(r[2]);
+      var html='';
+      if(label&&label!==cat)html+=section('More on '+label,'Related stories from the same topic',rel);
+      if(cat)html+=section('More in '+cat,'Related stories from the same category',catp);
+      if(!html)html+=section('Recommended For You','More stories you might enjoy',rec);
+      host.innerHTML=html;
+    });
+  })();
+})();
+
+/* SHARE HELPERS */
+function wuShare(){if(navigator.share){navigator.share({title:document.title,url:location.href}).catch(function(){});}else{wuCopy();}}
+function wuShareX(){window.open('https://twitter.com/intent/tweet?text='+encodeURIComponent(document.title)+'&url='+encodeURIComponent(location.href),'_blank','width=600,height=400');}
+function wuShareFB(){window.open('https://www.facebook.com/sharer/sharer.php?u='+encodeURIComponent(location.href),'_blank','width=600,height=400');}
+function wuShareWA(){window.open('https://wa.me/?text='+encodeURIComponent(document.title+' '+location.href),'_blank');}
+function wuCopy(){var b=document.getElementById('wu-copy');var done=function(){if(b){b.textContent='Copied!';setTimeout(function(){b.textContent='Copy Link';},2000);}};if(navigator.clipboard){navigator.clipboard.writeText(location.href).then(done).catch(function(){wuFb(done);});}else{wuFb(done);}}
+function wuFb(cb){var ta=document.createElement('textarea');ta.value=location.href;ta.style.cssText='position:fixed;left:-9999px;';document.body.appendChild(ta);ta.select();try{document.execCommand('copy');cb();}catch(e){}document.body.removeChild(ta);}
+/* 404 countdown -> auto redirect home in 10s */
+(function(){var el=document.getElementById('wu-404-count');if(!el)return;var s=10;var t=setInterval(function(){s--;if(el)el.textContent=s<0?0:s;if(s<=0){clearInterval(t);location.href='/';}},1000);})();
+//]]>
+</script>
+
+</body>
+</html>

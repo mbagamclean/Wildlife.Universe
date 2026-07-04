@@ -9,3 +9,6 @@ out/
 
 # Per-category pacer rotation state (file-based, machine-local)
 .pacer-rotation-*.json
+
+# Blogger kit local previews/screenshots
+blogger/preview/
