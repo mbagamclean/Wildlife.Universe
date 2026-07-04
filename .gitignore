@@ -12,3 +12,7 @@ out/
 
 # Blogger kit local previews/screenshots
 blogger/preview/
+
+# Blogger migration secrets/state
+blogger/migration/.env
+blogger/migration/migration-state.json
